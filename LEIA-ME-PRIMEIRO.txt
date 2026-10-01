@@ -1,0 +1,36 @@
+PDF STUDIO WEB — LEIA-ME-PRIMEIRO
+
+1) Instale Node.js 22 ou superior:
+   https://nodejs.org/
+
+2) Extraia esta pasta completamente.
+
+3) Execute:
+   INSTALAR_E_TESTAR.bat
+
+4) Teste no navegador:
+   http://localhost:5173
+
+5) Quando estiver satisfeito, execute:
+   BUILD_PRODUCAO.bat
+
+6) Para publicar sem cartão e sem backend:
+   Cloudflare Dashboard > Workers & Pages > Create application > Pages.
+
+RECOMENDADO:
+Conecte o repositório GitHub e use:
+   Build command: npm run build
+   Output directory: dist
+
+FUNÇÕES:
+- Compressão Inteligente/Básica/Média/Alta/Máxima
+- Mesclar
+- Dividir por MB
+- PDF -> JPG/PNG
+- Imagens -> PDF
+- PDF -> TXT
+- PDF -> Word (Beta)
+- Word -> PDF (Beta)
+
+PRIVACIDADE:
+Os documentos são processados localmente no navegador e não são enviados para um servidor.
