@@ -1,7 +1,7 @@
 {
   "name": "pdf-studio-web-client",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,6 +10,8 @@
     "check": "tsc -b"
   },
   "dependencies": {
+    "@wasm-zoo/ghostscript": "^0.7.2",
+    "@wasm-zoo/qpdf": "^0.1.1",
     "docx": "^9.5.1",
     "dompurify": "^3.2.6",
     "html2canvas": "^1.4.1",
@@ -30,5 +32,6 @@
     "typescript": "~5.8.3",
     "vite": "^7.1.7",
     "wrangler": "^4.145.0"
-  }
+  },
+  "license": "AGPL-3.0-or-later"
 }

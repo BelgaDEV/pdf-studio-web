@@ -1,0 +1,12 @@
+PDF Studio Web Client v1.2.0
+
+Validacoes executadas no pacote:
+- TypeScript 5.8.3: parsing dos arquivos alterados sem erros de sintaxe.
+- Dependencias externas nao estavam instaladas no ambiente de empacotamento, portanto o build npm completo deve ser executado no PC do usuario com npm install && npm run build.
+- O fallback adaptativo nao depende do Ghostscript/qpdf WASM: usa PDF.js + Canvas + pdf-lib no navegador.
+
+Teste principal recomendado:
+Apostila de Direito Constitucional.pdf - ~54 MB / 477 paginas
+1) Inteligente: deve recomendar Medio, nao Basico.
+2) Medio: deve produzir arquivo menor mesmo se WASM falhar, usando fallback adaptativo.
+3) Maximo: deve buscar reducao mais agressiva; pode rasterizar paginas no fallback.

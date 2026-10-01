@@ -1,4 +1,9 @@
-# PDF Studio Web — Client-side v1
+# PDF Studio Web Client v1.2.0
+
+**Atualização de compressão:** esta versão corrige o fallback que podia devolver o PDF original sem reduzir. O Vite também foi ajustado para empacotar os motores WebAssembly com mais confiabilidade. Se o Ghostscript WASM não inicializar, Médio/Alto/Máximo passam a usar compressão visual adaptativa com meta de tamanho.
+
+Veja `MOTOR_COMPRESSAO_V1_2.md`.
+
 
 Suíte de ferramentas PDF executada **inteiramente no navegador**. Não existe backend, banco, bucket ou upload dos documentos para um servidor.
 
@@ -143,3 +148,8 @@ O projeto não contém chamadas de API para upload dos documentos. Os arquivos f
 - processamento em Web Worker dedicado para compressão pesada
 - benchmark de qualidade/tamanho
 - recuperação de texto pesquisável após rasterização via OCR
+
+
+## Motor de compressão v1.1
+
+A compressão agora usa **Ghostscript WebAssembly + qpdf WebAssembly** diretamente no navegador. Veja `MOTOR_COMPRESSAO_V1_1.md`.

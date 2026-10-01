@@ -1,16 +1,14 @@
-PDF Studio Web Client v1.0.1
+PDF Studio Web Client v1.1.0
 
-Correção aplicada:
-- tsconfig.node.json agora usa noEmit=true, compatível com allowImportingTsExtensions no TypeScript 5.8.
-- Incluído CORRIGIR_BUILD.bat para reparar instalações da v1.0.0.
+VALIDAÇÕES E OBSERVAÇÕES
+- Estrutura TypeScript revisada; delimitadores de arquivos alterados balanceados.
+- Proteção contra resultado vazio/inválido mantida.
+- Novo compressor usa módulos npm @wasm-zoo/ghostscript e @wasm-zoo/qpdf.
+- O ambiente de geração não possui acesso ao npm registry para baixar os novos pacotes, portanto o build final deve ser validado no PC com `npm install` + `npm run build`.
+- O usuário já validou que o projeto-base Vite/React compila localmente; a v1.1 adiciona apenas os novos motores WASM e integração.
 
-VALIDAÇÃO DE ENTREGA
-
-- Estrutura dos arquivos: OK
-- 8 arquivos TypeScript/TSX verificados sintaticamente: 0 erros de sintaxe
-- Rotas SPA para Cloudflare Pages: public/_redirects incluído
-- Headers básicos de segurança: public/_headers incluído
-- Scripts Windows de instalação e build: incluídos
-
-Observação importante:
-O ambiente usado para gerar este pacote não conseguiu concluir o download de dependências do npm dentro do tempo de execução disponível. Portanto, o build com as dependências reais deve ser executado no seu PC usando INSTALAR_E_TESTAR.bat. Se aparecer algum erro de npm/TypeScript, envie a tela completa para correção.
+PASSO DE VALIDAÇÃO LOCAL
+1. npm install
+2. npm run build
+3. npm run dev
+4. Testar primeiro o mesmo PDF de 54,1 MB / 477 páginas em Médio e Máximo.

@@ -56,10 +56,39 @@ export default function ToolPage(){
     try{
       if(toolId==='compress'){
         const result=await compressPdf(files[0],mode,update)
-        const blob=new Blob([result.bytes],{type:'application/pdf'})
-        downloadBlob(blob,`${stem(files[0].name)}_compactado_${result.mode}.pdf`)
+        if (!result.bytes || result.bytes.byteLength < 100) {
+          throw new Error('A compressão gerou um resultado vazio ou inválido. O download foi bloqueado para proteger seu PDF.')
+        }
+        // Copiamos os bytes antes de criar o Blob para garantir que o buffer
+        // usado pelo PDF.js/Web Worker não esteja detached.
+        const safeBytes = result.bytes.slice()
+        const blob=new Blob([safeBytes],{type:'application/pdf'})
+        if (blob.size < 100) {
+          throw new Error('O PDF final ficou vazio. Nada foi baixado. Tente novamente ou use o modo Básico.')
+        }
         const reduction=Math.max(0,(1-blob.size/files[0].size)*100)
-        setSuccess(`PDF comprimido com sucesso. ${humanSize(files[0].size)} → ${humanSize(blob.size)} (${reduction.toFixed(1)}% menor).`)
+        const reduced = blob.size < files[0].size
+        const reductionText = reduced
+          ? `${reduction.toFixed(1)}% menor`
+          : 'sem redução adicional'
+        const engineLabel = result.engine === 'qpdf-wasm'
+          ? 'qpdf WebAssembly'
+          : result.engine === 'adaptive-raster'
+            ? 'redução visual extrema'
+            : result.engine === 'adaptive-raster-fallback'
+              ? 'fallback adaptativo local'
+              : result.engine === 'ghostscript-wasm + qpdf-wasm'
+                ? 'Ghostscript + qpdf WebAssembly'
+                : 'motor de compatibilidade'
+        const rasterNote = result.rasterized ? ' • páginas rasterizadas para priorizar tamanho' : ''
+
+        if (!reduced) {
+          setStatus('O arquivo já estava muito otimizado e nenhum resultado menor foi produzido. O original foi preservado.')
+          setSuccess(`Nenhum arquivo maior foi entregue. ${humanSize(files[0].size)} → ${humanSize(blob.size)} (${reductionText}). Motor: ${engineLabel}.`)
+        } else {
+          downloadBlob(blob,`${stem(files[0].name)}_compactado_${result.mode}.pdf`)
+          setSuccess(`PDF processado com sucesso. ${humanSize(files[0].size)} → ${humanSize(blob.size)} (${reductionText}). Motor: ${engineLabel}${rasterNote}.`)
+        }
       } else if(toolId==='merge'){
         if(files.length<2) throw new Error('Selecione pelo menos 2 PDFs.')
         const bytes=await mergePdfs(files,update)
@@ -124,7 +153,7 @@ export default function ToolPage(){
           <label className="field-label">Nível de compressão</label>
           <div className="mode-grid">{(['smart','basic','medium','high','maximum'] as CompressionMode[]).map(m=><button key={m} className={`mode-btn ${mode===m?'active':''}`} onClick={()=>setMode(m)}>{m==='smart'?'Inteligente':m==='basic'?'Básico':m==='medium'?'Médio':m==='high'?'Alto':'Máximo'}</button>)}</div>
           {analysis && <div className="analysis-box"><Info size={17}/><span>{analysis.pages} página(s). Recomendado: <strong>{analysis.recommended}</strong>.</span></div>}
-          <p className="warning-text">Médio/Alto/Máximo priorizam redução visual e podem rasterizar páginas, afetando texto selecionável.</p>
+          <p className="warning-text">Médio e Alto usam Ghostscript WebAssembly para recomprimir imagens preservando texto/vetores. Máximo usa o mesmo motor e só rasteriza como último recurso quando o PDF já está muito otimizado.</p>
         </>}
         {toolId==='split' && <><label className="field-label">Tamanho máximo por parte</label><div className="number-field"><input type="number" min="0.5" max="500" step="0.5" value={splitMb} onChange={e=>setSplitMb(Number(e.target.value))}/><span>MB</span></div></>}
         {(toolId==='pdf-jpg'||toolId==='pdf-png') && <><label className="field-label">Resolução</label><select value={dpi} onChange={e=>setDpi(Number(e.target.value))}><option value="96">96 DPI</option><option value="150">150 DPI</option><option value="200">200 DPI</option><option value="300">300 DPI</option></select></>}

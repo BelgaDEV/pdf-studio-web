@@ -5,3 +5,34 @@ declare module 'mammoth/mammoth.browser' {
   }
   export default mammoth
 }
+
+declare module '@wasm-zoo/ghostscript' {
+  export function load(): Promise<{
+    exec(args: string[], options: {
+      files?: Array<{ name: string; data: Uint8Array | ArrayBuffer }>
+      dirs?: string[]
+      outputs?: string[]
+    }): Promise<{
+      files?: Array<{ name?: string; data: Uint8Array | ArrayBuffer }>
+      stdout?: string
+      stderr?: string
+      code?: number
+    }>
+    dispose(): void
+  }>
+}
+
+declare module '@wasm-zoo/qpdf' {
+  export function load(): Promise<{
+    exec(args: string[], options: {
+      files?: Array<{ name: string; data: Uint8Array | ArrayBuffer }>
+      outputs?: string[]
+    }): Promise<{
+      files?: Array<{ name?: string; data: Uint8Array | ArrayBuffer }>
+      stdout?: string
+      stderr?: string
+      code?: number
+    }>
+    dispose(): void
+  }>
+}
