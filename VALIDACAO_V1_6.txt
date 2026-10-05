@@ -1,0 +1,7 @@
+PDF Studio Web Client v1.6.0 — validação de pacote
+
+- 7 Document Tools adicionadas.
+- Rotas integradas ao ToolPage e à lista principal de ferramentas.
+- Nenhuma nova dependência npm adicionada; usa pdf-lib, PDF.js, JSZip, qpdf WASM e Ghostscript WASM já presentes.
+- Todos os arquivos .ts/.tsx foram analisados pelo transpiler TypeScript 5.8.3: 0 erros de sintaxe.
+- O ambiente desta sessão não concluiu npm install por timeout de rede; portanto npm run build deve ser executado no PC de homologação antes do deploy.

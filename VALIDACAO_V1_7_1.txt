@@ -1,0 +1,17 @@
+PDF Studio Web Client v1.7.1 — Legal / Business
+
+Nova peça:
+- Índice automático clicável integrado à mesclagem
+- Nome do documento + página física inicial
+- Links internos em cada linha
+- Índice multipágina automático
+- Título personalizável
+- Integração com bookmarks
+- Ordem respeita drag-and-drop
+- Destinos recalculados após inserção das páginas de índice
+
+Validações executadas neste ambiente:
+- arquivos TS/TSX analisados pelo parser TypeScript sem erros de sintaxe
+- estrutura do pacote conferida
+
+O npm install/build completo deve ser validado no computador do usuário porque a instalação de dependências expirou por timeout de rede neste ambiente.

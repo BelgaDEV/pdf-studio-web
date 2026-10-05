@@ -1,0 +1,10 @@
+PDF Studio Web Client v1.5.0
+
+- Nova opção: Criar marcadores automaticamente em Mesclar PDF
+- Título do bookmark = nome do arquivo sem .pdf
+- Destino = primeira página do documento de origem
+- Ordem = mesma ordem configurada na lista de mesclagem
+- PageMode = UseOutlines para solicitar abertura do painel em leitores compatíveis
+- Mesclagem massiva preserva índices dos arquivos válidos para mapear os bookmarks
+- Proteção de memória: pós-processamento de bookmarks pode ser omitido em resultados > ~220 MB
+- Parser TypeScript: sem erros de sintaxe nos arquivos TS/TSX

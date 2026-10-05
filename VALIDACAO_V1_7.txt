@@ -1,0 +1,8 @@
+PDF Studio Web Client v1.7.0
+Feature: Legal / Business - Preparar Documento
+
+Validacoes no pacote:
+- Arquivos TypeScript/TSX analisados por parser TypeScript.
+- Pipeline encadeia as ferramentas existentes sem backend.
+- Documento final e reaberto pelo pdf-lib para validar quantidade de paginas > 0.
+- npm install/build completo deve ser executado no PC de homologacao porque a instalacao neste ambiente expirou por rede.

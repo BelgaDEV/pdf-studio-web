@@ -1,4 +1,6 @@
 import { PDFDocument } from 'pdf-lib'
+import { addPdfBookmarks, addPdfBookmarksHierarchical, type PdfBookmarkSpec } from './bookmarks'
+import { addClickableTableOfContents } from './tableOfContents'
 import { mergeManyPdfs, type LargeMergeResult } from './largeMerge'
 import * as pdfjsLib from 'pdfjs-dist'
 import JSZip from 'jszip'
@@ -669,41 +671,259 @@ export interface MergeResult {
   mergedFiles: number
   skippedFiles: string[]
   engine: 'pdf-lib' | LargeMergeResult['engine']
+  bookmarksCreated: number
+  tocPagesCreated: number
+  tocEntriesCreated: number
+  bookmarkWarning?: string
+  tocWarning?: string
+  bookmarkCategoriesCreated: number
 }
 
-export async function mergePdfs(files: File[], onProgress: ProgressFn): Promise<MergeResult> {
+export interface MergeOptions {
+  createBookmarks?: boolean
+  createTableOfContents?: boolean
+  tocTitle?: string
+  bookmarkHierarchy?: boolean
+  bookmarkCategories?: string[]
+}
+
+const NAVIGATION_POSTPROCESS_MAX_BYTES = 220 * 1024 * 1024
+
+function bookmarkTitle(fileName: string, fallbackIndex: number): string {
+  const title = fileName.replace(/\.pdf$/i, '').trim()
+  return title || `Documento ${fallbackIndex + 1}`
+}
+
+async function buildBookmarkSpecs(
+  files: File[],
+  fileIndices: number[],
+  onProgress: ProgressFn,
+  startProgress: number,
+  endProgress: number,
+  categories: string[] = [],
+): Promise<PdfBookmarkSpec[]> {
+  const specs: PdfBookmarkSpec[] = []
+  let pageIndex = 0
+
+  for (let position = 0; position < fileIndices.length; position++) {
+    const fileIndex = fileIndices[position]
+    const file = files[fileIndex]
+    let pdf: any = null
+    try {
+      pdf = await loadPdfJs(file)
+      const pages = pdf.numPages
+      specs.push({ title: bookmarkTitle(file.name, position), pageIndex, category: (categories[fileIndex] || '').trim() || undefined })
+      pageIndex += pages
+    } finally {
+      if (pdf) {
+        try { await pdf.destroy() } catch { /* best effort */ }
+      }
+    }
+
+    if (position % 5 === 0 || position === fileIndices.length - 1) {
+      const fraction = (position + 1) / Math.max(1, fileIndices.length)
+      const mapped = startProgress + Math.round((endProgress - startProgress) * fraction)
+      onProgress(mapped, `Mapeando documentos: ${position + 1}/${fileIndices.length}…`)
+      await nextFrame()
+    }
+  }
+
+  return specs
+}
+
+async function addNavigationToMergedBlob(
+  blob: Blob,
+  specs: PdfBookmarkSpec[],
+  onProgress: ProgressFn,
+  options: Required<Pick<MergeOptions, 'createBookmarks'|'createTableOfContents'|'tocTitle'|'bookmarkHierarchy'>>,
+): Promise<{ blob: Blob; bookmarksCreated: number; bookmarkCategoriesCreated: number; tocPagesCreated: number; tocEntriesCreated: number }> {
+  onProgress(92, 'Preparando índice e navegação…')
+  await nextFrame()
+
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  const doc = await PDFDocument.load(bytes, { updateMetadata: false })
+  const expectedPages = specs.length === 0 ? 0 : Math.max(...specs.map(spec => spec.pageIndex)) + 1
+  if (expectedPages > doc.getPageCount()) {
+    throw new Error('A estrutura de páginas mudou durante a mesclagem e a navegação não pôde ser aplicada com segurança.')
+  }
+
+  let shiftedSpecs = specs
+  let tocPagesCreated = 0
+  let tocEntriesCreated = 0
+
+  if (options.createTableOfContents && specs.length > 0) {
+    onProgress(94, 'Criando índice automático clicável…')
+    await nextFrame()
+    const toc = await addClickableTableOfContents(doc, specs, options.tocTitle)
+    shiftedSpecs = toc.shiftedSpecs
+    tocPagesCreated = toc.pagesCreated
+    tocEntriesCreated = toc.entriesCreated
+  }
+
+  let bookmarksCreated = 0
+  let bookmarkCategoriesCreated = 0
+  if (options.createBookmarks && shiftedSpecs.length > 0) {
+    onProgress(96, options.bookmarkHierarchy ? 'Criando bookmarks hierárquicos…' : 'Criando marcadores de navegação…')
+    await nextFrame()
+    const bookmarkSpecs: PdfBookmarkSpec[] = tocPagesCreated > 0
+      ? [{ title: options.tocTitle || 'Índice de documentos', pageIndex: 0, root: true }, ...shiftedSpecs]
+      : shiftedSpecs
+    if (options.bookmarkHierarchy) {
+      const result = addPdfBookmarksHierarchical(doc, bookmarkSpecs, true)
+      bookmarksCreated = result.totalCreated
+      bookmarkCategoriesCreated = result.categoryBookmarksCreated
+    } else {
+      bookmarksCreated = addPdfBookmarks(doc, bookmarkSpecs, true)
+    }
+  }
+
+  onProgress(98, 'Gravando índice e navegação…')
+  await nextFrame()
+  const saved = await doc.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 25 })
+  if (!saved || saved.byteLength < 100) throw new Error('A etapa de índice/navegação gerou um PDF inválido.')
+
+  return {
+    blob: new Blob([saved], { type: 'application/pdf' }),
+    bookmarksCreated,
+    bookmarkCategoriesCreated,
+    tocPagesCreated,
+    tocEntriesCreated,
+  }
+}
+
+export async function mergePdfs(files: File[], onProgress: ProgressFn, options: MergeOptions = {}): Promise<MergeResult> {
   if (files.length < 2) throw new Error('Selecione pelo menos 2 PDFs.')
+  const createBookmarks = options.createBookmarks ?? true
+  const createTableOfContents = options.createTableOfContents ?? true
+  const tocTitle = (options.tocTitle || 'Índice de documentos').trim() || 'Índice de documentos'
+  const bookmarkHierarchy = options.bookmarkHierarchy ?? true
+  const bookmarkCategories = options.bookmarkCategories || []
+  const needsNavigation = createBookmarks || createTableOfContents
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
   const useMassiveMode = files.length >= 100 || totalBytes >= 128 * 1024 * 1024
 
   if (useMassiveMode) {
-    return mergeManyPdfs(files, onProgress)
+    const mappedProgress: ProgressFn = needsNavigation
+      ? (value, message) => onProgress(Math.min(86, Math.round(value * 0.86)), message)
+      : onProgress
+    const result = await mergeManyPdfs(files, mappedProgress)
+
+    if (!needsNavigation) {
+      onProgress(100, 'Mesclagem concluída.')
+      return { ...result, bookmarksCreated: 0, bookmarkCategoriesCreated: 0, tocPagesCreated: 0, tocEntriesCreated: 0 }
+    }
+
+    if (result.blob.size > NAVIGATION_POSTPROCESS_MAX_BYTES) {
+      const maxMb = Math.round(NAVIGATION_POSTPROCESS_MAX_BYTES / 1024 / 1024)
+      const sizeMb = (result.blob.size / 1024 / 1024).toFixed(1)
+      onProgress(100, 'Mesclagem concluída. Índice/marcadores foram omitidos para proteger a memória do navegador.')
+      return {
+        ...result,
+        bookmarksCreated: 0,
+        bookmarkCategoriesCreated: 0,
+        tocPagesCreated: 0,
+        tocEntriesCreated: 0,
+        bookmarkWarning: createBookmarks ? `O PDF final tem ${sizeMb} MB. Marcadores automáticos são pós-processados apenas em resultados de até ~${maxMb} MB na versão web.` : undefined,
+        tocWarning: createTableOfContents ? `O PDF final tem ${sizeMb} MB. O índice clicável é pós-processado apenas em resultados de até ~${maxMb} MB na versão web.` : undefined,
+      }
+    }
+
+    try {
+      const specs = await buildBookmarkSpecs(files, result.mergedFileIndices, onProgress, 87, 91, bookmarkCategories)
+      const navigation = await addNavigationToMergedBlob(result.blob, specs, onProgress, {
+        createBookmarks,
+        createTableOfContents,
+        tocTitle,
+        bookmarkHierarchy,
+      })
+      const parts = []
+      if (navigation.tocEntriesCreated) parts.push(`${navigation.tocEntriesCreated.toLocaleString('pt-BR')} item(ns) no índice`)
+      if (navigation.bookmarksCreated) parts.push(`${navigation.bookmarksCreated.toLocaleString('pt-BR')} marcador(es)`)
+      onProgress(100, parts.length ? `Concluído com ${parts.join(' e ')}.` : 'Concluído.')
+      return { ...result, ...navigation }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Falha ao criar índice/navegação.'
+      onProgress(100, 'Mesclagem concluída sem o pós-processamento de navegação.')
+      return {
+        ...result,
+        bookmarksCreated: 0,
+        bookmarkCategoriesCreated: 0,
+        tocPagesCreated: 0,
+        tocEntriesCreated: 0,
+        bookmarkWarning: createBookmarks ? `O PDF foi mesclado, mas os marcadores não puderam ser adicionados: ${detail}` : undefined,
+        tocWarning: createTableOfContents ? `O PDF foi mesclado, mas o índice clicável não pôde ser adicionado: ${detail}` : undefined,
+      }
+    }
   }
 
   const out = await PDFDocument.create()
+  const specs: PdfBookmarkSpec[] = []
   let done = 0
-  for (const file of files) {
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index]
     try {
       const src = await PDFDocument.load(await file.arrayBuffer(), { updateMetadata: false })
+      const firstPageIndex = out.getPageCount()
       const pages = await out.copyPages(src, src.getPageIndices())
       pages.forEach(p => out.addPage(p))
+      if (needsNavigation && pages.length > 0) {
+        specs.push({ title: bookmarkTitle(file.name, index), pageIndex: firstPageIndex, category: (bookmarkCategories[index] || '').trim() || undefined })
+      }
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'PDF inválido ou protegido.'
       throw new Error(`Falha ao abrir "${file.name}": ${detail}`)
     }
     done++
-    onProgress(Math.round(done/files.length*90), `Adicionando ${done}/${files.length}: ${file.name}…`)
+    const limit = needsNavigation ? 82 : 92
+    onProgress(Math.round(done/files.length*limit), `Adicionando ${done}/${files.length}: ${file.name}…`)
     await nextFrame()
   }
+
+  let shiftedSpecs = specs
+  let tocPagesCreated = 0
+  let tocEntriesCreated = 0
+  if (createTableOfContents && specs.length > 0) {
+    onProgress(86, 'Criando índice automático clicável…')
+    await nextFrame()
+    const toc = await addClickableTableOfContents(out, specs, tocTitle)
+    shiftedSpecs = toc.shiftedSpecs
+    tocPagesCreated = toc.pagesCreated
+    tocEntriesCreated = toc.entriesCreated
+  }
+
+  let bookmarksCreated = 0
+  let bookmarkCategoriesCreated = 0
+  if (createBookmarks && shiftedSpecs.length > 0) {
+    onProgress(91, bookmarkHierarchy ? `Criando bookmarks hierárquicos…` : `Criando marcadores de navegação…`)
+    const bookmarkSpecs: PdfBookmarkSpec[] = tocPagesCreated > 0
+      ? [{ title: tocTitle, pageIndex: 0, root: true }, ...shiftedSpecs]
+      : shiftedSpecs
+    if (bookmarkHierarchy) {
+      const result = addPdfBookmarksHierarchical(out, bookmarkSpecs, true)
+      bookmarksCreated = result.totalCreated
+      bookmarkCategoriesCreated = result.categoryBookmarksCreated
+    } else {
+      bookmarksCreated = addPdfBookmarks(out, bookmarkSpecs, true)
+    }
+    await nextFrame()
+  }
+
   onProgress(96, 'Finalizando arquivo mesclado…')
   const bytes = await out.save({ useObjectStreams:true, addDefaultPage:false, objectsPerTick:25 })
   if (!bytes || bytes.byteLength < 100) throw new Error('O PDF mesclado ficou vazio e foi bloqueado.')
-  onProgress(100, 'Concluído.')
+  const resultParts = []
+  if (tocEntriesCreated) resultParts.push(`${tocEntriesCreated.toLocaleString('pt-BR')} item(ns) no índice`)
+  if (bookmarksCreated) resultParts.push(`${bookmarksCreated.toLocaleString('pt-BR')} marcador(es)`)
+  onProgress(100, resultParts.length ? `Concluído com ${resultParts.join(' e ')}.` : 'Concluído.')
   return {
     blob: new Blob([bytes], { type: 'application/pdf' }),
     mergedFiles: files.length,
     skippedFiles: [],
     engine: 'pdf-lib',
+    bookmarksCreated,
+    bookmarkCategoriesCreated,
+    tocPagesCreated,
+    tocEntriesCreated,
   }
 }
 

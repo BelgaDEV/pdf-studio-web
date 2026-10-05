@@ -1,0 +1,23 @@
+PDF Studio Web v1.8.1 — Document Trust Report
+
+VALIDACOES DO PACOTE
+- Nova biblioteca: src/lib/trustReport.ts
+- Nova pagina: src/pages/TrustReportPage.tsx
+- Integracao com Preparar documento
+- SHA-256 original e final
+- SHA-256 interno do payload JSON
+- Relatorio PDF via jsPDF
+- JSON verificavel: pdf-studio-trust/v1
+- Verificacao posterior de PDF + JSON
+- Fingerprint avulso de PDF
+- Rota: /tool/trust-report
+- Sem nova dependencia npm
+
+IMPORTANTE
+O Trust Report e um registro tecnico local. Nao e assinatura digital, carimbo do tempo, certificacao juridica, laudo pericial ou prova independente de autoria.
+
+VALIDACAO DE SINTAXE NO AMBIENTE DE GERACAO
+- 29 arquivos TS/TSX analisados pelo parser TypeScript 5.8.3
+- 0 erros sintaticos
+- npm install/build completo nao executado: registry npm excedeu o timeout de rede do ambiente
+- Execute npm install && npm run build no Windows antes de publicar

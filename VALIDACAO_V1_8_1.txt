@@ -1,0 +1,13 @@
+PDF Studio Web v1.8.1 — Hotfix Preparar documento
+
+Correção validada:
+- Painel de preparação com rolagem própria no desktop.
+- Barra de execução sticky na parte inferior do painel.
+- Regra CSS conflitante removida.
+- Fallback responsivo <= 900 px.
+- 30 arquivos TS/TSX analisados: 0 erros de sintaxe.
+- package.json válido.
+
+Observação: build completo com dependências deve ser validado localmente com:
+  npm install
+  npm run build

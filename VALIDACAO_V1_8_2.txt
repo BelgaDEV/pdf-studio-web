@@ -1,0 +1,10 @@
+PDF Studio Web v1.8.2 — validação deste pacote
+
+- 31 arquivos TS/TSX analisados pelo parser TypeScript.
+- 0 erros de sintaxe encontrados.
+- package.json atualizado para 1.8.2.
+- Rotas novas: /faq e /roadmap.
+- Menu lateral global adicionado com busca e modo recolhido.
+- FAQ pesquisável com filtros por categoria.
+- Roadmap consolidado com histórico, maturidade, limitações e próximos passos.
+- npm install foi tentado neste ambiente, mas expirou por timeout de rede; executar npm install + npm run build no computador de homologação.

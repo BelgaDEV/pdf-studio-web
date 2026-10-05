@@ -1,0 +1,18 @@
+PDF Studio Web v1.7.2 — Mesclar + Bookmarks Pro
+
+Validações executadas neste ambiente:
+- Estrutura do projeto: OK
+- 21 arquivos TypeScript/TSX analisados pelo parser TypeScript: 0 erros de sintaxe
+- Fluxo de categorias alinhado com a ordem dos arquivos: implementado
+- Bookmarks hierárquicos com Outlines PDF: implementado
+- Compatibilidade com índice clicável: preservada
+- Fallback para bookmarks planos: preservado
+
+Observação:
+O npm install não concluiu neste ambiente por timeout de rede. Por isso, execute no PC:
+
+npm install
+npm run build
+npm run dev
+
+antes de atualizar o projeto oficial/GitHub/Cloudflare.

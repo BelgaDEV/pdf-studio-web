@@ -3,6 +3,12 @@ import { useParams, Link } from 'react-router-dom'
 import PageWorkspacePage from './PageWorkspacePage'
 import OcrToolPage from './OcrToolPage'
 import BatchToolPage from './BatchToolPage'
+import DocumentToolsPage, { documentToolIds, type DocumentToolId } from './DocumentToolsPage'
+import PrepareDocumentPage from './PrepareDocumentPage'
+import RedactionPage from './RedactionPage'
+import ComparePdfPage from './ComparePdfPage'
+import TribunalPresetsPage from './TribunalPresetsPage'
+import TrustReportPage from './TrustReportPage'
 import { ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Download, File, GripVertical, Info, LockKeyhole, UploadCloud, X } from 'lucide-react'
 import { tools, type ToolId } from '../lib/tools'
 import { compressPdf, compressPdfToTarget, extractPdfText, imagesToPdf, inspectPdf, mergePdfs, pdfToImagesZip, renderFirstPage, splitPdfBySize, type CompressionMode } from '../lib/pdf'
@@ -15,10 +21,16 @@ const multiPdf = new Set<ToolId>(['merge'])
 
 export default function ToolPage(){
   const { id } = useParams()
+  if(id==='prepare-document') return <PrepareDocumentPage/>
+  if(id==='redact') return <RedactionPage/>
+  if(id==='compare') return <ComparePdfPage/>
+  if(id==='tribunal-presets') return <TribunalPresetsPage/>
+  if(id==='trust-report') return <TrustReportPage/>
   if(id==='organize') return <PageWorkspacePage mode="organize"/>
   if(id==='edit-pages') return <PageWorkspacePage mode="edit-pages"/>
   if(id==='ocr') return <OcrToolPage/>
   if(id==='batch') return <BatchToolPage/>
+  if(id && documentToolIds.has(id as DocumentToolId)) return <DocumentToolsPage toolId={id as DocumentToolId}/>
   return <ClassicToolPage/>
 }
 
@@ -40,6 +52,14 @@ function ClassicToolPage(){
   const [dragIndex,setDragIndex] = useState<number|null>(null)
   const [dragOverIndex,setDragOverIndex] = useState<number|null>(null)
   const [showAllMergeFiles,setShowAllMergeFiles] = useState(false)
+  const [mergeBookmarks,setMergeBookmarks] = useState(true)
+  const [mergeToc,setMergeToc] = useState(true)
+  const [mergeTocTitle,setMergeTocTitle] = useState('Índice de documentos')
+  const [mergeBookmarkHierarchy,setMergeBookmarkHierarchy] = useState(true)
+  const [mergeCategoryOptions,setMergeCategoryOptions] = useState<string[]>(['PETIÇÕES','DOCUMENTOS','CONTRATOS'])
+  const [mergeFileCategories,setMergeFileCategories] = useState<string[]>([])
+  const [newMergeCategory,setNewMergeCategory] = useState('')
+  const [activityLog,setActivityLog] = useState<string[]>([])
   const canvasRef = useRef<HTMLCanvasElement|null>(null)
   const inputRef = useRef<HTMLInputElement|null>(null)
   const Icon = tool.icon
@@ -47,7 +67,7 @@ function ClassicToolPage(){
   const accept = useMemo(()=> toolId==='word-pdf' ? '.docx' : toolId==='images-pdf' ? 'image/jpeg,image/png' : '.pdf',[toolId])
   const multiple = multiPdf.has(toolId) || toolId==='images-pdf'
 
-  useEffect(()=>{ setFiles([]); setProgress(0); setStatus('Pronto.'); setSuccess(''); setErrorMessage(''); setAnalysis(null); setDragIndex(null); setDragOverIndex(null); setShowAllMergeFiles(false) },[toolId])
+  useEffect(()=>{ setFiles([]); setProgress(0); setStatus('Pronto.'); setSuccess(''); setErrorMessage(''); setAnalysis(null); setDragIndex(null); setDragOverIndex(null); setShowAllMergeFiles(false); setMergeBookmarks(true); setMergeToc(true); setMergeTocTitle('Índice de documentos'); setMergeBookmarkHierarchy(true); setMergeCategoryOptions(['PETIÇÕES','DOCUMENTOS','CONTRATOS']); setMergeFileCategories([]); setNewMergeCategory(''); setActivityLog([]) },[toolId])
   useEffect(()=>{
     const file=files[0]
     if(file && file.type==='application/pdf' && canvasRef.current){
@@ -68,27 +88,82 @@ function ClassicToolPage(){
   function addFiles(list: FileList | null){
     if(!list) return
     const incoming=Array.from(list)
-    if(multiple) setFiles(prev=>[...prev,...incoming])
-    else setFiles(incoming.slice(0,1))
+    if(multiple) {
+      setFiles(prev=>[...prev,...incoming])
+      if(toolId==='merge') setMergeFileCategories(prev=>[...prev,...incoming.map(()=> '')])
+    } else {
+      setFiles(incoming.slice(0,1))
+    }
     setProgress(0); setSuccess(''); setErrorMessage(''); setShowAllMergeFiles(false)
   }
 
-  function removeFile(index:number){ setFiles(f=>f.filter((_,i)=>i!==index)); setProgress(0); setSuccess(''); setErrorMessage('') }
+  function removeFile(index:number){
+    setFiles(f=>f.filter((_,i)=>i!==index))
+    if(toolId==='merge') setMergeFileCategories(c=>c.filter((_,i)=>i!==index))
+    setProgress(0); setSuccess(''); setErrorMessage('')
+  }
+
+  function moveArrayItem<T>(values:T[],from:number,to:number):T[]{
+    if(from===to || from<0 || to<0 || from>=values.length || to>=values.length) return values
+    const next=[...values]
+    const [moved]=next.splice(from,1)
+    next.splice(to,0,moved)
+    return next
+  }
 
   function moveFile(from:number,to:number){
     if(from===to || from<0 || to<0) return
-    setFiles(prev=>{
-      if(from>=prev.length || to>=prev.length) return prev
+    setFiles(prev=>moveArrayItem(prev,from,to))
+    if(toolId==='merge') setMergeFileCategories(prev=>moveArrayItem(prev,from,to))
+    setProgress(0); setSuccess(''); setErrorMessage('')
+  }
+
+  function normalizeCategoryName(value:string){ return value.trim().replace(/\s+/g,' ').slice(0,60) }
+
+  function addMergeCategory(){
+    const name=normalizeCategoryName(newMergeCategory)
+    if(!name) return
+    setMergeCategoryOptions(prev=>prev.some(item=>item.toLocaleLowerCase('pt-BR')===name.toLocaleLowerCase('pt-BR'))?prev:[...prev,name])
+    setNewMergeCategory('')
+  }
+
+  function removeMergeCategory(name:string){
+    setMergeCategoryOptions(prev=>prev.filter(item=>item!==name))
+    setMergeFileCategories(prev=>prev.map(item=>item===name?'':item))
+  }
+
+  function setFileCategory(index:number,category:string){
+    setMergeFileCategories(prev=>{
       const next=[...prev]
-      const [moved]=next.splice(from,1)
-      next.splice(to,0,moved)
+      while(next.length<files.length) next.push('')
+      next[index]=category
       return next
     })
-    setProgress(0); setSuccess(''); setErrorMessage('')
+  }
+
+  function categoryFromFileName(fileName:string):string{
+    const value=fileName.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+    if(/peticao|contestacao|recurso|replica|manifestacao|embargo|agravo|apelacao|contrarrazoes/.test(value)) return 'PETIÇÕES'
+    if(/contrato|aditivo|instrumento|termo de acordo|termo aditivo/.test(value)) return 'CONTRATOS'
+    if(/\brg\b|\bcpf\b|cnh|comprovante|certidao|procuracao|documento|identidade/.test(value)) return 'DOCUMENTOS'
+    return ''
+  }
+
+  function autoCategorizeMergeFiles(){
+    const categories=files.map(file=>categoryFromFileName(file.name))
+    const used=Array.from(new Set(categories.filter(Boolean)))
+    setMergeCategoryOptions(prev=>{
+      const next=[...prev]
+      for(const category of used){ if(!next.includes(category)) next.push(category) }
+      return next
+    })
+    setMergeFileCategories(categories)
   }
 
   function onFileDragStart(index:number,e:DragEvent<HTMLDivElement>){
     if(toolId!=='merge' || working) return
+    const target=e.target as HTMLElement
+    if(target.closest('select,button,input')){ e.preventDefault(); return }
     setDragIndex(index)
     setDragOverIndex(index)
     e.dataTransfer.effectAllowed='move'
@@ -113,11 +188,16 @@ function ClassicToolPage(){
   }
 
   function onFileDragEnd(){ setDragIndex(null); setDragOverIndex(null) }
-  function update(v:number,m:string){ setProgress(Math.max(0,Math.min(100,v))); setStatus(m) }
+  function update(v:number,m:string){
+    setProgress(Math.max(0,Math.min(100,v)))
+    setStatus(m)
+    if(toolId==='merge') setActivityLog(prev=>prev[prev.length-1]===m?prev:[...prev.slice(-11),m])
+  }
 
   async function run(){
     if(files.length===0) return
     setWorking(true); setSuccess(''); setErrorMessage(''); setProgress(0)
+    if(toolId==='merge') setActivityLog([`Clique recebido. Iniciando ${files.length.toLocaleString('pt-BR')} PDF(s)…`])
     setStatus(toolId==='merge' ? `Preparando ${files.length.toLocaleString('pt-BR')} PDF(s)…` : 'Preparando processamento…')
     await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
     try{
@@ -196,13 +276,26 @@ function ClassicToolPage(){
         }
       } else if(toolId==='merge'){
         if(files.length<2) throw new Error('Selecione pelo menos 2 PDFs.')
-        const result=await mergePdfs(files,update)
+        const result=await mergePdfs(files,update,{createBookmarks:mergeBookmarks,createTableOfContents:mergeToc,tocTitle:mergeTocTitle,bookmarkHierarchy:mergeBookmarkHierarchy,bookmarkCategories:mergeFileCategories})
         if(!result.blob || result.blob.size<100) throw new Error('O PDF final ficou vazio e o download foi bloqueado.')
         downloadBlob(result.blob,'pdf-studio-mesclado.pdf')
-        const engineLabel=result.engine==='pdf-lib'?'pdf-lib':result.engine==='qpdf-wasm-direct'?'qpdf WebAssembly massivo':'qpdf WebAssembly por blocos'
+        const engineLabel=result.engine==='pdf-lib'?'pdf-lib':result.engine==='qpdf-wasm-direct'?'qpdf WebAssembly direto':result.engine==='qpdf-wasm-opfs'?'qpdf WebAssembly + armazenamento temporário local':'qpdf WebAssembly por blocos'
         const skipped=result.skippedFiles.length
-        setSuccess(`${result.mergedFiles.toLocaleString('pt-BR')} PDFs mesclados com sucesso${skipped?` • ${skipped} arquivo(s) ignorado(s) por erro`:''}. Motor: ${engineLabel}.`)
-        if(skipped){
+        const bookmarkText=mergeBookmarks
+          ? result.bookmarksCreated>0
+            ? ` • ${result.bookmarksCreated.toLocaleString('pt-BR')} marcador(es)${result.bookmarkCategoriesCreated?` em ${result.bookmarkCategoriesCreated.toLocaleString('pt-BR')} categoria(s)`:''}`
+            : ' • sem marcadores'
+          : ''
+        const tocText=mergeToc
+          ? result.tocEntriesCreated>0
+            ? ` • índice clicável com ${result.tocEntriesCreated.toLocaleString('pt-BR')} documento(s) em ${result.tocPagesCreated.toLocaleString('pt-BR')} página(s)`
+            : ' • sem índice clicável'
+          : ''
+        setSuccess(`${result.mergedFiles.toLocaleString('pt-BR')} PDFs mesclados com sucesso${skipped?` • ${skipped} arquivo(s) ignorado(s) por erro`:''}${tocText}${bookmarkText}. Motor: ${engineLabel}.`)
+        const navigationWarnings=[result.tocWarning,result.bookmarkWarning].filter(Boolean).join(' ')
+        if(navigationWarnings){
+          setStatus(navigationWarnings)
+        }else if(skipped){
           setStatus(`Concluído com avisos. Ignorados: ${result.skippedFiles.slice(0,8).join(', ')}${skipped>8?` e mais ${skipped-8}`:''}.`)
         }
       } else if(toolId==='split'){
@@ -278,6 +371,18 @@ function ClassicToolPage(){
               >
                 {toolId==='merge' ? <div className="order-cell"><GripVertical size={18}/><span className="order-number">{i+1}</span></div> : <File size={18}/>}
                 <div className="file-row-info"><strong>{f.name}</strong><span>{humanSize(f.size)}{toolId==='merge'?` • posição ${i+1}`:''}</span></div>
+                {toolId==='merge' && mergeBookmarks && mergeBookmarkHierarchy && <select
+                  className="merge-category-select"
+                  value={mergeFileCategories[i] || ''}
+                  onChange={e=>setFileCategory(i,e.target.value)}
+                  onPointerDown={e=>e.stopPropagation()}
+                  onMouseDown={e=>e.stopPropagation()}
+                  disabled={working}
+                  aria-label={`Categoria de ${f.name}`}
+                >
+                  <option value="">Sem categoria</option>
+                  {mergeCategoryOptions.map(category=><option key={category} value={category}>{category}</option>)}
+                </select>}
                 {toolId==='merge' && <div className="reorder-actions" aria-label={`Reordenar ${f.name}`}>
                   <button type="button" onClick={()=>moveFile(i,i-1)} disabled={i===0||working} title="Mover para cima"><ArrowUp size={16}/></button>
                   <button type="button" onClick={()=>moveFile(i,i+1)} disabled={i===files.length-1||working} title="Mover para baixo"><ArrowDown size={16}/></button>
@@ -312,8 +417,45 @@ function ClassicToolPage(){
         {toolId==='split' && <><label className="field-label">Tamanho máximo por parte</label><div className="number-field"><input type="number" min="0.5" max="500" step="0.5" value={splitMb} onChange={e=>setSplitMb(Number(e.target.value))}/><span>MB</span></div></>}
         {(toolId==='pdf-jpg'||toolId==='pdf-png') && <><label className="field-label">Resolução</label><select value={dpi} onChange={e=>setDpi(Number(e.target.value))}><option value="96">96 DPI</option><option value="150">150 DPI</option><option value="200">200 DPI</option><option value="300">300 DPI</option></select></>}
         {(toolId==='pdf-word'||toolId==='word-pdf') && <div className="beta-note"><strong>Conversão Beta</strong><span>Funciona 100% no navegador. Layouts complexos podem sofrer alterações.</span></div>}
-        {toolId==='merge' && <div className="merge-summary"><strong>Ordem final</strong><span>{files.length<2?'Adicione pelo menos 2 PDFs.':`${files.length.toLocaleString('pt-BR')} PDFs serão unidos de cima para baixo • ${humanSize(mergeTotalBytes)} no total.`}</span>{files.length>=100 && <span className="massive-merge-note">Modo de mesclagem massiva será ativado automaticamente.</span>}</div>}
-        <button className="primary-btn wide run-btn" onClick={run} disabled={working||files.length===0}>{working?'Processando…':'Executar agora'}</button>
+        {toolId==='merge' && <>
+          <div className="merge-summary"><strong>Ordem final</strong><span>{files.length<2?'Adicione pelo menos 2 PDFs.':`${files.length.toLocaleString('pt-BR')} PDFs serão unidos de cima para baixo • ${humanSize(mergeTotalBytes)} no total.`}</span>{files.length>=100 && <span className="massive-merge-note">Modo seguro por lotes será ativado automaticamente. Os arquivos não serão enviados todos de uma vez para a memória.</span>}</div>
+          <label className="toggle-row merge-bookmark-toggle">
+            <input type="checkbox" checked={mergeBookmarks} onChange={e=>setMergeBookmarks(e.target.checked)} disabled={working}/>
+            <span><strong>Criar marcadores automaticamente</strong><small>O nome de cada PDF vira um bookmark para a primeira página daquele documento. O PDF final tenta abrir com o painel de marcadores visível.</small></span>
+          </label>
+          {mergeBookmarks && <>
+            <label className="toggle-row merge-hierarchy-toggle">
+              <input type="checkbox" checked={mergeBookmarkHierarchy} onChange={e=>setMergeBookmarkHierarchy(e.target.checked)} disabled={working}/>
+              <span><strong>Bookmarks Pro hierárquicos</strong><small>Organize documentos em categorias expansíveis no painel lateral do PDF. A ordem física das páginas não é alterada.</small></span>
+            </label>
+            {mergeBookmarkHierarchy && <div className="bookmark-pro-card">
+              <div className="bookmark-pro-head"><div><strong>Categorias</strong><span>{mergeFileCategories.filter(Boolean).length.toLocaleString('pt-BR')} de {files.length.toLocaleString('pt-BR')} arquivo(s) categorizado(s)</span></div><span className="pro-badge">PRO</span></div>
+              <div className="bookmark-category-chips">
+                {mergeCategoryOptions.map(category=><span className="bookmark-category-chip" key={category}>{category}<button type="button" onClick={()=>removeMergeCategory(category)} disabled={working} title={`Remover ${category}`}>×</button></span>)}
+              </div>
+              <div className="bookmark-category-add">
+                <input className="text-field" value={newMergeCategory} onChange={e=>setNewMergeCategory(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addMergeCategory()}}} disabled={working} maxLength={60} placeholder="Nova categoria, ex.: LAUDOS"/>
+                <button type="button" className="secondary-btn" onClick={addMergeCategory} disabled={working||!newMergeCategory.trim()}>Adicionar</button>
+              </div>
+              <div className="bookmark-pro-actions">
+                <button type="button" onClick={autoCategorizeMergeFiles} disabled={working||files.length===0}>Categorizar por nome</button>
+                <button type="button" onClick={()=>setMergeFileCategories(files.map(()=>''))} disabled={working||files.length===0}>Limpar categorias</button>
+              </div>
+              <div className="analysis-box"><Info size={17}/><span>Cada arquivo pode receber uma categoria na lista à esquerda. Ex.: <strong>PETIÇÕES → Petição Inicial → Contestação</strong>. Arquivos sem categoria continuam como marcadores de primeiro nível.</span></div>
+            </div>}
+          </>}
+          <label className="toggle-row merge-toc-toggle">
+            <input type="checkbox" checked={mergeToc} onChange={e=>setMergeToc(e.target.checked)} disabled={working}/>
+            <span><strong>Criar índice automático clicável</strong><small>Adiciona uma ou mais páginas no início com o nome de cada documento e sua página inicial. Cada linha é um link interno.</small></span>
+          </label>
+          {mergeToc && <>
+            <label className="field-label">Título do índice</label>
+            <input className="text-field" type="text" maxLength={80} value={mergeTocTitle} onChange={e=>setMergeTocTitle(e.target.value)} disabled={working} placeholder="Índice de documentos"/>
+            <div className="analysis-box"><Info size={17}/><span>As páginas do índice entram no início do PDF. A numeração mostrada já considera essas páginas extras e os links levam diretamente ao primeiro fólio de cada arquivo.</span></div>
+          </>}
+          {(mergeBookmarks||mergeToc) && mergeTotalBytes>220*1024*1024 && <p className="warning-text">Em resultados acima de ~220 MB, a versão web pode concluir a mesclagem sem aplicar índice/marcadores para evitar estouro de memória. O PDF mesclado continua sendo entregue normalmente.</p>}
+        </>}
+        <button type="button" className="primary-btn wide run-btn" onClick={run} disabled={working||files.length===0}>{working?'Processando…':'Executar agora'}</button>
       </aside>
     </div>
 
@@ -322,6 +464,7 @@ function ClassicToolPage(){
       <div className="progress-track"><div style={{width:`${progress}%`}}/></div>
       {success && <div className="success-box"><CheckCircle2 size={22}/><span>{success}</span><Download size={19}/></div>}
       {errorMessage && <div className="error-box"><Info size={22}/><span><strong>Não foi possível concluir.</strong> {errorMessage}</span></div>}
+      {toolId==='merge' && activityLog.length>0 && <details className="merge-diagnostic" open={working}><summary>Detalhes da mesclagem</summary><div className="merge-diagnostic-log">{activityLog.map((item,index)=><div key={`${index}-${item}`}>{item}</div>)}</div></details>}
     </div>}
 
     {files[0]?.type==='application/pdf' && <div className="preview-card"><div><h3>Pré-visualização</h3><p>Primeira página renderizada localmente.</p></div><div className="canvas-wrap"><canvas ref={canvasRef}/></div></div>}

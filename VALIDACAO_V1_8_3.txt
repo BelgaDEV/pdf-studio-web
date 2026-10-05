@@ -1,0 +1,12 @@
+PDF Studio Web v1.8.3 — Layout Cleanup
+
+VALIDAÇÃO DO PACOTE
+- 32 arquivos TypeScript/TSX analisados pelo parser do TypeScript
+- 0 erros de sintaxe
+- Roadmap verificado sem as seções removidas da interface
+- Home atualizada para layout mais compacto no desktop
+- Footer / FAQ / package.json atualizados para v1.8.3
+
+Observação:
+- npm install foi tentado neste ambiente, mas expirou por timeout de rede antes da instalação das dependências.
+- Execute npm install && npm run build no PC antes da publicação oficial.

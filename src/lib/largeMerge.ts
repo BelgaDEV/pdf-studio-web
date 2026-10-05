@@ -14,23 +14,42 @@ interface WasmExecResult {
   code?: number
 }
 
-interface MergeSource {
-  blob: Blob
+interface MergeSourceBase {
   label: string
   count: number
+  size: number
+  fileIndices: number[]
 }
+
+interface BlobMergeSource extends MergeSourceBase {
+  kind: 'blob'
+  blob: Blob
+}
+
+interface OpfsMergeSource extends MergeSourceBase {
+  kind: 'opfs'
+  handle: any
+  entryName: string
+}
+
+type MergeSource = BlobMergeSource | OpfsMergeSource
 
 export interface LargeMergeResult {
   blob: Blob
   mergedFiles: number
+  mergedFileIndices: number[]
   skippedFiles: string[]
-  engine: 'qpdf-wasm-direct' | 'qpdf-wasm-batched'
+  engine: 'qpdf-wasm-direct' | 'qpdf-wasm-batched' | 'qpdf-wasm-opfs'
 }
 
-const DIRECT_MAX_BYTES = 256 * 1024 * 1024
-const INITIAL_GROUP_MAX_BYTES = 64 * 1024 * 1024
-const INITIAL_GROUP_MAX_FILES = 40
+const DIRECT_MAX_FILES = 48
+const DIRECT_MAX_BYTES = 96 * 1024 * 1024
+const INITIAL_GROUP_MAX_FILES = 20
+const INITIAL_GROUP_MAX_BYTES = 20 * 1024 * 1024
+const LARGE_JOB_FILES = 250
+const LARGE_JOB_BYTES = 192 * 1024 * 1024
 const PDF_HEADER = '%PDF-'
+const QPDF_LOAD_TIMEOUT_MS = 45_000
 
 function resultBytes(result: WasmExecResult): Uint8Array {
   const file = result.files?.[0]
@@ -38,13 +57,20 @@ function resultBytes(result: WasmExecResult): Uint8Array {
     const details = [result.stderr, result.stdout].filter(Boolean).join('\n').slice(-1800)
     throw new Error(`qpdf não gerou o PDF mesclado.${details ? ` ${details}` : ''}`)
   }
-  return file.data instanceof Uint8Array ? new Uint8Array(file.data) : new Uint8Array(file.data)
+  // IMPORTANT: do not clone a Uint8Array here. A final 500+ MB PDF would be
+  // duplicated in RAM by `new Uint8Array(existingUint8Array)`.
+  return file.data instanceof Uint8Array ? file.data : new Uint8Array(file.data)
+}
+
+async function getSourceBlob(source: MergeSource): Promise<Blob> {
+  if (source.kind === 'blob') return source.blob
+  return await source.handle.getFile()
 }
 
 async function looksLikePdf(blob: Blob): Promise<boolean> {
   if (blob.size < 8) return false
   const head = new Uint8Array(await blob.slice(0, 1024).arrayBuffer())
-  const text = String.fromCharCode(...head)
+  const text = new TextDecoder('latin1').decode(head)
   return text.includes(PDF_HEADER)
 }
 
@@ -52,34 +78,145 @@ function safePath(index: number): string {
   return `/merge-${String(index + 1).padStart(5, '0')}.pdf`
 }
 
+function timeoutAfter(ms: number, message: string): Promise<never> {
+  return new Promise((_, reject) => {
+    window.setTimeout(() => reject(new Error(message)), ms)
+  })
+}
+
+async function loadQpdf(onProgress?: (message: string) => void): Promise<any> {
+  onProgress?.('Carregando motor qpdf WebAssembly…')
+  await nextFrame()
+  try {
+    const qpdf = await Promise.race([
+      (async () => {
+        const mod = await import('@wasm-zoo/qpdf')
+        onProgress?.('Inicializando qpdf WebAssembly…')
+        await nextFrame()
+        return await mod.load()
+      })(),
+      timeoutAfter(QPDF_LOAD_TIMEOUT_MS, 'O motor qpdf WebAssembly não respondeu em 45 segundos.'),
+    ])
+    return qpdf
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'Falha desconhecida ao carregar qpdf.'
+    throw new Error(`Não foi possível iniciar o motor de mesclagem local. ${detail} Tente Ctrl+F5 e execute novamente.`)
+  }
+}
+
+class OpfsTempStore {
+  private parent: any
+  private dir: any
+  private sessionName: string
+  readonly enabled: boolean
+
+  private constructor(parent: any, dir: any, sessionName: string, enabled: boolean) {
+    this.parent = parent
+    this.dir = dir
+    this.sessionName = sessionName
+    this.enabled = enabled
+  }
+
+  static async create(totalBytes: number, onProgress: MergeProgressFn): Promise<OpfsTempStore> {
+    const storage = navigator.storage as any
+    if (!storage?.getDirectory) {
+      return new OpfsTempStore(null, null, '', false)
+    }
+
+    onProgress(1, 'Preparando armazenamento temporário local no dispositivo…')
+    await nextFrame()
+
+    try {
+      const estimate = await navigator.storage.estimate().catch(() => ({} as StorageEstimate))
+      const available = typeof estimate.quota === 'number' && typeof estimate.usage === 'number'
+        ? Math.max(0, estimate.quota - estimate.usage)
+        : null
+      // During the first stage OPFS stores roughly one copy of the merged data.
+      // Leave generous headroom for browser bookkeeping and the final qpdf pass.
+      const recommendedFree = Math.max(384 * 1024 * 1024, Math.ceil(totalBytes * 1.35))
+      if (available !== null && available < recommendedFree) {
+        const needMb = Math.ceil(recommendedFree / 1024 / 1024)
+        const freeMb = Math.floor(available / 1024 / 1024)
+        throw new Error(`Espaço temporário insuficiente: ~${freeMb} MB livres; recomendamos pelo menos ${needMb} MB.`)
+      }
+
+      const root = await storage.getDirectory()
+      const parent = await root.getDirectoryHandle('pdf-studio-merge-temp', { create: true })
+      const sessionName = `merge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      const dir = await parent.getDirectoryHandle(sessionName, { create: true })
+      return new OpfsTempStore(parent, dir, sessionName, true)
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'OPFS indisponível.'
+      if (totalBytes >= LARGE_JOB_BYTES) {
+        throw new Error(`A mesclagem de arquivos grandes precisa do armazenamento temporário do navegador (OPFS). ${detail}`)
+      }
+      return new OpfsTempStore(null, null, '', false)
+    }
+  }
+
+  async persist(blob: Blob, label: string, count: number, fileIndices: number[], entryName: string): Promise<MergeSource> {
+    if (!this.enabled) return { kind: 'blob', blob, label, count, fileIndices, size: blob.size }
+    const handle = await this.dir.getFileHandle(entryName, { create: true })
+    const writable = await handle.createWritable()
+    try {
+      await writable.write(blob)
+    } finally {
+      await writable.close()
+    }
+    return { kind: 'opfs', handle, entryName, label, count, fileIndices, size: blob.size }
+  }
+
+  async remove(source: MergeSource): Promise<void> {
+    if (!this.enabled || source.kind !== 'opfs') return
+    try { await this.dir.removeEntry(source.entryName) } catch { /* best effort */ }
+  }
+
+  scheduleCleanup(delayMs = 120_000): void {
+    if (!this.enabled) return
+    const parent = this.parent
+    const sessionName = this.sessionName
+    window.setTimeout(() => {
+      Promise.resolve(parent.removeEntry(sessionName, { recursive: true })).catch(() => {})
+    }, delayMs)
+  }
+
+  async cleanupNow(): Promise<void> {
+    if (!this.enabled) return
+    try { await this.parent.removeEntry(this.sessionName, { recursive: true }) } catch { /* best effort */ }
+  }
+}
+
 async function qpdfMergeSources(sources: MergeSource[], onProgress?: (message: string) => void): Promise<Blob> {
   if (sources.length === 0) throw new Error('Nenhum PDF válido para mesclar.')
-  if (sources.length === 1) return sources[0].blob
+  if (sources.length === 1) return await getSourceBlob(sources[0])
+  if (sources.length > INITIAL_GROUP_MAX_FILES && sources.every(s => s.count === 1)) {
+    throw new Error(`Bloco grande demais para o modo seguro (${sources.length} PDFs).`)
+  }
 
-  const { load } = await import('@wasm-zoo/qpdf')
-  const qpdf = await load()
+  const qpdf = await loadQpdf(onProgress)
   try {
-    const files: Array<{ name: string; data: Uint8Array }> = []
-    const args: string[] = ['--empty', '--pages']
+    const staged: Array<{ name: string; data: Uint8Array }> = []
+    const args: string[] = ['--keep-files-open=n', '--empty', '--pages']
 
     for (let i = 0; i < sources.length; i++) {
       const source = sources[i]
       const path = safePath(i)
-      const data = new Uint8Array(await source.blob.arrayBuffer())
-      files.push({ name: path, data })
+      const blob = await getSourceBlob(source)
+      const data = new Uint8Array(await blob.arrayBuffer())
+      staged.push({ name: path, data })
       args.push(path, '1-z')
-      if (i % 10 === 0) {
-        onProgress?.(`Preparando bloco: ${i + 1}/${sources.length} PDF(s)…`)
+      if (i % 4 === 0 || i === sources.length - 1) {
+        onProgress?.(`Preparando lote: ${i + 1}/${sources.length} entrada(s)…`)
         await nextFrame()
       }
     }
 
     args.push('--', '/merged-output.pdf')
-    onProgress?.(`Mesclando bloco com ${sources.length} PDF(s) via qpdf…`)
+    onProgress?.(`Mesclando lote com ${sources.length} entrada(s)…`)
     await nextFrame()
 
     const result = await qpdf.exec(args, {
-      files,
+      files: staged,
       outputs: ['/merged-output.pdf'],
     }) as WasmExecResult
 
@@ -91,12 +228,11 @@ async function qpdfMergeSources(sources: MergeSource[], onProgress?: (message: s
   }
 }
 
-
 async function qpdfValidateSource(source: MergeSource): Promise<boolean> {
-  const { load } = await import('@wasm-zoo/qpdf')
-  const qpdf = await load()
+  const qpdf = await loadQpdf()
   try {
-    const data = new Uint8Array(await source.blob.arrayBuffer())
+    const blob = await getSourceBlob(source)
+    const data = new Uint8Array(await blob.arrayBuffer())
     const result = await qpdf.exec([
       '/probe-input.pdf',
       '--warning-exit-0',
@@ -122,7 +258,7 @@ function groupSources(sources: MergeSource[]): MergeSource[][] {
   for (const source of sources) {
     const wouldOverflow = current.length > 0 && (
       current.length >= INITIAL_GROUP_MAX_FILES ||
-      bytes + source.blob.size > INITIAL_GROUP_MAX_BYTES
+      bytes + source.size > INITIAL_GROUP_MAX_BYTES
     )
     if (wouldOverflow) {
       groups.push(current)
@@ -130,7 +266,7 @@ function groupSources(sources: MergeSource[]): MergeSource[][] {
       bytes = 0
     }
     current.push(source)
-    bytes += source.blob.size
+    bytes += source.size
   }
   if (current.length) groups.push(current)
   return groups
@@ -144,11 +280,11 @@ async function mergeGroupResilient(
   if (sources.length === 0) return null
   if (sources.length === 1) {
     const source = sources[0]
-    if (!(await looksLikePdf(source.blob))) {
+    const blob = await getSourceBlob(source)
+    if (!(await looksLikePdf(blob))) {
       skipped.push(source.label)
       return null
     }
-    // Uma fonte isolada só é validada estruturalmente quando qpdf realmente precisa lê-la.
     if (await qpdfValidateSource(source)) return source
     skipped.push(source.label)
     return null
@@ -157,19 +293,20 @@ async function mergeGroupResilient(
   try {
     const blob = await qpdfMergeSources(sources, onProgress)
     return {
+      kind: 'blob',
       blob,
+      size: blob.size,
       label: `${sources[0].label} … ${sources[sources.length - 1].label}`,
       count: sources.reduce((sum, item) => sum + item.count, 0),
+      fileIndices: sources.flatMap(item => item.fileIndices),
     }
-  } catch (error) {
-    // Um único arquivo problemático não deve derrubar uma mesclagem com milhares.
-    // Dividimos o grupo até isolar a origem da falha. Também ajuda quando o grupo
-    // ficou grande demais para a memória disponível do navegador.
+  } catch {
     if (sources.length <= 2) {
       const valid: MergeSource[] = []
       for (const source of sources) {
         try {
-          if (!(await looksLikePdf(source.blob))) throw new Error('Cabeçalho inválido')
+          const blob = await getSourceBlob(source)
+          if (!(await looksLikePdf(blob))) throw new Error('Cabeçalho inválido')
           if (!(await qpdfValidateSource(source))) throw new Error('PDF inválido, protegido ou incompatível')
           valid.push(source)
         } catch {
@@ -179,7 +316,12 @@ async function mergeGroupResilient(
       if (valid.length === 0) return null
       if (valid.length === 1) return valid[0]
       const blob = await qpdfMergeSources(valid, onProgress)
-      return { blob, label: `${valid[0].label} … ${valid[valid.length - 1].label}`, count: valid.reduce((s, x) => s + x.count, 0) }
+      return {
+        kind: 'blob', blob, size: blob.size,
+        label: `${valid[0].label} … ${valid[valid.length - 1].label}`,
+        count: valid.reduce((s, x) => s + x.count, 0),
+        fileIndices: valid.flatMap(item => item.fileIndices),
+      }
     }
 
     const middle = Math.ceil(sources.length / 2)
@@ -189,121 +331,144 @@ async function mergeGroupResilient(
     if (survivors.length === 0) return null
     if (survivors.length === 1) return survivors[0]
     const blob = await qpdfMergeSources(survivors, onProgress)
-    return { blob, label: `${survivors[0].label} … ${survivors[survivors.length - 1].label}`, count: survivors.reduce((s, x) => s + x.count, 0) }
+    return {
+      kind: 'blob', blob, size: blob.size,
+      label: `${survivors[0].label} … ${survivors[survivors.length - 1].label}`,
+      count: survivors.reduce((s, x) => s + x.count, 0),
+      fileIndices: survivors.flatMap(item => item.fileIndices),
+    }
   }
 }
 
 async function mergeDirect(files: File[], onProgress: MergeProgressFn): Promise<LargeMergeResult> {
-  onProgress(2, `Preparando ${files.length.toLocaleString('pt-BR')} PDFs para mesclagem massiva…`)
-  await nextFrame()
-
   const sources: MergeSource[] = []
   const skipped: string[] = []
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i]
-    if (file.size < 8 || !(await looksLikePdf(file))) {
-      skipped.push(file.name)
-    } else {
-      sources.push({ blob: file, label: file.name, count: 1 })
-    }
-    if (i % 25 === 0 || i === files.length - 1) {
-      onProgress(2 + Math.round(((i + 1) / files.length) * 18), `Validando arquivos: ${i + 1}/${files.length}…`)
-      await nextFrame()
-    }
-  }
-
-  if (sources.length < 2) throw new Error('Não há pelo menos 2 PDFs válidos para mesclar.')
-
-  try {
-    onProgress(24, `qpdf carregado. Mesclando ${sources.length.toLocaleString('pt-BR')} PDFs…`)
-    const blob = await qpdfMergeSources(sources, message => onProgress(28, message))
-    onProgress(100, 'Mesclagem massiva concluída.')
-    return { blob, mergedFiles: sources.length, skippedFiles: skipped, engine: 'qpdf-wasm-direct' }
-  } catch {
-    // Se um arquivo corrompido/protegido derrubar a execução direta, passamos
-    // automaticamente ao modo por blocos, que consegue isolar o problema.
-    return mergeBatched(files, onProgress)
-  }
-}
-
-async function mergeBatched(files: File[], onProgress: MergeProgressFn, initialSkipped: string[] = []): Promise<LargeMergeResult> {
-  const skipped = [...initialSkipped]
-  const skipSet = new Set(skipped)
-  const sources: MergeSource[] = []
-
-  onProgress(3, `Ativando modo por blocos para ${files.length.toLocaleString('pt-BR')} PDFs…`)
+  onProgress(3, `Validando ${files.length.toLocaleString('pt-BR')} PDFs…`)
   await nextFrame()
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i]
-    if (skipSet.has(file.name)) continue
-    if (file.size < 8 || !(await looksLikePdf(file))) {
-      skipped.push(file.name)
-      skipSet.add(file.name)
-    } else {
-      sources.push({ blob: file, label: file.name, count: 1 })
-    }
-    if (i % 25 === 0 || i === files.length - 1) {
-      onProgress(3 + Math.round(((i + 1) / files.length) * 12), `Pré-validando: ${i + 1}/${files.length}…`)
+    if (file.size < 8 || !(await looksLikePdf(file))) skipped.push(file.name)
+    else sources.push({ kind: 'blob', blob: file, size: file.size, label: file.name, count: 1, fileIndices: [i] })
+    if (i % 10 === 0 || i === files.length - 1) {
+      onProgress(3 + Math.round(((i + 1) / files.length) * 17), `Validando arquivos: ${i + 1}/${files.length}…`)
       await nextFrame()
     }
   }
 
   if (sources.length < 2) throw new Error('Não há pelo menos 2 PDFs válidos para mesclar.')
+  onProgress(25, `Mesclando ${sources.length.toLocaleString('pt-BR')} PDFs…`)
+  const blob = await qpdfMergeSources(sources, message => onProgress(40, message))
+  onProgress(100, 'Mesclagem concluída.')
+  return { blob, mergedFiles: sources.length, mergedFileIndices: sources.flatMap(source => source.fileIndices), skippedFiles: skipped, engine: 'qpdf-wasm-direct' }
+}
 
-  const groups = groupSources(sources)
-  let level: MergeSource[] = []
+async function mergeBatched(files: File[], onProgress: MergeProgressFn): Promise<LargeMergeResult> {
+  const skipped: string[] = []
+  const sources: MergeSource[] = []
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
+  const store = await OpfsTempStore.create(totalBytes, onProgress)
 
-  for (let i = 0; i < groups.length; i++) {
-    const start = 16 + Math.round((i / Math.max(1, groups.length)) * 44)
-    onProgress(start, `Bloco ${i + 1}/${groups.length}: ${groups[i].length} PDF(s)…`)
-    const merged = await mergeGroupResilient(groups[i], skipped, message => onProgress(Math.min(59, start + 1), message))
-    if (merged) level.push(merged)
-    await nextFrame()
+  if (!store.enabled && (files.length >= LARGE_JOB_FILES || totalBytes >= LARGE_JOB_BYTES)) {
+    throw new Error('O navegador não disponibilizou armazenamento temporário local (OPFS), necessário para esta mesclagem grande. Use Chrome/Edge atualizado e tente novamente.')
   }
 
-  if (level.length === 0) throw new Error('Nenhum bloco pôde ser mesclado.')
+  try {
+    onProgress(2, store.enabled
+      ? `Modo Ultra ativado: ${files.length.toLocaleString('pt-BR')} PDFs serão processados em lotes e intermediários ficarão temporariamente no disco.`
+      : `Modo seguro ativado: preparando ${files.length.toLocaleString('pt-BR')} PDFs em lotes pequenos…`)
+    await nextFrame()
 
-  let round = 0
-  while (level.length > 1) {
-    round++
-    const next: MergeSource[] = []
-    const totalPairs = Math.ceil(level.length / 2)
-    for (let i = 0, pair = 0; i < level.length; i += 2, pair++) {
-      if (i + 1 >= level.length) {
-        next.push(level[i])
-        continue
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      if (file.size < 8 || !(await looksLikePdf(file))) skipped.push(file.name)
+      else sources.push({ kind: 'blob', blob: file, size: file.size, label: file.name, count: 1, fileIndices: [i] })
+      if (i % 20 === 0 || i === files.length - 1) {
+        onProgress(2 + Math.round(((i + 1) / files.length) * 10), `Pré-validando: ${i + 1}/${files.length}…`)
+        await nextFrame()
       }
-      const progress = 61 + Math.min(34, Math.round(((pair + 1) / totalPairs) * 34))
-      onProgress(progress, `Consolidando resultado: rodada ${round}, bloco ${pair + 1}/${totalPairs}…`)
-      const merged = await qpdfMergeSources([level[i], level[i + 1]])
-      next.push({
-        blob: merged,
-        label: `${level[i].label} … ${level[i + 1].label}`,
-        count: level[i].count + level[i + 1].count,
-      })
-      // Remove referências grandes já consumidas antes de seguir.
-      level[i] = { blob: new Blob(), label: '', count: 0 }
-      level[i + 1] = { blob: new Blob(), label: '', count: 0 }
+    }
+
+    if (sources.length < 2) throw new Error('Não há pelo menos 2 PDFs válidos para mesclar.')
+
+    const groups = groupSources(sources)
+    let level: MergeSource[] = []
+
+    for (let i = 0; i < groups.length; i++) {
+      const pct = 13 + Math.round((i / Math.max(1, groups.length)) * 47)
+      onProgress(pct, `Lote ${i + 1}/${groups.length}: mesclando ${groups[i].length} PDF(s)…`)
+      const merged = await mergeGroupResilient(groups[i], skipped, message => onProgress(pct, `Lote ${i + 1}/${groups.length} • ${message}`))
+      if (merged) {
+        const blob = await getSourceBlob(merged)
+        const persisted = await store.persist(blob, merged.label, merged.count, merged.fileIndices, `nivel-0-${String(i + 1).padStart(4, '0')}.pdf`)
+        level.push(persisted)
+      }
       await nextFrame()
     }
-    level = next
-  }
 
-  const final = level[0]
-  if (final.blob.size < 100) throw new Error('O PDF final ficou vazio e foi bloqueado.')
-  onProgress(100, 'Mesclagem massiva concluída.')
-  return { blob: final.blob, mergedFiles: final.count, skippedFiles: skipped, engine: 'qpdf-wasm-batched' }
+    if (level.length === 0) throw new Error('Nenhum lote pôde ser mesclado.')
+
+    const initialLevelCount = level.length
+    let consolidated = 0
+    const totalConsolidations = Math.max(1, initialLevelCount - 1)
+    let round = 0
+
+    while (level.length > 1) {
+      round++
+      const next: MergeSource[] = []
+      const totalPairs = Math.ceil(level.length / 2)
+      for (let i = 0, pair = 0; i < level.length; i += 2, pair++) {
+        if (i + 1 >= level.length) {
+          next.push(level[i])
+          continue
+        }
+
+        const pct = 61 + Math.min(37, Math.round((consolidated / totalConsolidations) * 37))
+        onProgress(pct, `Consolidando: rodada ${round}, bloco ${pair + 1}/${totalPairs}…`)
+        const left = level[i]
+        const right = level[i + 1]
+        const mergedBlob = await qpdfMergeSources([left, right], message => onProgress(pct, `Consolidando rodada ${round} • ${message}`))
+        const persisted = await store.persist(
+          mergedBlob,
+          `${left.label} … ${right.label}`,
+          left.count + right.count,
+          [...left.fileIndices, ...right.fileIndices],
+          `nivel-${round}-${String(pair + 1).padStart(4, '0')}.pdf`,
+        )
+        next.push(persisted)
+        consolidated++
+
+        await store.remove(left)
+        await store.remove(right)
+        await nextFrame()
+      }
+      level = next
+    }
+
+    const final = level[0]
+    const finalBlob = await getSourceBlob(final)
+    if (finalBlob.size < 100) throw new Error('O PDF final ficou vazio e foi bloqueado.')
+    onProgress(100, 'Mesclagem massiva concluída. Preparando download…')
+
+    // Keep the OPFS session alive long enough for the browser download to consume
+    // the File-backed Blob. It is removed automatically after two minutes.
+    store.scheduleCleanup()
+    return {
+      blob: finalBlob,
+      mergedFiles: final.count,
+      mergedFileIndices: final.fileIndices,
+      skippedFiles: skipped,
+      engine: store.enabled ? 'qpdf-wasm-opfs' : 'qpdf-wasm-batched',
+    }
+  } catch (error) {
+    await store.cleanupNow()
+    throw error
+  }
 }
 
 export async function mergeManyPdfs(files: File[], onProgress: MergeProgressFn): Promise<LargeMergeResult> {
   if (files.length < 2) throw new Error('Selecione pelo menos 2 PDFs.')
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
-
-  // Milhares de arquivos pequenos funcionam melhor em uma única execução qpdf.
-  // Acima do limite de staging, usamos a árvore de blocos para manter o pico de memória previsível.
-  if (totalBytes <= DIRECT_MAX_BYTES) {
-    return mergeDirect(files, onProgress)
-  }
-  return mergeBatched(files, onProgress)
+  const safeForDirect = files.length <= DIRECT_MAX_FILES && totalBytes <= DIRECT_MAX_BYTES
+  return safeForDirect ? mergeDirect(files, onProgress) : mergeBatched(files, onProgress)
 }

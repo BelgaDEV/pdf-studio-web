@@ -1,0 +1,17 @@
+PDF Studio Web Client v1.7.4 — Legal / Business
+Feature principal: Comparar PDFs
+
+Validar localmente:
+1. npm install
+2. npm run build
+3. npm run dev
+4. testar /tool/compare
+
+Critérios:
+- dois PDFs podem ser selecionados;
+- comparação textual identifica alterações;
+- comparação visual identifica mudança gráfica;
+- páginas adicionadas/removidas aparecem no mapa;
+- preview lado a lado funciona;
+- relatório PDF é baixado e abre normalmente;
+- nenhum documento é enviado a servidor.

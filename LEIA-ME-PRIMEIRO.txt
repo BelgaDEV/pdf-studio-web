@@ -1,26 +1,43 @@
-PDF Studio Web Client v1.4.0
+PDF Studio Web Client v1.7.1 — Legal / Business
 
-NOVAS FUNCOES:
-1. Organizador visual de paginas
-2. OCR pesquisavel para PDFs escaneados
-3. Processamento em lote
-4. Editor basico de paginas
+NOVO: Preparar documento encadeia limpeza, compressão, OCR, metadados, marca d'água, numeração e PDF/A em um único fluxo.
+
+NOVAS FERRAMENTAS:
+1. Marca d'agua
+2. Numeracao de paginas
+3. Remover paginas em branco
+4. Remover metadados
+5. Proteger com senha AES-256
+6. Extrair imagens incorporadas
+7. PDF para PDF/A-1b / 2b / 3b
 
 TESTE LOCAL:
 1. npm install
 2. npm run build
 3. npm run dev
-4. Teste /tool/organize, /tool/ocr, /tool/batch e /tool/edit-pages
+4. Teste cada ferramenta com PDFs pequenos antes de homologar arquivos grandes.
 
-ATUALIZAR PROJETO OFICIAL:
+ROTAS:
+/tool/watermark
+/tool/page-numbers
+/tool/remove-blank
+/tool/remove-metadata
+/tool/protect
+/tool/extract-images
+/tool/pdfa
+
+ATUALIZAR PROJETO OFICIAL SOMENTE DEPOIS DOS TESTES:
 - copie esta versao por cima de C:\PDFStudio_Web_Client_v1 SEM apagar .git
 - npm install
 - npm run build
 - git add .
-- git commit -m "Adiciona organizador OCR lote e editor de paginas"
+- git commit -m "Adiciona Document Tools v1.6"
 - git push
 - npx wrangler deploy
 
-IMPORTANTE SOBRE OCR:
-No primeiro uso, o navegador pode baixar o motor/modelo do Tesseract.js.
-O PDF continua sendo processado localmente e nao e enviado ao servico de OCR.
+IMPORTANTE:
+- O PDF Studio nao armazena a senha usada para proteger PDFs.
+- O extrator trabalha com imagens raster incorporadas; vetores/texto nao sao imagens.
+- PDF/A deve ser validado com uma ferramenta normativa dedicada antes de uso regulatorio.
+
+NOVIDADE v1.7.1: Mesclar PDF agora pode gerar índice automático clicável com nome do documento + página inicial, além dos bookmarks.

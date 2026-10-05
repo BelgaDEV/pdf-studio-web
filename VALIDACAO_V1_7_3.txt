@@ -1,0 +1,19 @@
+PDF Studio Web Client v1.7.3 — validação do pacote
+
+Nova função: Redação permanente
+Rota: /tool/redact
+
+Validações executadas neste ambiente:
+- 23 arquivos TypeScript/TSX analisados pelo parser TypeScript 5.8.3
+- 0 erros de sintaxe
+- Estrutura do pacote verificada
+- ZIP final deve ser testado com `npm install` + `npm run build` no PC de homologação
+
+O npm install não pôde ser concluído neste ambiente porque o acesso ao registry expirou por timeout. Isso não é uma validação de build. Não publique sem executar `npm run build` localmente.
+
+Teste de segurança obrigatório:
+1. Use um PDF com texto pesquisável.
+2. Redija uma palavra/CPF visível.
+3. Gere o PDF.
+4. Confirme que Ctrl+F não encontra o dado na página redigida.
+5. Confirme que páginas não redigidas continuam com texto selecionável.

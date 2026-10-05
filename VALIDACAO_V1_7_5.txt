@@ -1,0 +1,11 @@
+PDF Studio Web Client v1.7.5 — validação
+
+- Feature: Presets Tribunal
+- Nova rota: /tool/tribunal-presets
+- Presets de referência + presets personalizados em localStorage
+- Integração direta com /tool/prepare-document
+- Fonte e data de verificação exibidas nos presets de referência
+- 27 arquivos .ts/.tsx verificados por transpileModule do TypeScript
+- 0 erros de sintaxe detectados
+- npm install: não concluído neste ambiente por timeout de rede
+- Validação final recomendada no Windows: npm install && npm run build
