@@ -1,0 +1,17 @@
+PDF Studio Web Client v1.4.0
+
+VALIDACAO ESTATICA EXECUTADA NO PACOTE:
+- Arquivos TS/TSX analisados pelo compilador TypeScript em modo transpile: sem erros de sintaxe.
+- package.json atualizado para 1.4.0.
+- tesseract.js 7 adicionado como dependencia.
+- Rotas/ferramentas adicionadas: organize, edit-pages, ocr, batch.
+- wrangler.jsonc preservado para Cloudflare Workers Static Assets.
+
+IMPORTANTE:
+O ambiente de geracao do pacote nao conseguiu concluir npm install por indisponibilidade/timeout de rede, portanto o build Vite completo deve ser executado no seu PC antes do deploy:
+
+npm install
+npm run build
+npm run dev
+
+Depois valide as quatro features conforme TESTES_V1_4.md.

@@ -1,36 +1,26 @@
-PDF STUDIO WEB — LEIA-ME-PRIMEIRO
+PDF Studio Web Client v1.4.0
 
-1) Instale Node.js 22 ou superior:
-   https://nodejs.org/
+NOVAS FUNCOES:
+1. Organizador visual de paginas
+2. OCR pesquisavel para PDFs escaneados
+3. Processamento em lote
+4. Editor basico de paginas
 
-2) Extraia esta pasta completamente.
+TESTE LOCAL:
+1. npm install
+2. npm run build
+3. npm run dev
+4. Teste /tool/organize, /tool/ocr, /tool/batch e /tool/edit-pages
 
-3) Execute:
-   INSTALAR_E_TESTAR.bat
+ATUALIZAR PROJETO OFICIAL:
+- copie esta versao por cima de C:\PDFStudio_Web_Client_v1 SEM apagar .git
+- npm install
+- npm run build
+- git add .
+- git commit -m "Adiciona organizador OCR lote e editor de paginas"
+- git push
+- npx wrangler deploy
 
-4) Teste no navegador:
-   http://localhost:5173
-
-5) Quando estiver satisfeito, execute:
-   BUILD_PRODUCAO.bat
-
-6) Para publicar sem cartão e sem backend:
-   Cloudflare Dashboard > Workers & Pages > Create application > Pages.
-
-RECOMENDADO:
-Conecte o repositório GitHub e use:
-   Build command: npm run build
-   Output directory: dist
-
-FUNÇÕES:
-- Compressão Inteligente/Básica/Média/Alta/Máxima
-- Mesclar
-- Dividir por MB
-- PDF -> JPG/PNG
-- Imagens -> PDF
-- PDF -> TXT
-- PDF -> Word (Beta)
-- Word -> PDF (Beta)
-
-PRIVACIDADE:
-Os documentos são processados localmente no navegador e não são enviados para um servidor.
+IMPORTANTE SOBRE OCR:
+No primeiro uso, o navegador pode baixar o motor/modelo do Tesseract.js.
+O PDF continua sendo processado localmente e nao e enviado ao servico de OCR.

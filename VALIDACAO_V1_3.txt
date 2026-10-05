@@ -1,0 +1,15 @@
+PDF Studio Web Client v1.3.0
+
+Nova feature: COMPRIMIR PARA X MB
+
+Checklist manual recomendado:
+1. npm install
+2. npm run build
+3. npm run dev
+4. Abrir /compress
+5. Selecionar "Por tamanho"
+6. Testar PDF 20-60 MB com metas 20 MB, 10 MB e 5 MB quando permitido
+7. Confirmar que o PDF baixado abre e possui tamanho > 0
+8. Confirmar mensagem "Meta atingida" ou "Melhor resultado"
+9. Confirmar aviso de rasterizacao quando aplicavel
+10. Publicar com npx wrangler deploy

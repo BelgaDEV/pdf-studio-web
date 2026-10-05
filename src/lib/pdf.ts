@@ -6,7 +6,8 @@ import { ghostscriptCompressWasm, qpdfOptimizeWasm } from './wasmCompression'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
-export type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'
+export type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'|'target'
+export type PresetCompressionMode = Exclude<CompressionMode, 'target'>
 export type ProgressFn = (value: number, message: string) => void
 
 const profiles = {
@@ -40,6 +41,13 @@ function ensureValidPdfBytes(bytes: Uint8Array, label = 'PDF gerado'): Uint8Arra
   return bytes
 }
 
+async function ensurePdfPageCount(bytes: Uint8Array, expectedPages: number): Promise<void> {
+  const pdf = await loadPdfJs(bytes)
+  if (pdf.numPages !== expectedPages) {
+    throw new Error(`Validação falhou: o original tem ${expectedPages} páginas e o resultado tem ${pdf.numPages}. O download foi bloqueado.`)
+  }
+}
+
 export async function inspectPdf(file: File) {
   const pdf = await loadPdfJs(file)
   const sample = Math.min(3, pdf.numPages)
@@ -50,7 +58,7 @@ export async function inspectPdf(file: File) {
     textChars += text.items.reduce((acc: number, item: any) => acc + ('str' in item ? item.str.length : 0), 0)
   }
   const avgBytes = file.size / Math.max(pdf.numPages,1)
-  let recommended: CompressionMode = 'medium'
+  let recommended: PresetCompressionMode = 'medium'
   // Evita recomendar Básico para apostilas grandes só porque têm muito texto.
   // Tamanho total + bytes/página têm peso maior para decidir se vale
   // recompressão. Básico fica reservado a PDFs realmente enxutos.
@@ -80,7 +88,10 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob>
 
 export async function compressPdf(file: File, mode: CompressionMode, onProgress: ProgressFn) {
   onProgress(2, 'Analisando o documento…')
-  let selected = mode
+  if (mode === 'target') {
+    throw new Error('Use compressPdfToTarget() para o modo Por tamanho.')
+  }
+  let selected: PresetCompressionMode = mode
   let analysis: Awaited<ReturnType<typeof inspectPdf>> | null = null
   if (mode === 'smart') {
     analysis = await inspectPdf(file)
@@ -202,6 +213,266 @@ export async function compressPdf(file: File, mode: CompressionMode, onProgress:
       diagnostic,
     }
   }
+}
+
+
+const MIB = 1024 * 1024
+const TARGET_TOLERANCE = 1.0
+
+function rangedProgress(
+  start: number,
+  end: number,
+  onProgress: ProgressFn,
+  prefix?: string,
+): ProgressFn {
+  return (value, message) => {
+    const normalized = Math.max(0, Math.min(100, value)) / 100
+    const mapped = start + Math.round((end - start) * normalized)
+    onProgress(mapped, prefix ? `${prefix}: ${message}` : message)
+  }
+}
+
+function targetProfileOrder(ratio: number): Array<'medium' | 'high' | 'maximum' | 'extreme'> {
+  if (ratio >= 0.72) return ['medium', 'high', 'maximum', 'extreme']
+  if (ratio >= 0.52) return ['high', 'maximum', 'extreme']
+  if (ratio >= 0.34) return ['maximum', 'extreme']
+  return ['extreme']
+}
+
+/**
+ * Comprime buscando um tamanho máximo escolhido pelo usuário.
+ *
+ * Estratégia:
+ * 1) qpdf estrutural, sem perda visual;
+ * 2) Ghostscript em perfis progressivamente mais fortes, preservando texto/vetores;
+ * 3) apenas se necessário, rasterização adaptativa com orçamento de bytes/página.
+ *
+ * O resultado só é marcado como "Meta atingida" quando fica realmente menor
+ * ou igual ao limite escolhido pelo usuário.
+ */
+export async function compressPdfToTarget(
+  file: File,
+  targetMb: number,
+  onProgress: ProgressFn,
+) {
+  if (!Number.isFinite(targetMb) || targetMb <= 0) {
+    throw new Error('Informe um tamanho alvo válido em MB.')
+  }
+
+  const targetBytes = Math.floor(targetMb * MIB)
+  const originalSize = file.size
+  if (targetBytes >= originalSize) {
+    throw new Error(`A meta precisa ser menor que o arquivo original (${(originalSize / MIB).toFixed(1)} MB).`)
+  }
+
+  onProgress(2, 'Analisando o PDF e calculando a meta…')
+  const analysis = await inspectPdf(file)
+  const original = new Uint8Array(await file.arrayBuffer())
+  ensureValidPdfBytes(original, 'PDF original')
+
+  // Evita metas absurdamente baixas que gerariam páginas ilegíveis ou um PDF
+  // estruturalmente impossível. O valor é conservador e proporcional às páginas.
+  const minimumTargetBytes = Math.max(512 * 1024, analysis.pages * 7_000 + 120_000)
+  if (targetBytes < minimumTargetBytes) {
+    throw new Error(
+      `Meta muito baixa para ${analysis.pages} páginas. Tente pelo menos ${(minimumTargetBytes / MIB).toFixed(1)} MB para preservar legibilidade.`,
+    )
+  }
+
+  const targetRatio = targetBytes / originalSize
+  let best = original
+  let engine = 'original'
+  let rasterized = false
+  const attempts: string[] = []
+
+  // 1) Otimização estrutural sem perda. Pode bastar quando a meta está próxima.
+  try {
+    const structural = await qpdfOptimizeWasm(original, rangedProgress(4, 13, onProgress, 'Otimização estrutural'))
+    if (looksLikePdf(structural) && structural.byteLength < best.byteLength) {
+      best = structural
+      engine = 'qpdf-wasm'
+      attempts.push(`qpdf ${(best.byteLength / MIB).toFixed(1)} MB`)
+    }
+    if (best.byteLength <= targetBytes * TARGET_TOLERANCE) {
+      await ensurePdfPageCount(best, analysis.pages)
+      onProgress(100, 'Meta atingida preservando texto e vetores.')
+      return {
+        bytes: best,
+        mode: 'target' as const,
+        engine,
+        rasterized,
+        targetBytes,
+        targetReached: best.byteLength <= targetBytes * TARGET_TOLERANCE,
+        attempts,
+        pages: analysis.pages,
+      }
+    }
+  } catch (error) {
+    console.warn('qpdf não pôde ser usado na busca por tamanho.', error)
+  }
+
+  // 2) Tenta perfis nativos progressivos. A ordem depende de quão agressiva é
+  // a redução solicitada para evitar perda desnecessária de qualidade.
+  const order = targetProfileOrder(targetRatio)
+  const nativeStart = 15
+  const nativeEnd = 58
+  const slot = Math.max(7, Math.floor((nativeEnd - nativeStart) / order.length))
+
+  for (let index = 0; index < order.length; index++) {
+    const profile = order[index]
+    const start = nativeStart + index * slot
+    const end = index === order.length - 1 ? nativeEnd : Math.min(nativeEnd, start + slot - 1)
+    try {
+      onProgress(start, `Buscando a meta com perfil ${profile}…`)
+      const candidate = await ghostscriptCompressWasm(original, profile, onProgress, start, end)
+      if (looksLikePdf(candidate) && candidate.byteLength < best.byteLength) {
+        best = candidate
+        engine = `ghostscript-${profile}`
+        attempts.push(`${profile} ${(best.byteLength / MIB).toFixed(1)} MB`)
+      }
+      onProgress(end, `Melhor resultado até agora: ${(best.byteLength / MIB).toFixed(1)} MB • meta ${targetMb.toFixed(1)} MB`)
+      if (best.byteLength <= targetBytes * TARGET_TOLERANCE) break
+    } catch (error) {
+      console.warn(`Perfil ${profile} indisponível na busca por tamanho.`, error)
+      attempts.push(`${profile} indisponível`)
+    }
+  }
+
+  // qpdf pode retirar alguns pontos percentuais depois do pdfwrite.
+  if (best !== original) {
+    try {
+      const optimized = await qpdfOptimizeWasm(best, rangedProgress(59, 67, onProgress, 'Finalização estrutural'))
+      if (looksLikePdf(optimized) && optimized.byteLength < best.byteLength) {
+        best = optimized
+        engine += ' + qpdf-wasm'
+        attempts.push(`qpdf final ${(best.byteLength / MIB).toFixed(1)} MB`)
+      }
+    } catch (error) {
+      console.warn('qpdf final indisponível na busca por tamanho.', error)
+    }
+  }
+
+  // Se já atingimos a meta com estrutura preservada, paramos aqui.
+  if (best.byteLength <= targetBytes * TARGET_TOLERANCE) {
+    ensureValidPdfBytes(best, 'PDF na meta')
+    await ensurePdfPageCount(best, analysis.pages)
+    onProgress(100, 'Meta atingida preservando a estrutura do PDF.')
+    return {
+      bytes: best,
+      mode: 'target' as const,
+      engine,
+      rasterized,
+      targetBytes,
+      targetReached: true,
+      attempts,
+      pages: analysis.pages,
+    }
+  }
+
+  // 3) Último recurso: orçamento real de bytes por página. Aqui priorizamos
+  // atingir a meta escolhida. O custo é rasterizar páginas e perder recursos
+  // interativos/texto selecionável.
+  onProgress(69, `Ainda acima da meta (${(best.byteLength / MIB).toFixed(1)} MB). Ajustando página por página…`)
+  const raster = await targetRasterCompress(file, originalSize, targetBytes, onProgress, 70, 96)
+  if (looksLikePdf(raster) && raster.byteLength < best.byteLength) {
+    best = raster
+    engine = 'target-adaptive-raster'
+    rasterized = true
+    attempts.push(`adaptativo ${(best.byteLength / MIB).toFixed(1)} MB`)
+  }
+
+  ensureValidPdfBytes(best, 'PDF final por tamanho')
+  await ensurePdfPageCount(best, analysis.pages)
+  const targetReached = best.byteLength <= targetBytes * TARGET_TOLERANCE
+  onProgress(
+    100,
+    targetReached
+      ? `Meta atingida: ${(best.byteLength / MIB).toFixed(1)} MB.`
+      : `Melhor resultado possível: ${(best.byteLength / MIB).toFixed(1)} MB.`,
+  )
+  return {
+    bytes: best,
+    mode: 'target' as const,
+    engine,
+    rasterized,
+    targetBytes,
+    targetReached,
+    attempts,
+    pages: analysis.pages,
+  }
+}
+
+async function targetRasterCompress(
+  file: File,
+  originalSize: number,
+  targetBytes: number,
+  onProgress: ProgressFn,
+  progressStart = 70,
+  progressEnd = 96,
+): Promise<Uint8Array> {
+  const source = await loadPdfJs(file)
+  const output = await PDFDocument.create()
+  const ratio = targetBytes / Math.max(1, originalSize)
+
+  const dpi = ratio >= 0.72 ? 150
+    : ratio >= 0.55 ? 132
+      : ratio >= 0.40 ? 112
+        : ratio >= 0.27 ? 96
+          : ratio >= 0.18 ? 84
+            : 72
+
+  const qualities = ratio >= 0.65
+    ? [0.80, 0.72, 0.64, 0.56, 0.48]
+    : ratio >= 0.45
+      ? [0.70, 0.62, 0.54, 0.46, 0.38, 0.32]
+      : ratio >= 0.28
+        ? [0.60, 0.52, 0.44, 0.36, 0.30, 0.25]
+        : [0.50, 0.42, 0.35, 0.29, 0.24, 0.20]
+
+  const minLinearScale = ratio >= 0.65 ? 0.66
+    : ratio >= 0.45 ? 0.56
+      : ratio >= 0.28 ? 0.46
+        : 0.34
+
+  // Reservamos 18% para xref, objetos, metadados e variações de serialização.
+  // Isso tende a colocar o PDF final próximo, porém abaixo, da meta escolhida.
+  const payloadTarget = targetBytes * 0.82
+  const pageBudget = Math.max(6_000, Math.floor(payloadTarget / Math.max(1, source.numPages)))
+
+  for (let i = 1; i <= source.numPages; i++) {
+    const page = await source.getPage(i)
+    const ptViewport = page.getViewport({ scale: 1 })
+    const viewport = page.getViewport({ scale: dpi / 72 })
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.floor(viewport.width))
+    canvas.height = Math.max(1, Math.floor(viewport.height))
+    const ctx = canvas.getContext('2d', { alpha: false })!
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise
+
+    const jpeg = await jpegUnderBudget(canvas, pageBudget, qualities, minLinearScale)
+    const jpg = await output.embedJpg(await jpeg.arrayBuffer())
+    const newPage = output.addPage([ptViewport.width, ptViewport.height])
+    newPage.drawImage(jpg, { x: 0, y: 0, width: ptViewport.width, height: ptViewport.height })
+
+    canvas.width = 1
+    canvas.height = 1
+    const ratioDone = i / Math.max(1, source.numPages)
+    const percent = progressStart + Math.round((progressEnd - progressStart) * ratioDone)
+    onProgress(
+      percent,
+      `Ajustando à meta: página ${i}/${source.numPages} • orçamento ${Math.round(pageBudget / 1024)} KB/página`,
+    )
+    await nextFrame()
+  }
+
+  onProgress(progressEnd + 1, 'Montando PDF no tamanho alvo…')
+  return output.save({
+    useObjectStreams: true,
+    addDefaultPage: false,
+    objectsPerTick: 20,
+  })
 }
 
 

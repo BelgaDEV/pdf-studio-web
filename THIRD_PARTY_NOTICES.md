@@ -13,3 +13,7 @@ This project uses `@wasm-zoo/qpdf`, a WebAssembly distribution of qpdf. Review t
 ## Other libraries
 
 The project also uses React, Vite, PDF.js, pdf-lib, JSZip, Mammoth, docx, Pillow-equivalent browser primitives, and related open-source dependencies. Their license metadata is available in `node_modules` after `npm install`.
+
+## Tesseract.js
+
+A v1.4 adiciona `tesseract.js` para OCR no navegador. Tesseract.js é distribuído sob licença Apache-2.0. Os modelos de idioma carregados pelo mecanismo podem ter seus próprios avisos/licenças; revise os artefatos efetivamente distribuídos antes de uma oferta comercial.

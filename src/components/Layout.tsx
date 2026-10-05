@@ -10,7 +10,7 @@ export default function Layout(){
       <Link to="/" className="brand"><span className="brand-mark">P</span><span>PDF Studio</span></Link>
       <nav className="desktop-nav">
         <Link to="/#tools">Ferramentas</Link><Link to="/#privacy">Privacidade</Link>
-        <a href="https://github.com/" target="_blank" rel="noreferrer"><Github size={17}/> GitHub</a>
+        <a href="https://github.com/BelgaDEV/pdf-studio-web" target="_blank" rel="noreferrer"><Github size={17}/> GitHub</a>
       </nav>
       <button className="menu-btn" onClick={()=>setOpen(!open)} aria-label="Menu">{open?<X/>:<Menu/>}</button>
     </header>
@@ -20,7 +20,7 @@ export default function Layout(){
     <main><Outlet/></main>
     <footer className="footer">
       <div><div className="brand footer-brand"><span className="brand-mark">P</span><span>PDF Studio</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p></div>
-      <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span></div>
+      <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span><span>v1.4.0</span></div>
     </footer>
   </div>
 }

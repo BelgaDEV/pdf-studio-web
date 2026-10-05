@@ -8,7 +8,7 @@ export default function Home(){
       <div className="hero-copy">
         <div className="eyebrow"><ShieldCheck size={15}/> 100% local • sem upload • sem cadastro</div>
         <h1>Seus PDFs mais leves, <span>organizados e convertidos.</span></h1>
-        <p>Comprima, converta, mescle e divida documentos diretamente no navegador. Seus arquivos não precisam sair do seu dispositivo.</p>
+        <p>Comprima, organize, faça OCR, processe lotes e converta documentos diretamente no navegador. Seus arquivos não precisam sair do seu dispositivo.</p>
         <div className="hero-actions"><Link className="primary-btn" to="/tool/compress">Comprimir um PDF <ArrowRight size={18}/></Link><a className="secondary-btn" href="#tools">Ver ferramentas</a></div>
         <div className="trust-row"><span><LockKeyhole size={18}/> Privacidade real</span><span><Zap size={18}/> Progresso ao vivo</span><span><CheckCircle2 size={18}/> Sem servidor</span></div>
       </div>
@@ -20,7 +20,7 @@ export default function Home(){
     <section id="tools" className="section">
       <div className="section-head"><div><p className="kicker">FERRAMENTAS</p><h2>Tudo para trabalhar com PDFs</h2></div><p>Sem upload, sem fila e sem esperar servidor.</p></div>
       <div className="tool-grid">{tools.map(t=>{const Icon=t.icon;return <Link to={`/tool/${t.id}`} className="tool-card" key={t.id}>
-        <div className="tool-icon" style={{background:t.color}}><Icon size={23}/></div><div><h3>{t.title}</h3><p>{t.desc}</p></div><ArrowRight className="tool-arrow" size={20}/>
+        <div className="tool-icon" style={{background:t.color}}><Icon size={23}/></div><div><div className="tool-title-line"><h3>{t.title}</h3>{'badge' in t && <span className="new-badge">{t.badge}</span>}</div><p>{t.desc}</p></div><ArrowRight className="tool-arrow" size={20}/>
       </Link>})}</div>
     </section>
 

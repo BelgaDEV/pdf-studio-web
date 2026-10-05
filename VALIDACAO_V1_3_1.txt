@@ -1,0 +1,16 @@
+PDF Studio Web Client v1.3.1
+
+Nova melhoria: ORDENACAO NO MESCLAR PDF
+
+Checklist manual recomendado:
+1. npm install
+2. npm run build
+3. npm run dev
+4. Abrir Mesclar PDF
+5. Adicionar pelo menos 3 PDFs
+6. Arrastar o arquivo da posicao 3 para a posicao 1
+7. Confirmar que os numeros 1, 2, 3 mudam junto com a lista
+8. Mesclar e conferir que o PDF final segue exatamente a ordem visual
+9. Testar tambem os botoes seta para cima/baixo
+10. Testar no celular usando as setas
+11. Publicar com npx wrangler deploy
