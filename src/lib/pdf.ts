@@ -1,4 +1,5 @@
 import { PDFDocument } from 'pdf-lib'
+import { mergeManyPdfs, type LargeMergeResult } from './largeMerge'
 import * as pdfjsLib from 'pdfjs-dist'
 import JSZip from 'jszip'
 import { nextFrame } from './files'
@@ -663,21 +664,47 @@ async function adaptiveRasterCompress(file: File, originalSize: number, onProgre
   return output.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 25 })
 }
 
-export async function mergePdfs(files: File[], onProgress: ProgressFn) {
+export interface MergeResult {
+  blob: Blob
+  mergedFiles: number
+  skippedFiles: string[]
+  engine: 'pdf-lib' | LargeMergeResult['engine']
+}
+
+export async function mergePdfs(files: File[], onProgress: ProgressFn): Promise<MergeResult> {
+  if (files.length < 2) throw new Error('Selecione pelo menos 2 PDFs.')
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
+  const useMassiveMode = files.length >= 100 || totalBytes >= 128 * 1024 * 1024
+
+  if (useMassiveMode) {
+    return mergeManyPdfs(files, onProgress)
+  }
+
   const out = await PDFDocument.create()
   let done = 0
   for (const file of files) {
-    const src = await PDFDocument.load(await file.arrayBuffer())
-    const pages = await out.copyPages(src, src.getPageIndices())
-    pages.forEach(p => out.addPage(p))
+    try {
+      const src = await PDFDocument.load(await file.arrayBuffer(), { updateMetadata: false })
+      const pages = await out.copyPages(src, src.getPageIndices())
+      pages.forEach(p => out.addPage(p))
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'PDF inválido ou protegido.'
+      throw new Error(`Falha ao abrir "${file.name}": ${detail}`)
+    }
     done++
-    onProgress(Math.round(done/files.length*90), `Adicionando ${file.name}…`)
+    onProgress(Math.round(done/files.length*90), `Adicionando ${done}/${files.length}: ${file.name}…`)
     await nextFrame()
   }
   onProgress(96, 'Finalizando arquivo mesclado…')
-  const bytes = await out.save({ useObjectStreams:true })
+  const bytes = await out.save({ useObjectStreams:true, addDefaultPage:false, objectsPerTick:25 })
+  if (!bytes || bytes.byteLength < 100) throw new Error('O PDF mesclado ficou vazio e foi bloqueado.')
   onProgress(100, 'Concluído.')
-  return bytes
+  return {
+    blob: new Blob([bytes], { type: 'application/pdf' }),
+    mergedFiles: files.length,
+    skippedFiles: [],
+    engine: 'pdf-lib',
+  }
 }
 
 export async function splitPdfBySize(file: File, maxMb: number, onProgress: ProgressFn) {

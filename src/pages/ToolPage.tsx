@@ -31,6 +31,7 @@ function ClassicToolPage(){
   const [status,setStatus] = useState('Pronto.')
   const [working,setWorking] = useState(false)
   const [success,setSuccess] = useState('')
+  const [errorMessage,setErrorMessage] = useState('')
   const [mode,setMode] = useState<CompressionMode>('smart')
   const [splitMb,setSplitMb] = useState(10)
   const [targetMb,setTargetMb] = useState(10)
@@ -38,6 +39,7 @@ function ClassicToolPage(){
   const [analysis,setAnalysis] = useState<{pages:number,recommended:CompressionMode}|null>(null)
   const [dragIndex,setDragIndex] = useState<number|null>(null)
   const [dragOverIndex,setDragOverIndex] = useState<number|null>(null)
+  const [showAllMergeFiles,setShowAllMergeFiles] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement|null>(null)
   const inputRef = useRef<HTMLInputElement|null>(null)
   const Icon = tool.icon
@@ -45,7 +47,7 @@ function ClassicToolPage(){
   const accept = useMemo(()=> toolId==='word-pdf' ? '.docx' : toolId==='images-pdf' ? 'image/jpeg,image/png' : '.pdf',[toolId])
   const multiple = multiPdf.has(toolId) || toolId==='images-pdf'
 
-  useEffect(()=>{ setFiles([]); setProgress(0); setStatus('Pronto.'); setSuccess(''); setAnalysis(null); setDragIndex(null); setDragOverIndex(null) },[toolId])
+  useEffect(()=>{ setFiles([]); setProgress(0); setStatus('Pronto.'); setSuccess(''); setErrorMessage(''); setAnalysis(null); setDragIndex(null); setDragOverIndex(null); setShowAllMergeFiles(false) },[toolId])
   useEffect(()=>{
     const file=files[0]
     if(file && file.type==='application/pdf' && canvasRef.current){
@@ -68,10 +70,10 @@ function ClassicToolPage(){
     const incoming=Array.from(list)
     if(multiple) setFiles(prev=>[...prev,...incoming])
     else setFiles(incoming.slice(0,1))
-    setProgress(0); setSuccess('')
+    setProgress(0); setSuccess(''); setErrorMessage(''); setShowAllMergeFiles(false)
   }
 
-  function removeFile(index:number){ setFiles(f=>f.filter((_,i)=>i!==index)); setProgress(0); setSuccess('') }
+  function removeFile(index:number){ setFiles(f=>f.filter((_,i)=>i!==index)); setProgress(0); setSuccess(''); setErrorMessage('') }
 
   function moveFile(from:number,to:number){
     if(from===to || from<0 || to<0) return
@@ -82,7 +84,7 @@ function ClassicToolPage(){
       next.splice(to,0,moved)
       return next
     })
-    setProgress(0); setSuccess('')
+    setProgress(0); setSuccess(''); setErrorMessage('')
   }
 
   function onFileDragStart(index:number,e:DragEvent<HTMLDivElement>){
@@ -115,7 +117,9 @@ function ClassicToolPage(){
 
   async function run(){
     if(files.length===0) return
-    setWorking(true); setSuccess(''); setProgress(0)
+    setWorking(true); setSuccess(''); setErrorMessage(''); setProgress(0)
+    setStatus(toolId==='merge' ? `Preparando ${files.length.toLocaleString('pt-BR')} PDF(s)…` : 'Preparando processamento…')
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
     try{
       if(toolId==='compress'){
         if(mode==='target'){
@@ -192,9 +196,15 @@ function ClassicToolPage(){
         }
       } else if(toolId==='merge'){
         if(files.length<2) throw new Error('Selecione pelo menos 2 PDFs.')
-        const bytes=await mergePdfs(files,update)
-        downloadBlob(new Blob([bytes],{type:'application/pdf'}),'pdf-studio-mesclado.pdf')
-        setSuccess(`${files.length} PDFs mesclados com sucesso.`)
+        const result=await mergePdfs(files,update)
+        if(!result.blob || result.blob.size<100) throw new Error('O PDF final ficou vazio e o download foi bloqueado.')
+        downloadBlob(result.blob,'pdf-studio-mesclado.pdf')
+        const engineLabel=result.engine==='pdf-lib'?'pdf-lib':result.engine==='qpdf-wasm-direct'?'qpdf WebAssembly massivo':'qpdf WebAssembly por blocos'
+        const skipped=result.skippedFiles.length
+        setSuccess(`${result.mergedFiles.toLocaleString('pt-BR')} PDFs mesclados com sucesso${skipped?` • ${skipped} arquivo(s) ignorado(s) por erro`:''}. Motor: ${engineLabel}.`)
+        if(skipped){
+          setStatus(`Concluído com avisos. Ignorados: ${result.skippedFiles.slice(0,8).join(', ')}${skipped>8?` e mais ${skipped-8}`:''}.`)
+        }
       } else if(toolId==='split'){
         const parts=await splitPdfBySize(files[0],splitMb,update)
         const zip=new JSZip()
@@ -228,7 +238,7 @@ function ClassicToolPage(){
       }
     }catch(err){
       const message=err instanceof Error?err.message:'Erro inesperado.'
-      setStatus(message); setProgress(0)
+      setStatus(message); setErrorMessage(message); setProgress(0)
     }finally{setWorking(false)}
   }
 
@@ -236,6 +246,9 @@ function ClassicToolPage(){
   const estimatedMinTargetMb=analysis?Math.max(0.5,(analysis.pages*7000+120000)/(1024*1024)):0.5
   const targetReduction=originalMb>0?Math.max(0,(1-targetMb/originalMb)*100):0
   const targetPresets=[5,10,20,25,50].filter(value=>value<originalMb-0.05 && value>=estimatedMinTargetMb)
+  const mergeTotalBytes=toolId==='merge'?files.reduce((sum,file)=>sum+file.size,0):0
+  const mergeListIsCollapsed=toolId==='merge' && files.length>300 && !showAllMergeFiles
+  const visibleFiles=mergeListIsCollapsed?files.slice(0,200):files
 
   return <section className="tool-page">
     <div className="tool-page-head">
@@ -253,7 +266,7 @@ function ClassicToolPage(){
         {files.length>0 && <>
           {toolId==='merge' && <div className="merge-order-hint"><GripVertical size={17}/><div><strong>Defina a ordem dos PDFs</strong><span>Arraste os arquivos. O item 1 será o primeiro no PDF final.</span></div></div>}
           <div className={`file-list ${toolId==='merge'?'sortable-file-list':''}`}>
-            {files.map((f,i)=>
+            {visibleFiles.map((f,i)=>
               <div
                 className={`file-row ${toolId==='merge'?'sortable-file-row':''} ${dragIndex===i?'dragging':''} ${dragOverIndex===i && dragIndex!==i?'drag-over':''}`}
                 key={`${f.name}-${f.size}-${f.lastModified}-${i}`}
@@ -273,6 +286,10 @@ function ClassicToolPage(){
               </div>
             )}
           </div>
+          {toolId==='merge' && files.length>300 && <div className="large-list-toolbar">
+            <span>{mergeListIsCollapsed?`Exibindo os primeiros 200 de ${files.length.toLocaleString('pt-BR')} PDFs para manter a interface rápida.`:`Exibindo todos os ${files.length.toLocaleString('pt-BR')} PDFs.`}</span>
+            <button type="button" onClick={()=>setShowAllMergeFiles(v=>!v)} disabled={working}>{mergeListIsCollapsed?'Mostrar todos':'Mostrar apenas 200'}</button>
+          </div>}
         </>}
       </div>
 
@@ -295,15 +312,16 @@ function ClassicToolPage(){
         {toolId==='split' && <><label className="field-label">Tamanho máximo por parte</label><div className="number-field"><input type="number" min="0.5" max="500" step="0.5" value={splitMb} onChange={e=>setSplitMb(Number(e.target.value))}/><span>MB</span></div></>}
         {(toolId==='pdf-jpg'||toolId==='pdf-png') && <><label className="field-label">Resolução</label><select value={dpi} onChange={e=>setDpi(Number(e.target.value))}><option value="96">96 DPI</option><option value="150">150 DPI</option><option value="200">200 DPI</option><option value="300">300 DPI</option></select></>}
         {(toolId==='pdf-word'||toolId==='word-pdf') && <div className="beta-note"><strong>Conversão Beta</strong><span>Funciona 100% no navegador. Layouts complexos podem sofrer alterações.</span></div>}
-        {toolId==='merge' && <div className="merge-summary"><strong>Ordem final</strong><span>{files.length<2?'Adicione pelo menos 2 PDFs.':`${files.length} PDFs serão unidos de cima para baixo.`}</span></div>}
+        {toolId==='merge' && <div className="merge-summary"><strong>Ordem final</strong><span>{files.length<2?'Adicione pelo menos 2 PDFs.':`${files.length.toLocaleString('pt-BR')} PDFs serão unidos de cima para baixo • ${humanSize(mergeTotalBytes)} no total.`}</span>{files.length>=100 && <span className="massive-merge-note">Modo de mesclagem massiva será ativado automaticamente.</span>}</div>}
         <button className="primary-btn wide run-btn" onClick={run} disabled={working||files.length===0}>{working?'Processando…':'Executar agora'}</button>
       </aside>
     </div>
 
-    {(progress>0||working||success) && <div className="progress-card">
-      <div className="progress-top"><div><strong>{success?'Processamento concluído':'Processando'}</strong><span>{status}</span></div><b>{progress}%</b></div>
+    {(progress>0||working||success||errorMessage) && <div className="progress-card">
+      <div className="progress-top"><div><strong>{errorMessage?'Falha no processamento':success?'Processamento concluído':'Processando'}</strong><span>{status}</span></div><b>{progress}%</b></div>
       <div className="progress-track"><div style={{width:`${progress}%`}}/></div>
       {success && <div className="success-box"><CheckCircle2 size={22}/><span>{success}</span><Download size={19}/></div>}
+      {errorMessage && <div className="error-box"><Info size={22}/><span><strong>Não foi possível concluir.</strong> {errorMessage}</span></div>}
     </div>}
 
     {files[0]?.type==='application/pdf' && <div className="preview-card"><div><h3>Pré-visualização</h3><p>Primeira página renderizada localmente.</p></div><div className="canvas-wrap"><canvas ref={canvasRef}/></div></div>}

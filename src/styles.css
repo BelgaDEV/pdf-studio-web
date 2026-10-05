@@ -23,3 +23,14 @@ radial-gradient(circle at 85% 10%,rgba(36,224,122,.12),transparent 26rem),linear
 .tool-title-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.tool-title-line h3{margin:1px 0 7px}.new-badge{display:inline-flex;align-items:center;padding:3px 6px;border-radius:999px;background:rgba(57,239,136,.12);border:1px solid rgba(57,239,136,.25);color:#8ff2b7;font-size:8px;font-weight:900;letter-spacing:.09em;margin-top:-5px}
 @media(max-width:900px){.mobile-menu{max-height:calc(100vh - 76px);overflow-y:auto}}
 @media(max-width:600px){.mobile-menu{max-height:calc(100vh - 68px)}}
+
+/* v1.4.1 — feedback persistente e mesclagem massiva */
+.massive-merge-note{margin-top:4px;color:#75e9a8!important;font-weight:750}
+.error-box{margin-top:14px;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,107,107,.35);background:rgba(255,78,78,.09);display:flex;align-items:flex-start;gap:10px;color:#ffd2d2;font-size:12px;line-height:1.5}
+.error-box svg{flex:0 0 auto;color:#ff8585;margin-top:1px}
+.error-box strong{color:#fff}
+.large-list-toolbar{margin-top:10px;padding:10px 12px;border:1px solid #243d57;border-radius:10px;background:#0b1724;display:flex;align-items:center;justify-content:space-between;gap:12px;color:#8fa6bf;font-size:11px}
+.large-list-toolbar button{border:1px solid #31516e;background:#102033;color:#dcecff;border-radius:8px;padding:7px 10px;font-weight:750;cursor:pointer;white-space:nowrap}
+.large-list-toolbar button:hover:not(:disabled){border-color:var(--green);color:#fff}
+.large-list-toolbar button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:600px){.large-list-toolbar{align-items:flex-start;flex-direction:column}}

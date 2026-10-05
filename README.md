@@ -1,9 +1,10 @@
-# PDF Studio Web Client v1.4.0
+# PDF Studio Web Client v1.4.1
 
 Suíte de ferramentas PDF executada no navegador, com foco em privacidade, compressão e organização de documentos.
 
-## Novidades da v1.4.0
+## Novidades da v1.4.1
 
+- **Mesclagem massiva corrigida**: qpdf WebAssembly para centenas/milhares de PDFs, modo por blocos para cargas grandes, progresso imediato e erros persistentes.
 - **Organizador visual de páginas**: miniaturas, drag-and-drop, setas para touch/mobile, remoção e extração de páginas selecionadas.
 - **Editor básico de páginas**: girar 90°, duplicar, excluir e reorganizar páginas.
 - **OCR pesquisável**: Tesseract.js em WebAssembly para adicionar camada de texto pesquisável a PDFs escaneados.
@@ -83,3 +84,7 @@ npx wrangler deploy
 ## Licenças
 
 Consulte `THIRD_PARTY_NOTICES.md`. O projeto atual continua marcado como `AGPL-3.0-or-later` por causa da composição/licenciamento usada no motor Ghostscript. Antes de vender uma versão proprietária/fechada, faça revisão jurídica das licenças ou substitua/licencie comercialmente os componentes necessários.
+
+## v1.4.1 — Mesclagem massiva
+
+A ferramenta Mesclar PDF ativa automaticamente um motor qpdf WebAssembly para 100+ arquivos ou cargas grandes. Para volumes muito grandes, usa mesclagem por blocos e consolidação progressiva, mantendo progresso visível e erros persistentes na interface. Veja `CORRECAO_MESCLAGEM_MASSIVA.md`.

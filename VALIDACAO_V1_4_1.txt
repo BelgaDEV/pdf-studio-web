@@ -1,0 +1,19 @@
+PDF Studio Web v1.4.1
+
+Correcao principal:
+- Mesclagem massiva para 100+ PDFs / cargas grandes
+- qpdf WebAssembly direto para cargas moderadas
+- qpdf em blocos/consolidacao para cargas maiores
+- interface mostra progresso imediatamente
+- erros permanecem visiveis
+- lista de milhares de arquivos fica recolhida em 200 itens por padrao
+
+Teste recomendado:
+1. npm install
+2. npm run build
+3. npm run dev
+4. Mesclar PDF
+5. selecionar os mesmos 1.440 arquivos
+6. clicar Executar agora
+7. confirmar que aparece Processando e progresso
+8. abrir o PDF final e validar inicio/meio/fim
