@@ -1,7 +1,7 @@
-# PDF Studio Web Client v1.8.3
+# PDF Studio Web Client v1.8.4
 
 
-## v1.8.3 — Layout Cleanup
+## v1.8.4 — Layout Cleanup
 
 - Home mais compacta: redução do espaço vazio entre a navegação superior e o hero.
 - Roadmap simplificado: removidos Maturidade, Limitações conhecidas, Próximos passos e Monetização.

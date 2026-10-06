@@ -1,2 +1,1 @@
-PDF Studio Web Client v1.8.3
-Layout Cleanup
+PDF Studio Web v1.8.4 — Brand & Web Polish

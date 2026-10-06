@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Github, HelpCircle, Home, LockKeyhole, Map, Menu, Search, ShieldCheck, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { tools, type ToolCategory } from '../lib/tools'
 
 const groups: { id:ToolCategory; title:string }[] = [
@@ -12,9 +12,23 @@ const groups: { id:ToolCategory; title:string }[] = [
 ]
 
 export default function Layout(){
+  const location=useLocation()
   const [open,setOpen]=useState(false)
   const [collapsed,setCollapsed]=useState(false)
   const [query,setQuery]=useState('')
+
+  useEffect(()=>{
+    const path=location.pathname
+    let title='PDF Studio — automação documental privada'
+    if(path==='/faq') title='FAQ e Ajuda — PDF Studio'
+    else if(path==='/roadmap') title='Roadmap — PDF Studio'
+    else if(path.startsWith('/tool/')){
+      const id=path.split('/').filter(Boolean).pop()
+      const tool=tools.find(t=>t.id===id)
+      if(tool) title=`${tool.title} — PDF Studio`
+    }
+    document.title=title
+  },[location.pathname])
   const normalized=query.trim().toLocaleLowerCase('pt-BR')
   const grouped=useMemo(()=>groups.map(group=>({
     ...group,
@@ -60,7 +74,7 @@ export default function Layout(){
     <main className="app-main"><Outlet/></main>
     <footer className="footer">
       <div><div className="brand footer-brand"><span className="brand-mark">P</span><span>PDF Studio</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p></div>
-      <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span><span>v1.8.3</span></div>
+      <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span><span>v1.8.4</span></div>
     </footer>
   </div>
 }

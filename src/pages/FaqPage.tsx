@@ -43,7 +43,7 @@ export default function FaqPage(){
     </section>
     <div className="info-search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar: OCR, mesclar, PDF/A, Trust Report..."/></div>
     <div className="faq-chips">{categories.map(value=><button key={value} className={cat===value?'active':''} onClick={()=>setCat(value)}>{value}</button>)}</div>
-    <div className="faq-meta"><ShieldCheck size={16}/><span>{filtered.length} resposta(s) • conteúdo focado no comportamento atual da v1.8.3</span></div>
+    <div className="faq-meta"><ShieldCheck size={16}/><span>{filtered.length} resposta(s) • conteúdo focado no comportamento atual da v1.8.4</span></div>
     <section className="faq-list">
       {filtered.map((item,index)=><details key={`${item.cat}-${index}`} className="faq-item">
         <summary><span>{item.q}</span><small>{item.cat}</small></summary>
