@@ -1,9 +1,5 @@
 import { PDFDocument, PDFName, StandardFonts, degrees, rgb } from 'pdf-lib'
-import * as pdfjsLib from 'pdfjs-dist'
-import JSZip from 'jszip'
 import { nextFrame } from './files'
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 export type DocumentProgressFn = (value: number, message: string) => void
 export type WatermarkPosition = 'center' | 'top' | 'bottom'
@@ -25,10 +21,11 @@ function validatePdf(bytes: Uint8Array, label = 'PDF gerado'): Uint8Array {
 }
 
 async function loadPdfJs(file: File | Uint8Array) {
+  const { loadPdfJsDocument } = await import('./pdfjsSecure')
   const data = file instanceof File
     ? new Uint8Array(await file.arrayBuffer())
     : new Uint8Array(file)
-  return pdfjsLib.getDocument({ data }).promise
+  return loadPdfJsDocument(data)
 }
 
 export async function addWatermark(
@@ -193,12 +190,32 @@ function resultBytes(result: WasmExecResult, label: string): Uint8Array {
   return validatePdf(file.data instanceof Uint8Array ? new Uint8Array(file.data) : new Uint8Array(file.data), label)
 }
 
+async function removePdfMetadataWithPdfLib(
+  input: Uint8Array,
+  onProgress: DocumentProgressFn,
+): Promise<{ bytes: Uint8Array; engine: 'pdf-lib' }> {
+  onProgress(35, 'Usando removedor de compatibilidade…')
+  const doc = await PDFDocument.load(input, { updateMetadata: false })
+  doc.catalog.delete(PDFName.of('Metadata'))
+  ;(doc.context.trailerInfo as any).Info = undefined
+  const out = await doc.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 30 })
+  onProgress(100, 'Metadados removidos.')
+  return { bytes: validatePdf(out), engine: 'pdf-lib' }
+}
+
 export async function removePdfMetadata(
   file: File,
   onProgress: DocumentProgressFn,
 ): Promise<{ bytes: Uint8Array; engine: 'qpdf' | 'pdf-lib' }> {
   const input = new Uint8Array(await file.arrayBuffer())
   onProgress(8, 'Carregando removedor de metadados…')
+
+  // @wasm-zoo/qpdf distribui um build de navegador e referencia `window`.
+  // Em testes Node/SSR usamos diretamente o fallback pdf-lib; no navegador,
+  // qpdf continua sendo o motor principal e o fallback permanece disponível.
+  const canUseBrowserQpdf = typeof window !== 'undefined' && typeof document !== 'undefined'
+  if (!canUseBrowserQpdf) return removePdfMetadataWithPdfLib(input, onProgress)
+
   try {
     const { load } = await import('@wasm-zoo/qpdf')
     const qpdf = await load()
@@ -220,13 +237,7 @@ export async function removePdfMetadata(
     } finally { qpdf.dispose() }
   } catch (error) {
     console.warn('qpdf não conseguiu remover metadados; usando fallback pdf-lib.', error)
-    onProgress(35, 'Usando removedor de compatibilidade…')
-    const doc = await PDFDocument.load(input, { updateMetadata: false })
-    doc.catalog.delete(PDFName.of('Metadata'))
-    ;(doc.context.trailerInfo as any).Info = undefined
-    const out = await doc.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 30 })
-    onProgress(100, 'Metadados removidos.')
-    return { bytes: validatePdf(out), engine: 'pdf-lib' }
+    return removePdfMetadataWithPdfLib(input, onProgress)
   }
 }
 
@@ -350,7 +361,11 @@ export async function extractEmbeddedImages(
   onProgress: DocumentProgressFn,
 ): Promise<{ zip: Blob; count: number }> {
   const bytes = new Uint8Array(await file.arrayBuffer())
-  const pdf = await loadPdfJs(bytes)
+  const [{ default: JSZip }, { pdfjsLib }, pdf] = await Promise.all([
+    import('jszip'),
+    import('./pdfjsSecure'),
+    loadPdfJs(bytes),
+  ])
   const zip = new JSZip()
   const seen = new Set<string>()
   let count = 0

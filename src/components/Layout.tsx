@@ -1,8 +1,9 @@
-import { ChevronLeft, ChevronRight, Clock3, Home, LockKeyhole, Menu, Search, ShieldCheck, Star, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Clock3, Home, LockKeyhole, Menu, Search, ShieldCheck, Star, X } from 'lucide-react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { tools, type ToolCategory, type ToolId } from '../lib/tools'
 import { loadFavoriteToolIds, loadRecentToolIds, recordRecentTool, subscribeProductivity, toggleFavoriteTool } from '../lib/productivity'
+import { APP_VERSION } from '../lib/appMeta'
 
 const groups: { id:ToolCategory; title:string }[] = [
   { id:'legal', title:'Legal & Business' },
@@ -12,6 +13,14 @@ const groups: { id:ToolCategory; title:string }[] = [
   { id:'convert', title:'Conversores' },
 ]
 
+const megaMenuGroups: Array<{title:string; eyebrow:string; ids:ToolId[]}> = [
+  { title:'Organizar PDF', eyebrow:'PÁGINAS E ESTRUTURA', ids:['merge','split','organize','edit-pages','page-numbers'] },
+  { title:'Converter PDF', eyebrow:'FORMATOS', ids:['pdf-word','word-pdf','pdf-jpg','pdf-png','images-pdf'] },
+  { title:'Otimizar PDF', eyebrow:'TAMANHO E LEITURA', ids:['compress','ocr','remove-blank','extract-images','pdf-txt'] },
+  { title:'Editar e proteger', eyebrow:'CONTEÚDO E SEGURANÇA', ids:['watermark','remove-metadata','protect','pdfa','redact'] },
+  { title:'Profissional', eyebrow:'JURÍDICO E AUTOMAÇÃO', ids:['compare','prepare-document','tribunal-presets','trust-report','batch'] },
+]
+
 export default function Layout(){
   const location=useLocation()
   const [open,setOpen]=useState(false)
@@ -19,6 +28,38 @@ export default function Layout(){
   const [query,setQuery]=useState('')
   const [favorites,setFavorites]=useState<ToolId[]>(()=>loadFavoriteToolIds())
   const [recents,setRecents]=useState<ToolId[]>(()=>loadRecentToolIds())
+
+  useEffect(()=>{
+    const previous=window.history.scrollRestoration
+    window.history.scrollRestoration='manual'
+    return ()=>{ window.history.scrollRestoration=previous }
+  },[])
+
+  useLayoutEffect(()=>{
+    const resetScroll=()=>{
+      const root=document.documentElement
+      const previousBehavior=root.style.scrollBehavior
+      root.style.scrollBehavior='auto'
+      window.scrollTo(0,0)
+      root.scrollTop=0
+      document.body.scrollTop=0
+      const main=document.querySelector('.app-main')
+      if(main instanceof HTMLElement) main.scrollTop=0
+      requestAnimationFrame(()=>{ root.style.scrollBehavior=previousBehavior })
+    }
+
+    if(location.hash){
+      const targetId=decodeURIComponent(location.hash.slice(1))
+      requestAnimationFrame(()=>{
+        const target=document.getElementById(targetId)
+        if(target) target.scrollIntoView({block:'start'})
+        else resetScroll()
+      })
+      return
+    }
+
+    resetScroll()
+  },[location.pathname,location.hash])
 
   useEffect(()=>{
     const path=location.pathname
@@ -44,6 +85,7 @@ export default function Layout(){
     }
   },[location.pathname])
 
+  const isLanding=location.pathname==='/'
   const normalized=query.trim().toLocaleLowerCase('pt-BR')
   const grouped=useMemo(()=>groups.map(group=>({
     ...group,
@@ -63,8 +105,8 @@ export default function Layout(){
     </div>
   }
 
-  return <div className={`app-shell app-shell-with-sidebar ${collapsed?'sidebar-collapsed':''}`}>
-    <aside className="quick-sidebar" aria-label="Acesso rápido às ferramentas">
+  return <div className={isLanding?'app-shell landing-shell':`app-shell app-shell-with-sidebar ${collapsed?'sidebar-collapsed':''}`}>
+    {!isLanding&&<aside className="quick-sidebar" aria-label="Acesso rápido às ferramentas">
       <div className="quick-sidebar-head">
         <Link to="/" className="brand sidebar-brand"><span className="brand-mark">P</span><span className="sidebar-label">PDF Studio</span></Link>
         <button className="sidebar-collapse" onClick={()=>setCollapsed(v=>!v)} aria-label={collapsed?'Expandir menu':'Recolher menu'}>{collapsed?<ChevronRight size={17}/>:<ChevronLeft size={17}/>}</button>
@@ -82,26 +124,90 @@ export default function Layout(){
         </div>)}
       </nav>
       <div className="sidebar-bottom sidebar-label"><ShieldCheck size={15}/><span>Processamento local</span></div>
-    </aside>
+    </aside>}
 
     <header className="topbar">
       <Link to="/" className="brand mobile-brand"><span className="brand-mark">P</span><span>PDF Studio</span></Link>
       <nav className="desktop-nav">
-        <Link to="/#tools">Ferramentas</Link><Link to="/workflows">Workflows</Link><Link to="/faq">FAQ</Link><Link to="/roadmap">Roadmap</Link><Link to="/#privacy">Privacidade</Link>
+        {isLanding?<>
+          <Link to="/tool/merge">Juntar PDF</Link>
+          <Link to="/tool/split">Dividir PDF</Link>
+          <Link to="/tool/compress">Comprimir PDF</Link>
+          <div className="topbar-dropdown">
+            <button type="button">Converter PDF <ChevronDown size={14}/></button>
+            <div className="topbar-dropdown-menu">
+              <Link to="/tool/pdf-word"><b>PDF para Word</b><small>Transforme PDF em DOCX</small></Link>
+              <Link to="/tool/word-pdf"><b>Word para PDF</b><small>Converta DOCX em PDF</small></Link>
+              <Link to="/tool/pdf-jpg"><b>PDF para JPG</b><small>Exporte páginas como imagem</small></Link>
+              <Link to="/tool/images-pdf"><b>Imagens para PDF</b><small>Junte JPG e PNG em PDF</small></Link>
+            </div>
+          </div>
+          <div className="mega-menu-trigger">
+            <button type="button" className="mega-menu-button" aria-haspopup="true">Todas as ferramentas <ChevronDown size={14}/></button>
+            <div className="mega-menu-panel" role="menu" aria-label="Todas as ferramentas PDF">
+              <div className="mega-menu-surface">
+                <div className="mega-menu-head">
+                  <div><span>PDF STUDIO</span><strong>Todas as ferramentas em um só lugar</strong></div>
+                  <a href="#ferramentas">Ver grade completa <ArrowRight size={14}/></a>
+                </div>
+                <div className="mega-menu-grid">
+                  {megaMenuGroups.map(group=><section className="mega-menu-column" key={group.title}>
+                    <span className="mega-menu-eyebrow">{group.eyebrow}</span>
+                    <h3>{group.title}</h3>
+                    <div className="mega-menu-links">
+                      {group.ids.map(id=>{
+                        const tool=tools.find(item=>item.id===id)
+                        if(!tool) return null
+                        const Icon=tool.icon
+                        return <Link key={tool.id} to={`/tool/${tool.id}`} className="mega-menu-tool">
+                          <span className="mega-menu-tool-icon" style={{color:tool.color}}><Icon size={16}/></span>
+                          <span><b>{tool.title}</b><small>{tool.desc}</small></span>
+                        </Link>
+                      })}
+                    </div>
+                  </section>)}
+                </div>
+                <div className="mega-menu-footer">
+                  <span><ShieldCheck size={14}/> Processamento principal no dispositivo</span>
+                  <Link to="/tool/compare">Destaque: Comparar PDFs <ArrowRight size={14}/></Link>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Link className="topbar-compare-link" to="/tool/compare">Comparar PDF</Link>
+          <Link to="/faq">Ajuda</Link>
+          <Link className="topbar-cta" to="/tool/prepare-document">Preparar documento <ArrowRight size={15}/></Link>
+        </>:<>
+          <Link to="/">Início</Link><Link to="/workflows">Workflows</Link><Link to="/faq">FAQ</Link><Link to="/roadmap">Roadmap</Link><Link to="/#privacidade">Privacidade</Link>
+        </>}
       </nav>
       <button className="menu-btn" onClick={()=>setOpen(!open)} aria-label="Menu">{open?<X/>:<Menu/>}</button>
     </header>
     {open && <div className="mobile-menu">
-      <NavLink to="/" onClick={()=>setOpen(false)}>Início</NavLink>
-      <NavLink to="/workflows" onClick={()=>setOpen(false)}>Workflows salvos</NavLink>
-      <NavLink to="/faq" onClick={()=>setOpen(false)}>FAQ / Ajuda</NavLink>
-      <NavLink to="/roadmap" onClick={()=>setOpen(false)}>Roadmap</NavLink>
-      {tools.map(t=><NavLink key={t.id} to={`/tool/${t.id}`} onClick={()=>setOpen(false)}>{t.title}</NavLink>)}
+      {isLanding?<>
+        <NavLink to="/tool/merge" onClick={()=>setOpen(false)}>Juntar PDF</NavLink>
+        <NavLink to="/tool/split" onClick={()=>setOpen(false)}>Dividir PDF</NavLink>
+        <NavLink to="/tool/compress" onClick={()=>setOpen(false)}>Comprimir PDF</NavLink>
+        <NavLink to="/tool/pdf-word" onClick={()=>setOpen(false)}>PDF para Word</NavLink>
+        <NavLink to="/tool/word-pdf" onClick={()=>setOpen(false)}>Word para PDF</NavLink>
+        <a href="#ferramentas" onClick={()=>setOpen(false)}>Todas as ferramentas</a>
+        <NavLink to="/tool/compare" onClick={()=>setOpen(false)}>Comparar PDF</NavLink>
+        <a href="#privacidade" onClick={()=>setOpen(false)}>Privacidade</a>
+        <a href="#planos" onClick={()=>setOpen(false)}>Planos</a>
+        <NavLink to="/faq" onClick={()=>setOpen(false)}>FAQ / Ajuda</NavLink>
+        <NavLink to="/tool/prepare-document" onClick={()=>setOpen(false)}>Preparar documento</NavLink>
+      </>:<>
+        <NavLink to="/" onClick={()=>setOpen(false)}>Início</NavLink>
+        <NavLink to="/workflows" onClick={()=>setOpen(false)}>Workflows salvos</NavLink>
+        <NavLink to="/faq" onClick={()=>setOpen(false)}>FAQ / Ajuda</NavLink>
+        <NavLink to="/roadmap" onClick={()=>setOpen(false)}>Roadmap</NavLink>
+        {tools.map(t=><NavLink key={t.id} to={`/tool/${t.id}`} onClick={()=>setOpen(false)}>{t.title}</NavLink>)}
+      </>}
     </div>}
     <main className="app-main"><Outlet/></main>
     <footer className="footer">
       <div><div className="brand footer-brand"><span className="brand-mark">P</span><span>PDF Studio</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p></div>
-      <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span><span>v1.9.2</span></div>
+      <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span><span>v{APP_VERSION}</span></div>
     </footer>
   </div>
 }

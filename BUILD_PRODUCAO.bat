@@ -9,5 +9,13 @@ if errorlevel 1 (
   exit /b 1
 )
 echo.
+echo Analisando carregamento inicial...
+call npm run performance:bundle
+if errorlevel 1 (
+  echo Analise de performance falhou.
+  pause
+  exit /b 1
+)
+echo.
 echo Build concluido. Pasta pronta para hospedagem: dist
 pause

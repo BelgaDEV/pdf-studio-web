@@ -1,11 +1,31 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "pdf-studio-web",
-  "compatibility_date": "2026-10-01",
+  "compatibility_date": "2026-10-06",
   "workers_dev": true,
   "preview_urls": true,
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
+  },
+  "env": {
+    "staging": {
+      "name": "pdf-studio-web-staging",
+      "workers_dev": true,
+      "preview_urls": true,
+      "assets": {
+        "directory": "./dist",
+        "not_found_handling": "single-page-application"
+      }
+    },
+    "production": {
+      "name": "pdf-studio-web",
+      "workers_dev": true,
+      "preview_urls": true,
+      "assets": {
+        "directory": "./dist",
+        "not_found_handling": "single-page-application"
+      }
+    }
   }
 }

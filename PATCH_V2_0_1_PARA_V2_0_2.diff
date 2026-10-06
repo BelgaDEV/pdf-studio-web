@@ -1,0 +1,492 @@
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/README.md /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/README.md
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/README.md	2026-10-06 16:11:52.543671838 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/README.md	2026-10-06 16:27:27.508140886 +0000
+@@ -1,6 +1,6 @@
+-# PDF Studio v2.0.1
++# PDF Studio v2.0.2
+ 
+-Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.1 coloca as ferramentas no centro da experiência: menu superior direto, busca, filtros por categoria e grid completo na primeira dobra, preservando as seções premium de Redline, privacidade e planos. O projeto também mantém a separação entre repositório interno e release comercial.
++Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.2 coloca as ferramentas no centro da experiência: header distribuído em toda a largura, mega menu com as 25 ferramentas, atalho direto para Comparar PDF, busca, filtros por categoria e grid priorizado por uso na primeira dobra, preservando as seções premium de Redline, privacidade e planos. O projeto também mantém a separação entre repositório interno e release comercial.
+ 
+ ## Desenvolvimento
+ 
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/VALIDATION_V2_0_2.md /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/VALIDATION_V2_0_2.md
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/VALIDATION_V2_0_2.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/VALIDATION_V2_0_2.md	2026-10-06 16:27:27.019005666 +0000
+@@ -0,0 +1,42 @@
++# Validação — PDF Studio v2.0.2
++
++## Escopo desta versão
++
++- Header da landing passa a ocupar toda a largura útil, reduzindo o espaço vazio entre a marca e a navegação.
++- `Todas as ferramentas` virou um mega menu com as 25 ferramentas atuais, agrupadas em 5 colunas.
++- O mega menu abre por hover e `focus-within`, mantendo navegação por teclado.
++- `Pro Legal` no header foi substituído por `Comparar PDF`, com acesso direto ao Redline.
++- A grade inicial da Home foi reordenada para colocar ferramentas de uso diário antes dos recursos avançados.
++- `Mesclar PDF` foi renomeado visualmente para `Juntar PDF` para manter consistência com o header e linguagem mais direta.
++- O mobile mantém navegação compacta e inclui `Comparar PDF` como atalho direto.
++- Testes E2E da landing foram atualizados para cobrir a experiência tool-first e o mega menu.
++
++## Estrutura do mega menu
++
++1. Organizar PDF
++2. Converter PDF
++3. Otimizar PDF
++4. Editar e proteger
++5. Profissional
++
++Cada coluna contém 5 ferramentas, totalizando as 25 ferramentas disponíveis na versão atual.
++
++## Validações realizadas neste pacote
++
++- Integridade da lista: 25 ferramentas cadastradas.
++- Mega menu: 25 IDs únicos, sem ferramentas faltantes ou duplicadas.
++- Prioridade da Home: 25 IDs únicos, sem ferramentas faltantes.
++- Parse/transpilação sintática: 35 arquivos `.ts/.tsx`, sem erro sintático.
++- Versão central atualizada para `2.0.2`.
++
++## Validação completa recomendada após `npm install`
++
++```bash
++npm run check
++npm run test
++npm run test:pdf
++npm run build
++npm run test:e2e
++```
++
++O `package-lock.json` deve ser preservado após a instalação no ambiente de desenvolvimento e versionado no repositório.
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/VERSAO.txt /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/VERSAO.txt
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/VERSAO.txt	2026-10-06 16:09:43.661745153 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/VERSAO.txt	2026-10-06 16:24:59.975041526 +0000
+@@ -1 +1 @@
+-2.0.1
++2.0.2
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/docs/internal/V2_0_2_HOME_HEADER_MEGAMENU.md /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/docs/internal/V2_0_2_HOME_HEADER_MEGAMENU.md
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/docs/internal/V2_0_2_HOME_HEADER_MEGAMENU.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/docs/internal/V2_0_2_HOME_HEADER_MEGAMENU.md	2026-10-06 16:28:07.838297010 +0000
+@@ -0,0 +1,90 @@
++# v2.0.2 — Home, Header e Mega Menu
++
++## Objetivo
++
++Reduzir o tempo entre a entrada no site e a escolha da ferramenta, mantendo abaixo da grade a narrativa premium de Redline, privacidade e planos.
++
++## Hierarquia visual
++
++1. Header de largura total
++   - PDF Studio
++   - Juntar PDF
++   - Dividir PDF
++   - Comprimir PDF
++   - Converter PDF
++   - Todas as ferramentas
++   - Comparar PDF
++   - Ajuda
++   - Preparar documento
++
++2. Hero curto
++   - mensagem principal
++   - busca de ferramentas
++   - filtros por categoria
++
++3. Grade de ferramentas
++   - começa pelas tarefas de uso mais frequente
++   - depois mostra conversão, OCR, segurança e ferramentas profissionais
++
++4. Blocos de venda
++   - Legal Redline
++   - Privacidade por arquitetura
++   - Free / Pro Legal / Business
++
++5. CTA final e rodapé
++
++## Mega menu
++
++`Todas as ferramentas` abre um painel de 5 colunas por hover ou foco de teclado.
++
++### Organizar PDF
++- Juntar PDF
++- Dividir PDF
++- Organizar páginas
++- Editar páginas
++- Numeração de páginas
++
++### Converter PDF
++- PDF para Word
++- Word para PDF
++- PDF para JPG
++- PDF para PNG
++- Imagens para PDF
++
++### Otimizar PDF
++- Comprimir PDF
++- OCR pesquisável
++- Remover páginas em branco
++- Extrair imagens
++- PDF para TXT
++
++### Editar e proteger
++- Marca d'água
++- Remover metadados
++- Proteger com senha
++- PDF para PDF/A
++- Redação permanente
++
++### Profissional
++- Comparar PDFs
++- Preparar documento
++- Presets Tribunal
++- Document Trust Report
++- Processamento em lote
++
++## Ordem inicial da Home
++
++A grade deixou de seguir a ordem técnica do array `tools` e agora usa `homePriority`. Assim, recursos avançados como Trust Report e Presets Tribunal não aparecem antes das tarefas básicas.
++
++Primeira sequência:
++
++`Juntar → Dividir → Comprimir → Organizar → PDF para Word → Word para PDF → PDF para JPG → Imagens para PDF → OCR → Proteger`
++
++Depois entram edição, conversores adicionais e ferramentas profissionais.
++
++## Responsividade
++
++- Desktop amplo: navegação distribuída por toda a largura e mega menu em 5 colunas.
++- Até 1420px: gaps e tipografia reduzem automaticamente.
++- Abaixo de 1180px: navegação desktop é substituída pelo menu mobile.
++- A grade da Home mantém os breakpoints existentes.
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/package.json /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/package.json
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/package.json	2026-10-06 16:09:43.661611561 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/package.json	2026-10-06 16:24:59.974812329 +0000
+@@ -1,7 +1,7 @@
+ {
+   "name": "pdf-studio-web-client",
+   "private": true,
+-  "version": "2.0.1",
++  "version": "2.0.2",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/components/Layout.tsx /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/components/Layout.tsx
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/components/Layout.tsx	2026-10-06 16:08:00.182903268 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/components/Layout.tsx	2026-10-06 16:24:58.425782846 +0000
+@@ -13,6 +13,14 @@
+   { id:'convert', title:'Conversores' },
+ ]
+ 
++const megaMenuGroups: Array<{title:string; eyebrow:string; ids:ToolId[]}> = [
++  { title:'Organizar PDF', eyebrow:'PÁGINAS E ESTRUTURA', ids:['merge','split','organize','edit-pages','page-numbers'] },
++  { title:'Converter PDF', eyebrow:'FORMATOS', ids:['pdf-word','word-pdf','pdf-jpg','pdf-png','images-pdf'] },
++  { title:'Otimizar PDF', eyebrow:'TAMANHO E LEITURA', ids:['compress','ocr','remove-blank','extract-images','pdf-txt'] },
++  { title:'Editar e proteger', eyebrow:'CONTEÚDO E SEGURANÇA', ids:['watermark','remove-metadata','protect','pdfa','redact'] },
++  { title:'Profissional', eyebrow:'JURÍDICO E AUTOMAÇÃO', ids:['compare','prepare-document','tribunal-presets','trust-report','batch'] },
++]
++
+ export default function Layout(){
+   const location=useLocation()
+   const [open,setOpen]=useState(false)
+@@ -102,8 +110,39 @@
+               <Link to="/tool/images-pdf"><b>Imagens para PDF</b><small>Junte JPG e PNG em PDF</small></Link>
+             </div>
+           </div>
+-          <a href="#ferramentas">Todas as ferramentas</a>
+-          <a className="topbar-legal-link" href="#legal-redline">Pro Legal</a>
++          <div className="mega-menu-trigger">
++            <button type="button" className="mega-menu-button" aria-haspopup="true">Todas as ferramentas <ChevronDown size={14}/></button>
++            <div className="mega-menu-panel" role="menu" aria-label="Todas as ferramentas PDF">
++              <div className="mega-menu-surface">
++                <div className="mega-menu-head">
++                  <div><span>PDF STUDIO</span><strong>Todas as ferramentas em um só lugar</strong></div>
++                  <a href="#ferramentas">Ver grade completa <ArrowRight size={14}/></a>
++                </div>
++                <div className="mega-menu-grid">
++                  {megaMenuGroups.map(group=><section className="mega-menu-column" key={group.title}>
++                    <span className="mega-menu-eyebrow">{group.eyebrow}</span>
++                    <h3>{group.title}</h3>
++                    <div className="mega-menu-links">
++                      {group.ids.map(id=>{
++                        const tool=tools.find(item=>item.id===id)
++                        if(!tool) return null
++                        const Icon=tool.icon
++                        return <Link key={tool.id} to={`/tool/${tool.id}`} className="mega-menu-tool">
++                          <span className="mega-menu-tool-icon" style={{color:tool.color}}><Icon size={16}/></span>
++                          <span><b>{tool.title}</b><small>{tool.desc}</small></span>
++                        </Link>
++                      })}
++                    </div>
++                  </section>)}
++                </div>
++                <div className="mega-menu-footer">
++                  <span><ShieldCheck size={14}/> Processamento principal no dispositivo</span>
++                  <Link to="/tool/compare">Destaque: Comparar PDFs <ArrowRight size={14}/></Link>
++                </div>
++              </div>
++            </div>
++          </div>
++          <Link className="topbar-compare-link" to="/tool/compare">Comparar PDF</Link>
+           <Link to="/faq">Ajuda</Link>
+           <Link className="topbar-cta" to="/tool/prepare-document">Preparar documento <ArrowRight size={15}/></Link>
+         </>:<>
+@@ -120,7 +159,7 @@
+         <NavLink to="/tool/pdf-word" onClick={()=>setOpen(false)}>PDF para Word</NavLink>
+         <NavLink to="/tool/word-pdf" onClick={()=>setOpen(false)}>Word para PDF</NavLink>
+         <a href="#ferramentas" onClick={()=>setOpen(false)}>Todas as ferramentas</a>
+-        <a href="#legal-redline" onClick={()=>setOpen(false)}>Pro Legal</a>
++        <NavLink to="/tool/compare" onClick={()=>setOpen(false)}>Comparar PDF</NavLink>
+         <a href="#privacidade" onClick={()=>setOpen(false)}>Privacidade</a>
+         <a href="#planos" onClick={()=>setOpen(false)}>Planos</a>
+         <NavLink to="/faq" onClick={()=>setOpen(false)}>FAQ / Ajuda</NavLink>
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/lib/appMeta.ts /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/lib/appMeta.ts
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/lib/appMeta.ts	2026-10-06 16:09:43.661712153 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/lib/appMeta.ts	2026-10-06 16:24:59.974975085 +0000
+@@ -1,3 +1,3 @@
+ export const APP_NAME = 'PDF Studio'
+-export const APP_VERSION = '2.0.1'
++export const APP_VERSION = '2.0.2'
+ export const APP_TAGLINE = 'Automação documental privada'
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/lib/tools.ts /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/lib/tools.ts
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/lib/tools.ts	2026-10-06 13:02:42.000000000 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/lib/tools.ts	2026-10-06 16:25:52.789782971 +0000
+@@ -7,7 +7,7 @@
+   { id:'tribunal-presets', title:'Presets Tribunal', desc:'Salve e aplique regras de preparação por tribunal, sistema ou fluxo de protocolo.', icon:Gavel, color:'#e2b04a', badge:'LEGAL', category:'legal' },
+   { id:'prepare-document', title:'Preparar documento', desc:'Encadeie limpeza, compressão, OCR, privacidade e PDF/A em um único fluxo.', icon:FileCheck2, color:'#39ef88', badge:'LEGAL', category:'legal' },
+   { id:'compress', title:'Comprimir PDF', desc:'Reduza o tamanho do PDF diretamente no navegador.', icon:Minimize2, color:'#ff5b66', category:'essential' },
+-  { id:'merge', title:'Mesclar PDF', desc:'Una PDFs com índice clicável e bookmarks Pro hierárquicos por categoria.', icon:Combine, color:'#8d5bff', badge:'LEGAL', category:'legal' },
++  { id:'merge', title:'Juntar PDF', desc:'Una PDFs com índice clicável e bookmarks Pro hierárquicos por categoria.', icon:Combine, color:'#8d5bff', badge:'LEGAL', category:'legal' },
+   { id:'redact', title:'Redação permanente', desc:'Remova visualmente dados sensíveis sem deixar conteúdo recuperável por baixo da tarja.', icon:EyeOff, color:'#e44f62', badge:'LEGAL', category:'legal' },
+   { id:'compare', title:'Comparar PDFs', desc:'Compare duas versões, gere relatório e um PDF Redline com alterações marcadas.', icon:Files, color:'#5d7cff', badge:'LEGAL', category:'legal' },
+   { id:'watermark', title:'Marca d’água', desc:'Adicione texto de marca d’água a todas as páginas.', icon:Stamp, color:'#27c2a4', category:'document' },
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/pages/Home.tsx /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/pages/Home.tsx
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/pages/Home.tsx	2026-10-06 16:07:13.655351557 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/pages/Home.tsx	2026-10-06 16:24:59.123883454 +0000
+@@ -23,6 +23,15 @@
+ const editIds = new Set<ToolId>(['watermark','page-numbers','edit-pages','redact','remove-metadata'])
+ const securityIds = new Set<ToolId>(['protect','redact','remove-metadata','trust-report','pdfa'])
+ 
++const homePriority: ToolId[] = [
++  'merge','split','compress','organize','pdf-word',
++  'word-pdf','pdf-jpg','images-pdf','ocr','protect',
++  'edit-pages','watermark','page-numbers','pdf-png','pdf-txt',
++  'redact','compare','prepare-document','tribunal-presets','trust-report',
++  'pdfa','remove-metadata','remove-blank','extract-images','batch',
++]
++const homePriorityIndex = new Map(homePriority.map((id,index)=>[id,index]))
++
+ const filters: Array<{id:HomeFilterId; label:string}> = [
+   {id:'all',label:'Todas'},
+   {id:'popular',label:'Mais usadas'},
+@@ -58,7 +67,7 @@
+       if(!needle) return true
+       const haystack=normalize(`${tool.title} ${tool.desc} ${'badge' in tool ? tool.badge : ''}`)
+       return haystack.includes(needle)
+-    })
++    }).sort((a,b)=>(homePriorityIndex.get(a.id as ToolId)??999)-(homePriorityIndex.get(b.id as ToolId)??999))
+   },[activeFilter,query])
+ 
+   return <div className="premium-landing tool-first-landing">
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/styles.css /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/styles.css
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/src/styles.css	2026-10-06 16:13:31.620305831 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/src/styles.css	2026-10-06 16:25:52.290317413 +0000
+@@ -158,3 +158,150 @@
+ @media(max-width:760px){.tools-first-section{padding:38px 16px 60px}.tools-first-intro{text-align:left}.tools-first-badge{margin-left:0}.tools-first-intro h1{font-size:42px}.tools-first-intro>p{font-size:13px;margin-top:16px}.home-tool-finder{height:52px;margin-top:23px}.home-tool-filters{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;padding-bottom:7px;scrollbar-width:none}.home-tool-filters::-webkit-scrollbar{display:none}.home-tool-filters button{white-space:nowrap}.home-tools-meta{margin-top:18px}.home-tools-meta span:not(:first-child){display:none}.home-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.home-tool-card{min-height:176px;padding:14px}.home-tool-card h2{font-size:13px}.home-tool-card p{font-size:8.8px}.tools-first-trustbar{grid-template-columns:1fr}.tools-first-trustbar>span{display:none}.tools-first-trustbar>a{grid-column:auto}.tool-first-landing .redline-showcase{padding-top:70px}}
+ @media(max-width:460px){.home-tool-grid{grid-template-columns:1fr}.home-tool-card{min-height:155px}.home-tool-card p{-webkit-line-clamp:3}.tools-first-intro h1{font-size:38px}}
+ #ferramentas,#legal-redline,#privacidade,#planos{scroll-margin-top:88px}
++
++/* v2.0.2 — Full-width navigation + mega menu */
++.landing-shell>.topbar{
++  max-width:none;
++  width:100%;
++  padding-left:44px;
++  padding-right:44px;
++  gap:34px;
++  z-index:100;
++}
++.landing-shell .mobile-brand{flex:0 0 auto}
++.landing-shell .desktop-nav{
++  flex:1 1 auto;
++  width:auto;
++  justify-content:space-between;
++  gap:clamp(12px,1.5vw,28px);
++  margin-left:22px;
++  font-size:12px;
++}
++.landing-shell .desktop-nav>a,
++.landing-shell .desktop-nav>div>button{font-weight:720;letter-spacing:-.01em}
++.landing-shell .desktop-nav>a:not(.topbar-cta){color:#bdcada}
++.landing-shell .desktop-nav>a:not(.topbar-cta):hover{color:#fff}
++.topbar-compare-link{color:#9bf5bd!important}
++.topbar-compare-link:hover{color:#c9ffdc!important}
++
++.mega-menu-trigger{position:static;display:flex;align-items:center}
++.mega-menu-button{
++  border:0;
++  background:transparent;
++  color:#bdcada;
++  display:flex;
++  align-items:center;
++  gap:6px;
++  padding:12px 0;
++  font-size:12px;
++  white-space:nowrap;
++}
++.mega-menu-button svg,.topbar-dropdown>button svg{transition:transform .16s ease}
++.mega-menu-trigger:hover .mega-menu-button,
++.mega-menu-trigger:focus-within .mega-menu-button{color:#fff}
++.mega-menu-trigger:hover .mega-menu-button svg,
++.mega-menu-trigger:focus-within .mega-menu-button svg,
++.topbar-dropdown:hover>button svg,
++.topbar-dropdown:focus-within>button svg{transform:rotate(180deg)}
++.mega-menu-panel{
++  position:absolute;
++  left:32px;
++  right:32px;
++  top:calc(100% - 1px);
++  padding-top:10px;
++  opacity:0;
++  visibility:hidden;
++  pointer-events:none;
++  transform:translateY(-7px);
++  transition:opacity .16s ease,transform .16s ease,visibility .16s ease;
++  z-index:120;
++}
++.mega-menu-trigger:hover .mega-menu-panel,
++.mega-menu-trigger:focus-within .mega-menu-panel{
++  opacity:1;
++  visibility:visible;
++  pointer-events:auto;
++  transform:translateY(0);
++}
++.mega-menu-surface{
++  max-width:1680px;
++  margin:0 auto;
++  overflow:hidden;
++  border:1px solid #23435b;
++  border-radius:20px;
++  background:linear-gradient(145deg,rgba(10,25,38,.995),rgba(7,18,29,.995));
++  box-shadow:0 30px 85px rgba(0,0,0,.52),0 1px 0 rgba(255,255,255,.03) inset;
++}
++.mega-menu-head{
++  min-height:64px;
++  padding:14px 18px 12px 20px;
++  display:flex;
++  align-items:center;
++  justify-content:space-between;
++  gap:24px;
++  border-bottom:1px solid #19354a;
++  background:linear-gradient(90deg,rgba(57,239,136,.055),transparent 32%,rgba(93,124,255,.04));
++}
++.mega-menu-head>div{display:flex;flex-direction:column;gap:3px}
++.mega-menu-head span{font-size:7.5px;color:#53e690;font-weight:950;letter-spacing:.15em}
++.mega-menu-head strong{font-size:15px;color:#f0f7fd;letter-spacing:-.02em}
++.mega-menu-head>a{display:flex!important;align-items:center!important;gap:6px!important;color:#aeeec6!important;font-size:9px!important;font-weight:800!important;white-space:nowrap}
++.mega-menu-head>a:hover{color:#d8ffe7!important}
++.mega-menu-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:17px 12px 14px}
++.mega-menu-column{padding:4px 10px 8px;min-width:0;border-right:1px solid rgba(35,67,91,.48)}
++.mega-menu-column:last-child{border-right:0}
++.mega-menu-eyebrow{display:block;font-size:6.5px;color:#5f7f98;font-weight:900;letter-spacing:.115em;margin:0 7px 3px}
++.mega-menu-column h3{font-size:12px;margin:0 7px 9px;color:#e9f3fb;letter-spacing:-.015em}
++.mega-menu-links{display:grid;gap:2px}
++.mega-menu-tool{
++  min-width:0;
++  display:grid!important;
++  grid-template-columns:30px minmax(0,1fr)!important;
++  gap:8px!important;
++  align-items:center!important;
++  padding:7px!important;
++  border-radius:10px;
++  color:#c6d5e3!important;
++  transition:background .14s ease,transform .14s ease;
++}
++.mega-menu-tool:hover{background:#10273a;transform:translateX(2px)}
++.mega-menu-tool-icon{
++  width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
++  border:1px solid currentColor;background:rgba(255,255,255,.022);opacity:.92
++}
++.mega-menu-tool>span:last-child{min-width:0;display:flex;flex-direction:column;gap:2px}
++.mega-menu-tool b{font-size:9.4px;color:#dce8f2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
++.mega-menu-tool small{font-size:6.8px;color:#6e879d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:520}
++.mega-menu-footer{
++  min-height:45px;
++  display:flex;
++  align-items:center;
++  justify-content:space-between;
++  gap:18px;
++  padding:9px 18px;
++  border-top:1px solid #19354a;
++  background:#081722;
++  color:#7791a6;
++  font-size:8px;
++}
++.mega-menu-footer>span,.mega-menu-footer>a{display:flex!important;align-items:center!important;gap:6px!important}
++.mega-menu-footer>span svg{color:#4fda8a}
++.mega-menu-footer>a{color:#9beeba!important;font-weight:850!important}
++
++/* Mantém as ferramentas de uso diário na frente antes das capacidades avançadas. */
++.home-tool-card:nth-child(-n+5){border-color:#244159}
++.home-tool-card:nth-child(-n+5) .home-tool-open{color:#91a8ba}
++
++@media(max-width:1420px){
++  .landing-shell>.topbar{padding-left:28px;padding-right:28px;gap:22px}
++  .landing-shell .desktop-nav{margin-left:10px;gap:12px;font-size:10.5px}
++  .mega-menu-button,.topbar-dropdown>button{font-size:10.5px}
++  .landing-shell .topbar-cta{padding:8px 10px}
++  .mega-menu-panel{left:20px;right:20px}
++}
++@media(max-width:1180px){
++  .landing-shell .desktop-nav{display:none}
++  .landing-shell .menu-btn{display:block}
++  .landing-shell>.topbar{height:70px;padding-left:24px;padding-right:24px}
++  .landing-shell .mobile-menu{top:70px}
++}
+diff -ruN '--exclude=docs/internal/history' '--exclude=docs/internal/legacy-scripts' /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/tests/e2e/landing.spec.ts /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/tests/e2e/landing.spec.ts
+--- /mnt/data/pdfstudio_v201/PDFStudio_Web_Client_v2_0_1_INTERNAL/tests/e2e/landing.spec.ts	2026-10-06 15:32:22.134162794 +0000
++++ /mnt/data/pdfstudio_v202/PDFStudio_Web_Client_v2_0_2_INTERNAL/tests/e2e/landing.spec.ts	2026-10-06 16:27:27.018061087 +0000
+@@ -1,19 +1,37 @@
+ import { expect, test } from '@playwright/test'
+ 
+-test('premium landing loads and enters the document workflow', async ({ page }) => {
++test('tool-first landing makes the main PDF actions immediately visible', async ({ page }) => {
+   await page.goto('/')
+-  await expect(page.getByRole('heading', { name: /Documentos profissionais/i })).toBeVisible()
+-  await expect(page.getByText('0 bytes', { exact: true })).toBeVisible()
+-  await expect(page.getByText('Legal Redline', { exact: true }).first()).toBeVisible()
+-
+-  await page.getByRole('link', { name: /Preparar documento/i }).first().click()
+-  await expect(page).toHaveURL(/\/tool\/prepare-document$/)
+-  await expect(page.getByRole('heading', { name: /Preparar documento/i })).toBeVisible()
++
++  await expect(page.getByRole('heading', { name: /O que você precisa fazer/i })).toBeVisible()
++  await expect(page.getByRole('link', { name: 'Juntar PDF' }).first()).toBeVisible()
++  await expect(page.getByRole('link', { name: 'Dividir PDF' }).first()).toBeVisible()
++  await expect(page.getByRole('link', { name: 'Comprimir PDF' }).first()).toBeVisible()
++  await expect(page.getByRole('textbox', { name: /Buscar ferramenta PDF/i })).toBeVisible()
++})
++
++test('all-tools navigation opens a 25-tool mega menu', async ({ page }) => {
++  await page.goto('/')
++
++  const trigger = page.getByRole('button', { name: /Todas as ferramentas/i })
++  await trigger.hover()
++  await expect(page.getByText('Todas as ferramentas em um só lugar')).toBeVisible()
++  await expect(page.locator('.mega-menu-tool')).toHaveCount(25)
++  await expect(page.getByRole('link', { name: /Comparar PDF/i }).first()).toBeVisible()
+ })
+ 
+-test('landing exposes privacy and commercial product sections', async ({ page }) => {
++test('comparison has a direct navigation shortcut', async ({ page }) => {
+   await page.goto('/')
++
++  await page.getByRole('link', { name: 'Comparar PDF', exact: true }).click()
++  await expect(page).toHaveURL(/\/tool\/compare$/)
++  await expect(page.getByRole('heading', { name: /Comparar PDFs/i })).toBeVisible()
++})
++
++test('landing preserves privacy, redline and commercial sections', async ({ page }) => {
++  await page.goto('/')
++
++  await expect(page.locator('#legal-redline')).toContainText('Veja o que mudou')
+   await expect(page.locator('#privacidade')).toContainText('Seu documento não precisa viajar')
+   await expect(page.locator('#planos')).toContainText('PRO LEGAL')
+-  await expect(page.locator('#recursos')).toContainText('Comparar PDFs')
+ })

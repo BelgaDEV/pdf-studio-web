@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Download, EyeOff, Info, LockKeyhol
 import { tools } from '../lib/tools'
 import { downloadBlob, humanSize, stem } from '../lib/files'
 import { loadPdfForRedaction, permanentlyRedactPdf, renderRedactionPreview, type RedactionMap, type RedactionRect } from '../lib/redaction'
+import { destroyPdfJsDocument } from '../lib/pdfjsSecure'
 
 function clamp(value: number, min = 0, max = 1) {
   return Math.max(min, Math.min(max, value))
@@ -46,7 +47,7 @@ export default function RedactionPage() {
   const redactionCount = useMemo(() => Object.values(redactions).reduce((sum, items) => sum + items.length, 0), [redactions])
   const redactedPages = useMemo(() => Object.values(redactions).filter(items => items.length > 0).length, [redactions])
 
-  useEffect(() => () => { pdfRef.current?.destroy?.().catch?.(() => {}) }, [])
+  useEffect(() => () => { void destroyPdfJsDocument(pdfRef.current) }, [])
 
   useEffect(() => {
     if (!pdfRef.current || !canvasRef.current || !pageNumber) return
@@ -69,7 +70,7 @@ export default function RedactionPage() {
     setDraft(null)
     setPageNumber(1)
     try {
-      await pdfRef.current?.destroy?.().catch?.(() => {})
+      await destroyPdfJsDocument(pdfRef.current)
       const pdf = await loadPdfForRedaction(next)
       pdfRef.current = pdf
       setFile(next)

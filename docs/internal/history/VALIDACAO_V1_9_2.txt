@@ -1,0 +1,24 @@
+PDF Studio Web v1.9.2 — Limpeza comercial da interface
+
+Implementado:
+- Home: removido o banner "WORKFLOWS — Repita processos inteiros com um clique".
+- Home: removida a seção "ACESSO RÁPIDO / Seu PDF Studio", incluindo os cartões de Favoritos e Recentes.
+- Sidebar desktop: removidos os atalhos principais "Workflows salvos", "FAQ / Ajuda" e "Roadmap"; mantido apenas "Início" nessa área.
+- Navegação superior: removido o link/ícone visível do GitHub.
+- Páginas e recursos internos de Workflows, FAQ e Roadmap foram preservados; apenas os pontos solicitados da interface foram removidos.
+- Versão atualizada para v1.9.2.
+
+Validação realizada:
+- Todos os arquivos TS/TSX de src analisados pelo parser TypeScript: 0 erros de sintaxe.
+- Confirmado que src/public/index não contêm referência visível ao GitHub.
+- Confirmado que Home.tsx não contém mais os blocos de Workflows e Acesso rápido.
+- Confirmado que a área principal da sidebar mantém apenas o atalho Início.
+
+Observação sobre build neste ambiente:
+- A instalação das dependências npm excedeu o limite de execução do ambiente antes de concluir, portanto o build completo não pôde ser finalizado aqui.
+- Isso ocorreu antes da compilação, por ausência de node_modules; as alterações de código passaram na validação sintática.
+
+Validação final recomendada no Windows:
+npm install
+npm run build
+npm run dev

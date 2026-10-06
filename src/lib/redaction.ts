@@ -1,8 +1,6 @@
 import { PDFDocument } from 'pdf-lib'
-import * as pdfjsLib from 'pdfjs-dist'
+import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
 import { nextFrame } from './files'
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 export type RedactionRect = {
   id: string
@@ -25,7 +23,7 @@ export type RedactionResult = {
 
 export async function loadPdfForRedaction(file: File) {
   const data = new Uint8Array(await file.arrayBuffer())
-  return pdfjsLib.getDocument({ data }).promise
+  return loadPdfJsDocument(data)
 }
 
 export async function renderRedactionPreview(
@@ -72,7 +70,7 @@ function looksLikePdf(bytes: Uint8Array): boolean {
 }
 
 async function verifyPermanentRedaction(bytes: Uint8Array, redactedPageNumbers: number[], expectedPages: number, onProgress: RedactionProgress) {
-  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(bytes) }).promise
+  const pdf = await loadPdfJsDocument(bytes)
   try {
     if (pdf.numPages !== expectedPages) {
       throw new Error(`Falha de segurança: o original tem ${expectedPages} página(s), mas o resultado tem ${pdf.numPages}.`)
@@ -90,7 +88,7 @@ async function verifyPermanentRedaction(bytes: Uint8Array, redactedPageNumbers: 
       if (index % 3 === 0) await nextFrame()
     }
   } finally {
-    await pdf.destroy().catch(() => {})
+    await destroyPdfJsDocument(pdf)
   }
 }
 
@@ -109,7 +107,7 @@ export async function permanentlyRedactPdf(
   if (!redactedPageNumbers.length) throw new Error('Marque pelo menos uma área sensível antes de aplicar a redação permanente.')
 
   onProgress(3, 'Abrindo documento para redação segura…')
-  const pdfJs = await pdfjsLib.getDocument({ data: new Uint8Array(input) }).promise
+  const pdfJs = await loadPdfJsDocument(input)
   const source = await PDFDocument.load(input, { updateMetadata: false })
   const output = await PDFDocument.create()
   const dpi = Math.max(120, Math.min(300, options.dpi || 200))
@@ -188,6 +186,6 @@ export async function permanentlyRedactPdf(
       verifiedPages: redactedPageNumbers.length,
     }
   } finally {
-    await pdfJs.destroy().catch(() => {})
+    await destroyPdfJsDocument(pdfJs)
   }
 }

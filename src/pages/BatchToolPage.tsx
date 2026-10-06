@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Download, File, Files, LockKeyhole, Trash2, UploadCloud } from 'lucide-react'
-import JSZip from 'jszip'
 import { tools } from '../lib/tools'
 import { compressPdf, compressPdfToTarget, type CompressionMode } from '../lib/pdf'
 import { downloadBlob, humanSize, stem } from '../lib/files'
@@ -49,6 +48,7 @@ export default function BatchToolPage() {
     setSuccess('')
     setProgress(0)
     setFileStatuses(files.map(file => ({ name: file.name, state: 'waiting', message: 'Aguardando' })))
+    const { default: JSZip } = await import('jszip')
     const zip = new JSZip()
     const report: string[] = [`PDF Studio — Processamento em lote`, `Arquivos: ${files.length}`, `Modo: ${mode}`, '']
     let completed = 0

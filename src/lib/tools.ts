@@ -7,7 +7,7 @@ export const tools = [
   { id:'tribunal-presets', title:'Presets Tribunal', desc:'Salve e aplique regras de preparação por tribunal, sistema ou fluxo de protocolo.', icon:Gavel, color:'#e2b04a', badge:'LEGAL', category:'legal' },
   { id:'prepare-document', title:'Preparar documento', desc:'Encadeie limpeza, compressão, OCR, privacidade e PDF/A em um único fluxo.', icon:FileCheck2, color:'#39ef88', badge:'LEGAL', category:'legal' },
   { id:'compress', title:'Comprimir PDF', desc:'Reduza o tamanho do PDF diretamente no navegador.', icon:Minimize2, color:'#ff5b66', category:'essential' },
-  { id:'merge', title:'Mesclar PDF', desc:'Una PDFs com índice clicável e bookmarks Pro hierárquicos por categoria.', icon:Combine, color:'#8d5bff', badge:'LEGAL', category:'legal' },
+  { id:'merge', title:'Juntar PDF', desc:'Una PDFs com índice clicável e bookmarks Pro hierárquicos por categoria.', icon:Combine, color:'#8d5bff', badge:'LEGAL', category:'legal' },
   { id:'redact', title:'Redação permanente', desc:'Remova visualmente dados sensíveis sem deixar conteúdo recuperável por baixo da tarja.', icon:EyeOff, color:'#e44f62', badge:'LEGAL', category:'legal' },
   { id:'compare', title:'Comparar PDFs', desc:'Compare duas versões, gere relatório e um PDF Redline com alterações marcadas.', icon:Files, color:'#5d7cff', badge:'LEGAL', category:'legal' },
   { id:'watermark', title:'Marca d’água', desc:'Adicione texto de marca d’água a todas as páginas.', icon:Stamp, color:'#27c2a4', category:'document' },

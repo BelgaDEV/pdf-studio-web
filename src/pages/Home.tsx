@@ -1,51 +1,151 @@
-import { ArrowRight, CheckCircle2, HelpCircle, LockKeyhole, Map, ShieldCheck, Star, UploadCloud, Zap } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import {
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  EyeOff,
+  FileCheck2,
+  Files,
+  LockKeyhole,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Zap,
+} from 'lucide-react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { tools, type ToolId } from '../lib/tools'
-import { loadFavoriteToolIds, subscribeProductivity, toggleFavoriteTool } from '../lib/productivity'
+
+type HomeFilterId = 'all' | 'popular' | 'organize' | 'optimize' | 'convert' | 'edit' | 'security' | 'legal'
+
+const popularIds = new Set<ToolId>(['merge','split','compress','pdf-word','word-pdf','pdf-jpg','images-pdf','ocr','protect','organize'])
+const organizeIds = new Set<ToolId>(['merge','split','organize','edit-pages','page-numbers','remove-blank','extract-images'])
+const optimizeIds = new Set<ToolId>(['compress','ocr','pdfa','remove-metadata','batch','prepare-document'])
+const editIds = new Set<ToolId>(['watermark','page-numbers','edit-pages','redact','remove-metadata'])
+const securityIds = new Set<ToolId>(['protect','redact','remove-metadata','trust-report','pdfa'])
+
+const homePriority: ToolId[] = [
+  'merge','split','compress','organize','pdf-word',
+  'word-pdf','pdf-jpg','images-pdf','ocr','protect',
+  'edit-pages','watermark','page-numbers','pdf-png','pdf-txt',
+  'redact','compare','prepare-document','tribunal-presets','trust-report',
+  'pdfa','remove-metadata','remove-blank','extract-images','batch',
+]
+const homePriorityIndex = new Map(homePriority.map((id,index)=>[id,index]))
+
+const filters: Array<{id:HomeFilterId; label:string}> = [
+  {id:'all',label:'Todas'},
+  {id:'popular',label:'Mais usadas'},
+  {id:'organize',label:'Organizar PDF'},
+  {id:'optimize',label:'Otimizar PDF'},
+  {id:'convert',label:'Converter PDF'},
+  {id:'edit',label:'Editar PDF'},
+  {id:'security',label:'Segurança'},
+  {id:'legal',label:'Jurídico / Pro'},
+]
+
+function normalize(value:string){
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR')
+}
 
 export default function Home(){
-  const [favorites,setFavorites]=useState<ToolId[]>(()=>loadFavoriteToolIds())
-  useEffect(()=>subscribeProductivity(()=>setFavorites(loadFavoriteToolIds())),[])
-  function toggleFavorite(id:ToolId){setFavorites(toggleFavoriteTool(id))}
-  return <>
-    <section className="hero">
-      <div className="hero-copy">
-        <div className="eyebrow"><ShieldCheck size={15}/> 100% local • sem upload • sem cadastro</div>
-        <h1>Seus PDFs mais leves, <span>organizados e convertidos.</span></h1>
-        <p>Comprima, organize, proteja, faça OCR, prepare para arquivamento e converta documentos diretamente no navegador. Seus arquivos não precisam sair do seu dispositivo.</p>
-        <div className="hero-actions"><Link className="primary-btn" to="/tool/compress">Comprimir um PDF <ArrowRight size={18}/></Link><a className="secondary-btn" href="#tools">Ver ferramentas</a></div>
-        <div className="trust-row"><span><LockKeyhole size={18}/> Privacidade real</span><span><Zap size={18}/> Progresso ao vivo</span><span><CheckCircle2 size={18}/> Sem servidor</span></div>
+  const [activeFilter,setActiveFilter]=useState<HomeFilterId>('all')
+  const [query,setQuery]=useState('')
+
+  const filteredTools=useMemo(()=>{
+    const needle=normalize(query.trim())
+    return tools.filter(tool=>{
+      const id=tool.id as ToolId
+      let matchesCategory=true
+      if(activeFilter==='popular') matchesCategory=popularIds.has(id)
+      else if(activeFilter==='organize') matchesCategory=organizeIds.has(id)
+      else if(activeFilter==='optimize') matchesCategory=optimizeIds.has(id)
+      else if(activeFilter==='convert') matchesCategory=tool.category==='convert'
+      else if(activeFilter==='edit') matchesCategory=editIds.has(id)
+      else if(activeFilter==='security') matchesCategory=securityIds.has(id)
+      else if(activeFilter==='legal') matchesCategory=tool.category==='legal' || id==='ocr' || id==='pdfa'
+      if(!matchesCategory) return false
+      if(!needle) return true
+      const haystack=normalize(`${tool.title} ${tool.desc} ${'badge' in tool ? tool.badge : ''}`)
+      return haystack.includes(needle)
+    }).sort((a,b)=>(homePriorityIndex.get(a.id as ToolId)??999)-(homePriorityIndex.get(b.id as ToolId)??999))
+  },[activeFilter,query])
+
+  return <div className="premium-landing tool-first-landing">
+    <section className="tools-first-section" id="ferramentas">
+      <div className="tools-first-aura aura-one"/><div className="tools-first-aura aura-two"/>
+      <div className="tools-first-intro">
+        <div className="tools-first-badge"><Sparkles size={14}/> 25 ferramentas. Um único ambiente.</div>
+        <h1>O que você precisa fazer<br/><span>com seu PDF?</span></h1>
+        <p>Junte, divida, comprima, converta, proteja e prepare documentos sem ficar procurando a ferramenta certa. O processamento principal acontece no seu dispositivo.</p>
       </div>
-      <div className="upload-hero">
-        <UploadCloud size={52}/><strong>Arraste seus PDFs nas ferramentas</strong><p>O processamento acontece no seu próprio navegador.</p><Link className="primary-btn wide" to="/tool/compress">Selecionar ferramenta</Link>
+
+      <div className="home-tool-finder">
+        <Search size={20}/>
+        <input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Buscar ferramenta: comprimir, OCR, Word, senha, Redline..." aria-label="Buscar ferramenta PDF"/>
+        {query&&<button type="button" onClick={()=>setQuery('')}>Limpar</button>}
+      </div>
+
+      <div className="home-tool-filters" role="tablist" aria-label="Categorias de ferramentas">
+        {filters.map(filter=><button key={filter.id} type="button" role="tab" aria-selected={activeFilter===filter.id} className={activeFilter===filter.id?'active':''} onClick={()=>setActiveFilter(filter.id)}>{filter.label}</button>)}
+      </div>
+
+      <div className="home-tools-meta"><span><b>{filteredTools.length}</b> {filteredTools.length===1?'ferramenta':'ferramentas'}</span><span><ShieldCheck size={14}/> Processamento local</span><span><LockKeyhole size={14}/> Sem upload do conteúdo</span></div>
+
+      {filteredTools.length>0?<div className="home-tool-grid">
+        {filteredTools.map(tool=>{
+          const Icon=tool.icon
+          const id=tool.id as ToolId
+          const badge='badge' in tool ? tool.badge : (popularIds.has(id)?'POPULAR':null)
+          return <Link to={`/tool/${tool.id}`} className="home-tool-card" key={tool.id} style={{'--tool-color':tool.color} as CSSProperties}>
+            <div className="home-tool-card-top">
+              <span className="home-tool-icon"><Icon size={23}/></span>
+              {badge&&<small>{badge}</small>}
+            </div>
+            <div className="home-tool-card-copy"><h2>{tool.title}</h2><p>{tool.desc}</p></div>
+            <span className="home-tool-open">Abrir ferramenta <ArrowRight size={15}/></span>
+          </Link>
+        })}
+      </div>:<div className="home-tools-empty"><Search size={26}/><strong>Nenhuma ferramenta encontrada</strong><span>Tente outro termo ou selecione “Todas”.</span><button type="button" onClick={()=>{setQuery('');setActiveFilter('all')}}>Mostrar todas</button></div>}
+
+      <div className="tools-first-trustbar">
+        <span><Zap size={16}/><b>Rápido</b><small>uso imediato no navegador</small></span>
+        <span><LockKeyhole size={16}/><b>Privado</b><small>arquivos ficam no dispositivo</small></span>
+        <span><FileCheck2 size={16}/><b>Profissional</b><small>fluxos jurídicos e empresariais</small></span>
+        <Link to="/tool/prepare-document">Preparar documento <ArrowRight size={16}/></Link>
       </div>
     </section>
 
-    <section className="legal-business-banner">
-      <div className="legal-business-icon"><ShieldCheck size={25}/></div>
-      <div><p className="kicker">LEGAL / BUSINESS</p><h2>Prepare um documento inteiro em um único fluxo.</h2><p>Limpeza, compressão, OCR, redação segura, privacidade, PDF/A e Document Trust Report — com processamento local.</p></div>
-      <Link className="primary-btn" to="/tool/prepare-document">Preparar documento <ArrowRight size={18}/></Link>
+    <section className="landing-section redline-showcase" id="legal-redline">
+      <div className="redline-visual">
+        <div className="redline-doc-head"><Files size={18}/><span><strong>Contrato — Revisão 03</strong><small>Comparação entre versões</small></span><em>REDLINE</em></div>
+        <div className="redline-paper">
+          <span className="paper-line wide"/><span className="paper-line"/><span className="paper-line medium"/>
+          <p className="deleted">O pagamento ocorrerá em até 60 dias após a emissão.</p>
+          <p className="added">O pagamento ocorrerá em até 30 dias após o aceite da nota fiscal.</p>
+          <span className="paper-line wide"/><span className="paper-line small"/>
+          <div className="redline-summary"><span><b>8</b> adições</span><span><b>5</b> remoções</span><span><b>4</b> alterações</span></div>
+        </div>
+      </div>
+      <div className="redline-copy"><p className="kicker">LEGAL REDLINE</p><h2>Veja o que mudou.<br/>Entregue a revisão.</h2><p>Compare duas versões de um PDF, visualize inclusões e remoções e gere um novo documento marcado para revisão.</p><ul><li><Check size={16}/> Identificação visual de alterações</li><li><Check size={16}/> Relatório de comparação</li><li><Check size={16}/> PDF Redline para compartilhar</li></ul><Link className="primary-btn" to="/tool/compare">Comparar duas versões <ArrowRight size={17}/></Link></div>
     </section>
 
-    <section id="tools" className="section">
-      <div className="section-head"><div><p className="kicker">FERRAMENTAS</p><h2>Tudo para trabalhar com PDFs</h2></div><p>Use o menu lateral para navegar rapidamente entre as ferramentas.</p></div>
-      <div className="tool-grid">{tools.map(t=>{const Icon=t.icon;const favorite=favorites.includes(t.id);return <div className="tool-card-wrap" key={t.id}><Link to={`/tool/${t.id}`} className="tool-card">
-        <div className="tool-icon" style={{background:t.color}}><Icon size={23}/></div><div><div className="tool-title-line"><h3>{t.title}</h3>{'badge' in t && <span className="new-badge">{t.badge}</span>}</div><p>{t.desc}</p></div><ArrowRight className="tool-arrow" size={20}/>
-      </Link><button type="button" className={`favorite-card-btn ${favorite?'active':''}`} onClick={()=>toggleFavorite(t.id)} title={favorite?'Remover dos favoritos':'Adicionar aos favoritos'} aria-label={favorite?`Remover ${t.title} dos favoritos`:`Adicionar ${t.title} aos favoritos`}><Star size={15} fill={favorite?'currentColor':'none'}/></button></div>})}</div>
+    <section className="landing-section privacy-premium" id="privacidade">
+      <div className="privacy-premium-copy"><p className="kicker">PRIVACIDADE POR ARQUITETURA</p><h2>Seu documento não precisa viajar para ser processado.</h2><p>O processamento principal acontece no navegador. Isso reduz exposição desnecessária e torna o produto adequado para documentos que você não quer espalhar entre serviços externos.</p><div className="privacy-checks"><span><CheckCircle2 size={17}/> Sem bucket de documentos</span><span><CheckCircle2 size={17}/> Sem API de upload para o PDF</span><span><CheckCircle2 size={17}/> Processamento no dispositivo</span></div></div>
+      <div className="privacy-diagram"><div className="device-box"><span className="device-dot"/><strong>SEU DISPOSITIVO</strong><div><FileCheck2/><span>PDF</span></div><i/><div><Zap/><span>Motor local</span></div><i/><div><CheckCircle2/><span>Resultado</span></div></div><div className="blocked-cloud"><span>NUVEM DE DOCUMENTOS</span><strong>não necessária</strong><EyeOff size={27}/></div></div>
     </section>
 
-    <section className="product-help-section">
-      <div className="section-head"><div><p className="kicker">CONHEÇA O PRODUTO</p><h2>Ajuda e evolução</h2></div><p>Entenda como usar cada ferramenta e acompanhe a evolução do PDF Studio.</p></div>
-      <div className="product-help-grid">
-        <Link to="/faq" className="product-help-card"><div><HelpCircle size={25}/></div><span><strong>FAQ / Central de ajuda</strong><p>Como usar OCR, compressão, Trust Report, ferramentas jurídicas e quais são os limites.</p></span><ArrowRight size={20}/></Link>
-        <Link to="/roadmap" className="product-help-card"><div><Map size={25}/></div><span><strong>Roadmap do produto</strong><p>Veja a evolução das versões e tudo o que já foi incorporado ao PDF Studio.</p></span><ArrowRight size={20}/></Link>
+    <section className="landing-section plans-section" id="planos">
+      <div className="landing-section-intro"><p className="kicker">DO USO RÁPIDO AO FLUXO PROFISSIONAL</p><h2>Comece simples. Cresça quando precisar.</h2><p>Ferramentas essenciais para o dia a dia e uma camada profissional para revisão, privacidade, padronização e governança documental.</p></div>
+      <div className="commercial-plan-grid">
+        <article><span className="plan-label">FREE</span><h3>PDF Essentials</h3><p>Para tarefas rápidas e documentos do dia a dia.</p><ul><li><Check/> Compressão e organização</li><li><Check/> Mesclar e dividir</li><li><Check/> Conversores essenciais</li></ul><Link to="/tool/compress">Começar agora <ArrowRight size={15}/></Link></article>
+        <article className="highlight"><span className="plan-label">PRO LEGAL</span><h3>Document Workflow</h3><p>Para fluxos profissionais e documentos sensíveis.</p><ul><li><Check/> OCR e preparação documental</li><li><Check/> Redline e redação permanente</li><li><Check/> Presets, PDF/A e Trust Report</li></ul><Link to="/tool/prepare-document">Explorar Pro Legal <ArrowRight size={15}/></Link></article>
+        <article><span className="plan-label">BUSINESS</span><h3>Teams & Governance</h3><p>Para equipes que precisam de padrão, controle e distribuição corporativa.</p><ul><li><Check/> Presets organizacionais</li><li><Check/> Gestão e licenciamento</li><li><Check/> Distribuição corporativa</li></ul><span className="plan-soon">Em preparação</span></article>
       </div>
     </section>
 
-    <section id="privacy" className="privacy-section">
-      <div><p className="kicker">PRIVACIDADE</p><h2>Seus documentos ficam com você.</h2><p>O site é apenas a interface. Compressão, mesclagem, proteção, limpeza, OCR e conversões são executadas no navegador.</p></div>
-      <div className="privacy-grid"><div><LockKeyhole/><strong>Sem upload</strong><span>Arquivos não são enviados para uma API.</span></div><div><ShieldCheck/><strong>Sem armazenamento</strong><span>Não temos banco ou bucket com seus documentos.</span></div><div><Zap/><strong>Seu hardware</strong><span>CPU e memória do seu dispositivo executam o trabalho.</span></div></div>
+    <section className="landing-cta">
+      <div><p className="kicker">PRONTO PARA COMEÇAR</p><h2>Escolha uma ferramenta e resolva agora.</h2><p>Sem instalar um aplicativo e sem enviar o conteúdo do documento para uma nuvem de processamento.</p></div>
+      <div><a className="primary-btn premium-primary" href="#ferramentas">Ver ferramentas <ArrowRight size={18}/></a><Link className="secondary-btn" to="/faq">Central de ajuda</Link></div>
     </section>
-  </>
+  </div>
 }

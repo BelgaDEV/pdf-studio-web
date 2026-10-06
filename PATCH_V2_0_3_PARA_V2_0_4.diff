@@ -1,0 +1,178 @@
+diff -ruN /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/README.md /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/README.md
+--- /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/README.md	2026-10-06 16:39:51.000000000 +0000
++++ /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/README.md	2026-10-06 16:49:26.674917496 +0000
+@@ -1,6 +1,6 @@
+-# PDF Studio v2.0.3
++# PDF Studio v2.0.4
+ 
+-Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.3 mantém as ferramentas no centro da experiência e melhora a legibilidade do mega menu: header distribuído em toda a largura, mega menu com as 25 ferramentas, atalho direto para Comparar PDF, busca, filtros por categoria e grid priorizado por uso na primeira dobra, preservando as seções premium de Redline, privacidade e planos. O projeto também mantém a separação entre repositório interno e release comercial.
++Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.4 mantém as ferramentas no centro da experiência e melhora a legibilidade do mega menu: header distribuído em toda a largura, mega menu com as 25 ferramentas, atalho direto para Comparar PDF, busca, filtros por categoria e grid priorizado por uso na primeira dobra, preservando as seções premium de Redline, privacidade e planos. O projeto também mantém a separação entre repositório interno e release comercial.
+ 
+ ## Desenvolvimento
+ 
+diff -ruN /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/VALIDATION_V2_0_4.md /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/VALIDATION_V2_0_4.md
+--- /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/VALIDATION_V2_0_4.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/VALIDATION_V2_0_4.md	2026-10-06 16:49:26.862675927 +0000
+@@ -0,0 +1,16 @@
++# Validação v2.0.4
++
++## Correções
++
++- Navegação para qualquer rota `/tool/*` reinicia a rolagem no topo da ferramenta.
++- A restauração automática de scroll do navegador foi desativada durante a SPA para evitar herdar a posição da página anterior.
++- Links com hash continuam rolando para a seção correta da landing page.
++- Descrições do mega menu foram ampliadas para 10.2 px e agora podem ocupar até duas linhas, evitando texto minúsculo/truncado.
++- Títulos das ferramentas do mega menu foram ampliados para 12 px.
++
++## Regressão esperada
++
++- Home -> ferramenta: abre no topo.
++- Sidebar -> outra ferramenta: abre no topo.
++- Mega menu -> ferramenta: abre no topo.
++- Links `/#privacidade`, `/#planos` e `/#ferramentas`: continuam respeitando a âncora.
+diff -ruN /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/VERSAO.txt /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/VERSAO.txt
+--- /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/VERSAO.txt	2026-10-06 16:39:51.000000000 +0000
++++ /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/VERSAO.txt	2026-10-06 16:49:26.674826258 +0000
+@@ -1 +1 @@
+-2.0.3
++2.0.4
+diff -ruN /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/package.json /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/package.json
+--- /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/package.json	2026-10-06 16:39:51.000000000 +0000
++++ /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/package.json	2026-10-06 16:49:26.674723283 +0000
+@@ -1,7 +1,7 @@
+ {
+   "name": "pdf-studio-web-client",
+   "private": true,
+-  "version": "2.0.3",
++  "version": "2.0.4",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+diff -ruN /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/src/components/Layout.tsx /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/components/Layout.tsx
+--- /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/src/components/Layout.tsx	2026-10-06 16:24:58.000000000 +0000
++++ /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/components/Layout.tsx	2026-10-06 16:50:21.065954563 +0000
+@@ -1,5 +1,5 @@
+ import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Clock3, Home, LockKeyhole, Menu, Search, ShieldCheck, Star, X } from 'lucide-react'
+-import { useEffect, useMemo, useState } from 'react'
++import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
+ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+ import { tools, type ToolCategory, type ToolId } from '../lib/tools'
+ import { loadFavoriteToolIds, loadRecentToolIds, recordRecentTool, subscribeProductivity, toggleFavoriteTool } from '../lib/productivity'
+@@ -30,6 +30,38 @@
+   const [recents,setRecents]=useState<ToolId[]>(()=>loadRecentToolIds())
+ 
+   useEffect(()=>{
++    const previous=window.history.scrollRestoration
++    window.history.scrollRestoration='manual'
++    return ()=>{ window.history.scrollRestoration=previous }
++  },[])
++
++  useLayoutEffect(()=>{
++    const resetScroll=()=>{
++      const root=document.documentElement
++      const previousBehavior=root.style.scrollBehavior
++      root.style.scrollBehavior='auto'
++      window.scrollTo(0,0)
++      root.scrollTop=0
++      document.body.scrollTop=0
++      const main=document.querySelector('.app-main')
++      if(main instanceof HTMLElement) main.scrollTop=0
++      requestAnimationFrame(()=>{ root.style.scrollBehavior=previousBehavior })
++    }
++
++    if(location.hash){
++      const targetId=decodeURIComponent(location.hash.slice(1))
++      requestAnimationFrame(()=>{
++        const target=document.getElementById(targetId)
++        if(target) target.scrollIntoView({block:'start'})
++        else resetScroll()
++      })
++      return
++    }
++
++    resetScroll()
++  },[location.pathname,location.hash])
++
++  useEffect(()=>{
+     const path=location.pathname
+     let title='PDF Studio — automação documental privada'
+     if(path==='/faq') title='FAQ e Ajuda — PDF Studio'
+diff -ruN /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/src/lib/appMeta.ts /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/appMeta.ts
+--- /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/src/lib/appMeta.ts	2026-10-06 16:39:51.000000000 +0000
++++ /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/appMeta.ts	2026-10-06 16:49:26.674780118 +0000
+@@ -1,3 +1,3 @@
+ export const APP_NAME = 'PDF Studio'
+-export const APP_VERSION = '2.0.3'
++export const APP_VERSION = '2.0.4'
+ export const APP_TAGLINE = 'Automação documental privada'
+diff -ruN /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/src/styles.css /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/styles.css
+--- /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/src/styles.css	2026-10-06 16:39:51.000000000 +0000
++++ /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/styles.css	2026-10-06 16:49:26.674591473 +0000
+@@ -159,7 +159,7 @@
+ @media(max-width:460px){.home-tool-grid{grid-template-columns:1fr}.home-tool-card{min-height:155px}.home-tool-card p{-webkit-line-clamp:3}.tools-first-intro h1{font-size:38px}}
+ #ferramentas,#legal-redline,#privacidade,#planos{scroll-margin-top:88px}
+ 
+-/* v2.0.3 — Full-width navigation + mega menu with improved readability */
++/* v2.0.4 — Mega menu readability + route scroll reset */
+ .landing-shell>.topbar{
+   max-width:none;
+   width:100%;
+@@ -259,7 +259,7 @@
+   grid-template-columns:32px minmax(0,1fr)!important;
+   gap:9px!important;
+   align-items:center!important;
+-  padding:8px!important;
++  padding:9px 8px!important;
+   border-radius:10px;
+   color:#c6d5e3!important;
+   transition:background .14s ease,transform .14s ease;
+@@ -270,8 +270,8 @@
+   border:1px solid currentColor;background:rgba(255,255,255,.022);opacity:.92
+ }
+ .mega-menu-tool>span:last-child{min-width:0;display:flex;flex-direction:column;gap:3px}
+-.mega-menu-tool b{font-size:11.2px;line-height:1.2;color:#dce8f2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+-.mega-menu-tool small{font-size:8.2px;line-height:1.35;color:#7f98ad;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:540}
++.mega-menu-tool b{font-size:12px;line-height:1.25;color:#e3edf6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
++.mega-menu-tool small{font-size:10.2px;line-height:1.38;color:#91a8bb;white-space:normal;overflow:hidden;font-weight:540;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;min-height:28px}
+ .mega-menu-footer{
+   min-height:45px;
+   display:flex;
+@@ -293,6 +293,8 @@
+ .home-tool-card:nth-child(-n+5) .home-tool-open{color:#91a8ba}
+ 
+ @media(max-width:1420px){
++  .mega-menu-tool small{font-size:9.5px;line-height:1.35;min-height:26px}
++  .mega-menu-tool b{font-size:11.5px}
+   .landing-shell>.topbar{padding-left:28px;padding-right:28px;gap:22px}
+   .landing-shell .desktop-nav{margin-left:10px;gap:12px;font-size:10.5px}
+   .mega-menu-button,.topbar-dropdown>button{font-size:10.5px}
+diff -ruN /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/tests/e2e/landing.spec.ts /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/tests/e2e/landing.spec.ts
+--- /mnt/data/pdfstudio_v204/internal/PDFStudio_Web_Client_v2_0_3_INTERNAL/tests/e2e/landing.spec.ts	2026-10-06 16:27:27.000000000 +0000
++++ /mnt/data/pdfstudio_v204/PDFStudio_Web_Client_v2_0_4_INTERNAL/tests/e2e/landing.spec.ts	2026-10-06 16:49:27.376044107 +0000
+@@ -35,3 +35,26 @@
+   await expect(page.locator('#privacidade')).toContainText('Seu documento não precisa viajar')
+   await expect(page.locator('#planos')).toContainText('PRO LEGAL')
+ })
++
++
++test('tool navigation always starts at the top of the destination tool', async ({ page }) => {
++  await page.goto('/')
++  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
++  await page.getByRole('link', { name: 'Comprimir PDF', exact: true }).first().click()
++  await expect(page).toHaveURL(/\/tool\/compress$/)
++  await page.waitForFunction(() => window.scrollY === 0)
++  expect(await page.evaluate(() => window.scrollY)).toBe(0)
++})
++
++test('mega-menu descriptions are readable and can wrap to two lines', async ({ page }) => {
++  await page.goto('/')
++  await page.getByRole('button', { name: /Todas as ferramentas/i }).hover()
++  const description = page.locator('.mega-menu-tool small').first()
++  await expect(description).toBeVisible()
++  const metrics = await description.evaluate((el) => {
++    const style = getComputedStyle(el)
++    return { fontSize: parseFloat(style.fontSize), whiteSpace: style.whiteSpace }
++  })
++  expect(metrics.fontSize).toBeGreaterThanOrEqual(9.5)
++  expect(metrics.whiteSpace).toBe('normal')
++})

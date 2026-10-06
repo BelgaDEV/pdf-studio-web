@@ -1,7 +1,5 @@
-import * as pdfjsLib from 'pdfjs-dist'
+import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 export type CompareProgress = (value:number, message:string)=>void
 export type CompareStatus = 'unchanged'|'modified'|'added'|'removed'
@@ -125,35 +123,39 @@ function buildPageTextData(content:any):{text:string;tokens:PositionedTextToken[
 
 async function loadPdf(file:File){
   const data=new Uint8Array(await file.arrayBuffer())
-  return pdfjsLib.getDocument({data}).promise
+  return loadPdfJsDocument(data)
 }
 
 export async function inspectPdfForComparison(file:File,onProgress?:CompareProgress,progressStart=0,progressEnd=40):Promise<PdfSnapshot>{
   const pdf=await loadPdf(file)
   const pages:PdfPageSnapshot[]=[]
-  for(let i=1;i<=pdf.numPages;i++){
-    const page=await pdf.getPage(i)
-    const viewport=page.getViewport({scale:1})
-    const content=await page.getTextContent()
-    const extracted=buildPageTextData(content)
-    const text=extracted.text
-    const normalizedText=normalizeText(text)
-    pages.push({
-      pageNumber:i,
-      text,
-      normalizedText,
-      wordCount:tokenize(text).length,
-      width:viewport.width,
-      height:viewport.height,
-      tokens:extracted.tokens,
-    })
-    if(onProgress){
-      const ratio=i/Math.max(1,pdf.numPages)
-      onProgress(Math.round(progressStart+(progressEnd-progressStart)*ratio),`Lendo ${file.name}: página ${i}/${pdf.numPages}…`)
+  try {
+    for(let i=1;i<=pdf.numPages;i++){
+      const page=await pdf.getPage(i)
+      const viewport=page.getViewport({scale:1})
+      const content=await page.getTextContent()
+      const extracted=buildPageTextData(content)
+      const text=extracted.text
+      const normalizedText=normalizeText(text)
+      pages.push({
+        pageNumber:i,
+        text,
+        normalizedText,
+        wordCount:tokenize(text).length,
+        width:viewport.width,
+        height:viewport.height,
+        tokens:extracted.tokens,
+      })
+      if(onProgress){
+        const ratio=i/Math.max(1,pdf.numPages)
+        onProgress(Math.round(progressStart+(progressEnd-progressStart)*ratio),`Lendo ${file.name}: página ${i}/${pdf.numPages}…`)
+      }
+      if(i%8===0) await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
     }
-    if(i%8===0) await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
+    return {fileName:file.name,size:file.size,pageCount:pdf.numPages,pages}
+  } finally {
+    await destroyPdfJsDocument(pdf)
   }
-  return {fileName:file.name,size:file.size,pageCount:pdf.numPages,pages}
 }
 
 function pageSignature(page:PdfPageSnapshot){
@@ -311,19 +313,23 @@ export async function comparePdfFiles(originalFile:File,revisedFile:File,options
   if(options.visual){
     const originalPdf=await loadPdf(originalFile)
     const revisedPdf=await loadPdf(revisedFile)
-    const paired=pages.filter(p=>p.originalPage&&p.revisedPage)
-    for(let i=0;i<paired.length;i++){
-      const entry=paired[i]
-      const [aPixels,bPixels]=await Promise.all([
-        renderPageData(originalPdf,entry.originalPage!),
-        renderPageData(revisedPdf,entry.revisedPage!),
-      ])
-      const diff=visualDifferencePercent(aPixels,bPixels)
-      entry.visualDifference=diff
-      if(diff>=0.8 && entry.status==='unchanged') entry.status='modified'
-      const mapped=48+Math.round((i+1)/Math.max(1,paired.length)*45)
-      onProgress(mapped,`Comparando visualmente: ${i+1}/${paired.length} página(s)…`)
-      if(i%3===0) await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
+    try {
+      const paired=pages.filter(p=>p.originalPage&&p.revisedPage)
+      for(let i=0;i<paired.length;i++){
+        const entry=paired[i]
+        const [aPixels,bPixels]=await Promise.all([
+          renderPageData(originalPdf,entry.originalPage!),
+          renderPageData(revisedPdf,entry.revisedPage!),
+        ])
+        const diff=visualDifferencePercent(aPixels,bPixels)
+        entry.visualDifference=diff
+        if(diff>=0.8 && entry.status==='unchanged') entry.status='modified'
+        const mapped=48+Math.round((i+1)/Math.max(1,paired.length)*45)
+        onProgress(mapped,`Comparando visualmente: ${i+1}/${paired.length} página(s)…`)
+        if(i%3===0) await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
+      }
+    } finally {
+      await Promise.all([destroyPdfJsDocument(originalPdf), destroyPdfJsDocument(revisedPdf)])
     }
   }else{
     onProgress(92,'Comparação textual concluída.')

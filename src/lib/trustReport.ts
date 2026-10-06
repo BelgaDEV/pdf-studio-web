@@ -1,3 +1,4 @@
+import { APP_VERSION } from './appMeta'
 import { PDFDocument } from 'pdf-lib'
 import { jsPDF } from 'jspdf'
 import type { PrepareDocumentOptions, PrepareDocumentResult } from './prepareDocument'
@@ -5,7 +6,7 @@ import { humanSize } from './files'
 
 export const TRUST_REPORT_SCHEMA = 'pdf-studio-trust/v1' as const
 export const TRUST_REPORT_VERSION = '1.0'
-export const PDF_STUDIO_VERSION = '1.8.1'
+export const PDF_STUDIO_VERSION = APP_VERSION
 
 export type TrustValidationStatus = 'passed' | 'warning' | 'info'
 

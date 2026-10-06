@@ -1,0 +1,127 @@
+name: PDF Studio CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      deploy_environment:
+        description: Deploy opcional
+        required: true
+        type: choice
+        default: none
+        options: [none, staging, production]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: TypeScript · Tests · PDF Regression · Security Hardening · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::package-lock.json ausente; usando npm install. Gere e versione o lockfile para builds 100% reproduzíveis."
+            npm install
+          fi
+
+      - name: TypeScript
+        run: npm run check
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: PDF regression tests
+        run: npm run test:pdf
+
+      - name: Production dependency audit
+        run: npm run security:prod
+
+      - name: Full dependency audit
+        run: npm run security:all
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright
+        run: npm run test:e2e
+
+      - name: Build commercial release folder
+        run: npm run release:commercial
+
+      - name: Upload commercial artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-studio-commercial-${{ github.sha }}
+          path: release/commercial/
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy-staging:
+    name: Deploy staging
+    needs: quality
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && inputs.deploy_environment == 'staging')
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Install + build
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm run build
+      - name: Deploy staging to Cloudflare
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env staging
+
+  deploy-production:
+    name: Deploy production
+    needs: quality
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.deploy_environment == 'production')
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Install + build
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm run build
+      - name: Deploy production to Cloudflare
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env production

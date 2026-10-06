@@ -1,0 +1,459 @@
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/INSTALAR_E_TESTAR.bat internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/INSTALAR_E_TESTAR.bat
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-06 17:27:46.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-06 17:44:32.992150897 +0000
+@@ -3,7 +3,7 @@
+ cd /d "%~dp0"
+ 
+ echo =============================================
+-echo   PDF Studio v2.0.5 - Instalar e validar
++echo   PDF Studio v2.0.6 - Instalar e validar
+ echo =============================================
+ 
+ where node >nul 2>nul
+@@ -48,7 +48,7 @@
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [OK] v2.0.5 validada. Abrindo servidor local...
++echo [OK] v2.0.6 validada. Abrindo servidor local...
+ echo http://localhost:5173
+ start "" http://localhost:5173
+ call npm run dev -- --host 127.0.0.1
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/README.md internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/README.md
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/README.md	2026-10-06 17:26:02.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/README.md	2026-10-06 17:44:32.992084126 +0000
+@@ -1,6 +1,6 @@
+-# PDF Studio v2.0.5
++# PDF Studio v2.0.6
+ 
+-Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.5 mantém a interface e a legibilidade da v2.0.4 e adiciona Security Hardening: header distribuído em toda a largura, mega menu com as 25 ferramentas, atalho direto para Comparar PDF, busca, filtros por categoria e grid priorizado por uso na primeira dobra, preservando as seções premium de Redline, privacidade e planos. O projeto também mantém a separação entre repositório interno e release comercial.
++Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.6 mantém a interface e a legibilidade da v2.0.4 e adiciona Security Hardening: header distribuído em toda a largura, mega menu com as 25 ferramentas, atalho direto para Comparar PDF, busca, filtros por categoria e grid priorizado por uso na primeira dobra, preservando as seções premium de Redline, privacidade e planos. O projeto também mantém a separação entre repositório interno e release comercial.
+ 
+ ## Desenvolvimento
+ 
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDAR_SEGURANCA.bat internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDAR_SEGURANCA.bat
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDAR_SEGURANCA.bat	2026-10-06 17:27:46.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDAR_SEGURANCA.bat	2026-10-06 17:44:32.992189625 +0000
+@@ -2,7 +2,7 @@
+ setlocal
+ cd /d "%~dp0"
+ echo =============================================
+-echo   PDF Studio v2.0.5 - Security Gate
++echo   PDF Studio v2.0.6 - Security Gate
+ echo =============================================
+ if not exist node_modules (
+   echo Instalando dependencias...
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDATION_V2_0_6.md internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDATION_V2_0_6.md
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDATION_V2_0_6.md	1970-01-01 00:00:00.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDATION_V2_0_6.md	2026-10-06 17:44:32.992754189 +0000
+@@ -0,0 +1,11 @@
++# Validação v2.0.6
++
++Hotfix de compatibilidade com PDF.js 6.3.289.
++
++- remove uso de `PDFDocumentProxy.destroy()`, removido no PDF.js 6;
++- gerencia `PDFDocumentLoadingTask` via `WeakMap` e `destroyPdfJsDocument`;
++- remove `isEvalSupported` de `DocumentInitParameters`, não aceito pela tipagem atual;
++- mantém `enableXfa: false` e não instancia `PDFScriptingManager`;
++- corrige narrowing de `File | Uint8Array | ArrayBuffer`;
++- adiciona teste de regressão específico para API do PDF.js 6;
++- preserva todas as alterações visuais da v2.0.4/v2.0.5.
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VERSAO.txt internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VERSAO.txt
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VERSAO.txt	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/VERSAO.txt	2026-10-06 17:44:32.991997415 +0000
+@@ -1 +1 @@
+-2.0.5
++2.0.6
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/package.json internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/package.json
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/package.json	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/package.json	2026-10-06 17:44:32.991823382 +0000
+@@ -1,7 +1,7 @@
+ {
+   "name": "pdf-studio-web-client",
+   "private": true,
+-  "version": "2.0.5",
++  "version": "2.0.6",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/appMeta.ts internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/appMeta.ts
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/appMeta.ts	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/appMeta.ts	2026-10-06 17:44:32.991940899 +0000
+@@ -1,3 +1,3 @@
+ export const APP_NAME = 'PDF Studio'
+-export const APP_VERSION = '2.0.5'
++export const APP_VERSION = '2.0.6'
+ export const APP_TAGLINE = 'Automação documental privada'
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/ocr.ts internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/ocr.ts
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/ocr.ts	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/ocr.ts	2026-10-06 17:44:32.990780785 +0000
+@@ -1,5 +1,5 @@
+ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+-import { loadPdfJsDocument } from './pdfjsSecure'
++import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
+ import { nextFrame } from './files'
+ 
+ export type OcrLanguage = 'por' | 'eng' | 'por+eng'
+@@ -142,6 +142,6 @@
+     return { bytes, text, recognizedPages, skippedPages, characters: text.length }
+   } finally {
+     await worker.terminate().catch(() => {})
+-    await pdfjs.destroy().catch(() => {})
++    await destroyPdfJsDocument(pdfjs)
+   }
+ }
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pageEditor.ts internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pageEditor.ts
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pageEditor.ts	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pageEditor.ts	2026-10-06 17:44:32.990845884 +0000
+@@ -1,5 +1,5 @@
+ import { degrees, PDFDocument } from 'pdf-lib'
+-import { loadPdfJsDocument } from './pdfjsSecure'
++import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
+ import { nextFrame } from './files'
+ 
+ export type PagePlanItem = {
+@@ -59,7 +59,7 @@
+     }
+     return thumbs
+   } finally {
+-    await pdf.destroy().catch(() => {})
++    await destroyPdfJsDocument(pdf)
+   }
+ }
+ 
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdf.ts internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdf.ts
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdf.ts	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdf.ts	2026-10-06 17:44:32.991200049 +0000
+@@ -2,7 +2,7 @@
+ import { addPdfBookmarks, addPdfBookmarksHierarchical, type PdfBookmarkSpec } from './bookmarks'
+ import { addClickableTableOfContents } from './tableOfContents'
+ import { mergeManyPdfs, type LargeMergeResult } from './largeMerge'
+-import { loadPdfJsDocument } from './pdfjsSecure'
++import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
+ import JSZip from 'jszip'
+ import { nextFrame } from './files'
+ import { ghostscriptCompressWasm, qpdfOptimizeWasm } from './wasmCompression'
+@@ -714,7 +714,7 @@
+       pageIndex += pages
+     } finally {
+       if (pdf) {
+-        try { await pdf.destroy() } catch { /* best effort */ }
++        await destroyPdfJsDocument(pdf)
+       }
+     }
+ 
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfCompare.ts internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfCompare.ts
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfCompare.ts	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfCompare.ts	2026-10-06 17:44:32.991535947 +0000
+@@ -1,4 +1,4 @@
+-import { loadPdfJsDocument } from './pdfjsSecure'
++import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
+ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+ 
+ export type CompareProgress = (value:number, message:string)=>void
+@@ -129,29 +129,33 @@
+ export async function inspectPdfForComparison(file:File,onProgress?:CompareProgress,progressStart=0,progressEnd=40):Promise<PdfSnapshot>{
+   const pdf=await loadPdf(file)
+   const pages:PdfPageSnapshot[]=[]
+-  for(let i=1;i<=pdf.numPages;i++){
+-    const page=await pdf.getPage(i)
+-    const viewport=page.getViewport({scale:1})
+-    const content=await page.getTextContent()
+-    const extracted=buildPageTextData(content)
+-    const text=extracted.text
+-    const normalizedText=normalizeText(text)
+-    pages.push({
+-      pageNumber:i,
+-      text,
+-      normalizedText,
+-      wordCount:tokenize(text).length,
+-      width:viewport.width,
+-      height:viewport.height,
+-      tokens:extracted.tokens,
+-    })
+-    if(onProgress){
+-      const ratio=i/Math.max(1,pdf.numPages)
+-      onProgress(Math.round(progressStart+(progressEnd-progressStart)*ratio),`Lendo ${file.name}: página ${i}/${pdf.numPages}…`)
++  try {
++    for(let i=1;i<=pdf.numPages;i++){
++      const page=await pdf.getPage(i)
++      const viewport=page.getViewport({scale:1})
++      const content=await page.getTextContent()
++      const extracted=buildPageTextData(content)
++      const text=extracted.text
++      const normalizedText=normalizeText(text)
++      pages.push({
++        pageNumber:i,
++        text,
++        normalizedText,
++        wordCount:tokenize(text).length,
++        width:viewport.width,
++        height:viewport.height,
++        tokens:extracted.tokens,
++      })
++      if(onProgress){
++        const ratio=i/Math.max(1,pdf.numPages)
++        onProgress(Math.round(progressStart+(progressEnd-progressStart)*ratio),`Lendo ${file.name}: página ${i}/${pdf.numPages}…`)
++      }
++      if(i%8===0) await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
+     }
+-    if(i%8===0) await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
++    return {fileName:file.name,size:file.size,pageCount:pdf.numPages,pages}
++  } finally {
++    await destroyPdfJsDocument(pdf)
+   }
+-  return {fileName:file.name,size:file.size,pageCount:pdf.numPages,pages}
+ }
+ 
+ function pageSignature(page:PdfPageSnapshot){
+@@ -309,19 +313,23 @@
+   if(options.visual){
+     const originalPdf=await loadPdf(originalFile)
+     const revisedPdf=await loadPdf(revisedFile)
+-    const paired=pages.filter(p=>p.originalPage&&p.revisedPage)
+-    for(let i=0;i<paired.length;i++){
+-      const entry=paired[i]
+-      const [aPixels,bPixels]=await Promise.all([
+-        renderPageData(originalPdf,entry.originalPage!),
+-        renderPageData(revisedPdf,entry.revisedPage!),
+-      ])
+-      const diff=visualDifferencePercent(aPixels,bPixels)
+-      entry.visualDifference=diff
+-      if(diff>=0.8 && entry.status==='unchanged') entry.status='modified'
+-      const mapped=48+Math.round((i+1)/Math.max(1,paired.length)*45)
+-      onProgress(mapped,`Comparando visualmente: ${i+1}/${paired.length} página(s)…`)
+-      if(i%3===0) await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
++    try {
++      const paired=pages.filter(p=>p.originalPage&&p.revisedPage)
++      for(let i=0;i<paired.length;i++){
++        const entry=paired[i]
++        const [aPixels,bPixels]=await Promise.all([
++          renderPageData(originalPdf,entry.originalPage!),
++          renderPageData(revisedPdf,entry.revisedPage!),
++        ])
++        const diff=visualDifferencePercent(aPixels,bPixels)
++        entry.visualDifference=diff
++        if(diff>=0.8 && entry.status==='unchanged') entry.status='modified'
++        const mapped=48+Math.round((i+1)/Math.max(1,paired.length)*45)
++        onProgress(mapped,`Comparando visualmente: ${i+1}/${paired.length} página(s)…`)
++        if(i%3===0) await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
++      }
++    } finally {
++      await Promise.all([destroyPdfJsDocument(originalPdf), destroyPdfJsDocument(revisedPdf)])
+     }
+   }else{
+     onProgress(92,'Comparação textual concluída.')
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfjsSecure.ts internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfjsSecure.ts
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfjsSecure.ts	2026-10-06 17:26:02.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfjsSecure.ts	2026-10-06 17:44:32.990638440 +0000
+@@ -2,32 +2,66 @@
+ 
+ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+ 
++type PdfJsLoadingTask = ReturnType<typeof pdfjsLib.getDocument>
++export type PdfJsDocument = Awaited<PdfJsLoadingTask['promise']>
++
++const loadingTasks = new WeakMap<PdfJsDocument, PdfJsLoadingTask>()
++
+ /**
+  * Política de segurança do PDF.js.
+  *
+- * Este app usa somente a API de parsing/renderização; não instancia
+- * PDFScriptingManager nem o viewer genérico do PDF.js. A execução de
+- * JavaScript de PDFs permanece desabilitada por arquitetura. Além disso,
+- * desabilitamos eval e XFA no carregamento para reduzir superfície de ataque.
++ * O app usa apenas parsing/renderização. Não instancia PDFScriptingManager,
++ * não carrega o sandbox de JavaScript do viewer e mantém XFA desabilitado.
++ * No PDF.js 6, o ciclo de vida deve ser encerrado pelo PDFDocumentLoadingTask
++ * (PDFDocumentProxy.destroy() foi removido).
+  */
+ export const PDFJS_SECURITY_POLICY = Object.freeze({
+-  enableScripting: false,
+-  isEvalSupported: false,
+   enableXfa: false,
++  scriptingManagerEnabled: false,
+ })
+ 
+ export { pdfjsLib }
+ 
+-export async function loadPdfJsDocument(source: File | Uint8Array | ArrayBuffer) {
+-  const data = typeof File !== 'undefined' && source instanceof File
+-    ? new Uint8Array(await source.arrayBuffer())
+-    : source instanceof Uint8Array
+-      ? new Uint8Array(source)
+-      : new Uint8Array(source)
++async function toOwnedUint8Array(source: File | Uint8Array | ArrayBuffer): Promise<Uint8Array> {
++  if (source instanceof Uint8Array) {
++    const copy = new Uint8Array(source.byteLength)
++    copy.set(source)
++    return copy
++  }
++  if (source instanceof ArrayBuffer) return new Uint8Array(source.slice(0))
++  return new Uint8Array(await source.arrayBuffer())
++}
+ 
+-  return pdfjsLib.getDocument({
++export async function loadPdfJsDocument(source: File | Uint8Array | ArrayBuffer): Promise<PdfJsDocument> {
++  const data = await toOwnedUint8Array(source)
++  const loadingTask = pdfjsLib.getDocument({
+     data,
+-    isEvalSupported: PDFJS_SECURITY_POLICY.isEvalSupported,
+     enableXfa: PDFJS_SECURITY_POLICY.enableXfa,
+-  }).promise
++  })
++
++  try {
++    const pdf = await loadingTask.promise
++    loadingTasks.set(pdf, loadingTask)
++    return pdf
++  } catch (error) {
++    await loadingTask.destroy().catch(() => {})
++    throw error
++  }
++}
++
++/**
++ * Encerra corretamente um documento carregado pelo helper acima.
++ * PDF.js 6 removeu PDFDocumentProxy.destroy(); o destroy pertence ao loading task.
++ */
++export async function destroyPdfJsDocument(pdf: PdfJsDocument | null | undefined): Promise<void> {
++  if (!pdf) return
++  const loadingTask = loadingTasks.get(pdf)
++  if (loadingTask) {
++    loadingTasks.delete(pdf)
++    await loadingTask.destroy().catch(() => {})
++    return
++  }
++
++  // Fallback defensivo para documentos que não tenham sido registrados no WeakMap.
++  await pdf.cleanup().catch(() => {})
+ }
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/redaction.ts internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/redaction.ts
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/redaction.ts	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/redaction.ts	2026-10-06 17:44:32.990953997 +0000
+@@ -1,5 +1,5 @@
+ import { PDFDocument } from 'pdf-lib'
+-import { loadPdfJsDocument } from './pdfjsSecure'
++import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
+ import { nextFrame } from './files'
+ 
+ export type RedactionRect = {
+@@ -88,7 +88,7 @@
+       if (index % 3 === 0) await nextFrame()
+     }
+   } finally {
+-    await pdf.destroy().catch(() => {})
++    await destroyPdfJsDocument(pdf)
+   }
+ }
+ 
+@@ -186,6 +186,6 @@
+       verifiedPages: redactedPageNumbers.length,
+     }
+   } finally {
+-    await pdfJs.destroy().catch(() => {})
++    await destroyPdfJsDocument(pdfJs)
+   }
+ }
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/pages/RedactionPage.tsx internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/pages/RedactionPage.tsx
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/pages/RedactionPage.tsx	2026-10-06 13:02:42.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/pages/RedactionPage.tsx	2026-10-06 17:44:32.991362916 +0000
+@@ -4,6 +4,7 @@
+ import { tools } from '../lib/tools'
+ import { downloadBlob, humanSize, stem } from '../lib/files'
+ import { loadPdfForRedaction, permanentlyRedactPdf, renderRedactionPreview, type RedactionMap, type RedactionRect } from '../lib/redaction'
++import { destroyPdfJsDocument } from '../lib/pdfjsSecure'
+ 
+ function clamp(value: number, min = 0, max = 1) {
+   return Math.max(min, Math.min(max, value))
+@@ -46,7 +47,7 @@
+   const redactionCount = useMemo(() => Object.values(redactions).reduce((sum, items) => sum + items.length, 0), [redactions])
+   const redactedPages = useMemo(() => Object.values(redactions).filter(items => items.length > 0).length, [redactions])
+ 
+-  useEffect(() => () => { pdfRef.current?.destroy?.().catch?.(() => {}) }, [])
++  useEffect(() => () => { void destroyPdfJsDocument(pdfRef.current) }, [])
+ 
+   useEffect(() => {
+     if (!pdfRef.current || !canvasRef.current || !pageNumber) return
+@@ -69,7 +70,7 @@
+     setDraft(null)
+     setPageNumber(1)
+     try {
+-      await pdfRef.current?.destroy?.().catch?.(() => {})
++      await destroyPdfJsDocument(pdfRef.current)
+       const pdf = await loadPdfForRedaction(next)
+       pdfRef.current = pdf
+       setFile(next)
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/styles.css internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/styles.css
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/styles.css	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/src/styles.css	2026-10-06 17:44:32.992654909 +0000
+@@ -308,4 +308,4 @@
+   .landing-shell .mobile-menu{top:70px}
+ }
+ 
+-/* v2.0.5 — Security Hardening (sem alterações visuais em relação à v2.0.4) */
++/* v2.0.6 — PDF.js 6 Compatibility Hotfix (sem alterações visuais em relação à v2.0.4) */
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/pdfjs6-compatibility.test.ts internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/pdfjs6-compatibility.test.ts
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/pdfjs6-compatibility.test.ts	1970-01-01 00:00:00.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/pdfjs6-compatibility.test.ts	2026-10-06 17:44:32.991774247 +0000
+@@ -0,0 +1,35 @@
++// @vitest-environment node
++import { describe, expect, it } from 'vitest'
++import { readFile, readdir } from 'node:fs/promises'
++import { join } from 'node:path'
++
++async function sourceFiles(dir: string): Promise<string[]> {
++  const entries = await readdir(dir, { withFileTypes: true })
++  const nested = await Promise.all(entries.map(async entry => {
++    const full = join(dir, entry.name)
++    if (entry.isDirectory()) return sourceFiles(full)
++    return /\.(ts|tsx)$/.test(entry.name) ? [full] : []
++  }))
++  return nested.flat()
++}
++
++describe('PDF.js 6 compatibility', () => {
++  it('does not call removed PDFDocumentProxy.destroy()', async () => {
++    const files = await sourceFiles('src')
++    const offenders: string[] = []
++    for (const file of files) {
++      if (file.endsWith('pdfjsSecure.ts')) continue
++      const source = await readFile(file, 'utf8')
++      if (/\b(?:pdf|pdfjs|pdfJs)\.destroy\s*\(/.test(source) || /pdfRef\.current\?\.destroy/.test(source)) offenders.push(file)
++    }
++    expect(offenders).toEqual([])
++  })
++
++  it('owns loading-task lifecycle in the secure loader', async () => {
++    const source = await readFile('src/lib/pdfjsSecure.ts', 'utf8')
++    expect(source).toContain('const loadingTask = pdfjsLib.getDocument')
++    expect(source).toContain('loadingTasks.set(pdf, loadingTask)')
++    expect(source).toContain('await loadingTask.destroy()')
++    expect(source).toContain('source.arrayBuffer()')
++  })
++})
+diff -ruN '--exclude=PATCH_V2_0_5_PARA_V2_0_6.diff' original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/security-hardening.test.ts internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/security-hardening.test.ts
+--- original_internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/security-hardening.test.ts	2026-10-06 17:24:44.000000000 +0000
++++ internal/PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/security-hardening.test.ts	2026-10-06 17:44:32.991680325 +0000
+@@ -13,7 +13,7 @@
+   return nested.flat()
+ }
+ 
+-describe('v2.0.5 security hardening', () => {
++describe('v2.0.6 security hardening', () => {
+   it('pins security-sensitive dependencies to hardened versions', async () => {
+     const pkg = JSON.parse(await readFile('package.json', 'utf8'))
+     expect(pkg.dependencies.jspdf).toBe('4.2.1')
+@@ -34,9 +34,10 @@
+     expect(offenders).toEqual([])
+ 
+     const secureLoader = await readFile('src/lib/pdfjsSecure.ts', 'utf8')
+-    expect(secureLoader).toContain('isEvalSupported: false')
+     expect(secureLoader).toContain('enableXfa: false')
+-    expect(secureLoader).toContain('enableScripting: false')
++    expect(secureLoader).toContain('scriptingManagerEnabled: false')
++    expect(secureLoader).toContain('loadingTask.destroy()')
++    expect(secureLoader).not.toContain('isEvalSupported:')
+   })
+ 
+   it('ships a CSP that blocks embedded PDF scripts and framing', async () => {

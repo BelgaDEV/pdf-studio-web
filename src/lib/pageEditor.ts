@@ -1,8 +1,6 @@
 import { degrees, PDFDocument } from 'pdf-lib'
-import * as pdfjsLib from 'pdfjs-dist'
+import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
 import { nextFrame } from './files'
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 export type PagePlanItem = {
   id: string
@@ -30,7 +28,7 @@ export async function renderPdfThumbnails(
   onProgress: PageEditorProgress,
 ): Promise<PageThumbnail[]> {
   const data = new Uint8Array(await file.arrayBuffer())
-  const pdf = await pdfjsLib.getDocument({ data }).promise
+  const pdf = await loadPdfJsDocument(data)
   const thumbs: PageThumbnail[] = []
 
   try {
@@ -61,7 +59,7 @@ export async function renderPdfThumbnails(
     }
     return thumbs
   } finally {
-    await pdf.destroy().catch(() => {})
+    await destroyPdfJsDocument(pdf)
   }
 }
 

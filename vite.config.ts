@@ -14,6 +14,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    chunkSizeWarningLimit: 2200,
+    manifest: true,
+    chunkSizeWarningLimit: 1200,
   },
 })

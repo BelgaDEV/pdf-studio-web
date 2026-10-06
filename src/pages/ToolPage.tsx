@@ -1,37 +1,45 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import PageWorkspacePage from './PageWorkspacePage'
-import OcrToolPage from './OcrToolPage'
-import BatchToolPage from './BatchToolPage'
-import DocumentToolsPage, { documentToolIds, type DocumentToolId } from './DocumentToolsPage'
-import PrepareDocumentPage from './PrepareDocumentPage'
-import RedactionPage from './RedactionPage'
-import ComparePdfPage from './ComparePdfPage'
-import TribunalPresetsPage from './TribunalPresetsPage'
-import TrustReportPage from './TrustReportPage'
 import { ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Download, File, GripVertical, Info, LockKeyhole, UploadCloud, X } from 'lucide-react'
 import { tools, type ToolId } from '../lib/tools'
-import { compressPdf, compressPdfToTarget, extractPdfText, imagesToPdf, inspectPdf, mergePdfs, pdfToImagesZip, renderFirstPage, splitPdfBySize, type CompressionMode } from '../lib/pdf'
-import { pdfToWord, wordToPdf } from '../lib/word'
 import { downloadBlob, humanSize, stem } from '../lib/files'
-import JSZip from 'jszip'
 
+type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'|'target'
+type DocumentToolId = 'watermark'|'page-numbers'|'remove-blank'|'remove-metadata'|'protect'|'extract-images'|'pdfa'
+
+const PageWorkspacePage = lazy(() => import('./PageWorkspacePage'))
+const OcrToolPage = lazy(() => import('./OcrToolPage'))
+const BatchToolPage = lazy(() => import('./BatchToolPage'))
+const DocumentToolsPage = lazy(() => import('./DocumentToolsPage'))
+const PrepareDocumentPage = lazy(() => import('./PrepareDocumentPage'))
+const RedactionPage = lazy(() => import('./RedactionPage'))
+const ComparePdfPage = lazy(() => import('./ComparePdfPage'))
+const TribunalPresetsPage = lazy(() => import('./TribunalPresetsPage'))
+const TrustReportPage = lazy(() => import('./TrustReportPage'))
+
+const documentToolIds = new Set<DocumentToolId>(['watermark','page-numbers','remove-blank','remove-metadata','protect','extract-images','pdfa'])
 const pdfOnly = new Set<ToolId>(['compress','split','pdf-word','pdf-jpg','pdf-png','pdf-txt'])
 const multiPdf = new Set<ToolId>(['merge'])
 
+function ToolFallback(){
+  return <section className="tool-page"><div className="workspace-card route-loading" role="status" aria-live="polite">Carregando ferramenta…</div></section>
+}
+
 export default function ToolPage(){
   const { id } = useParams()
-  if(id==='prepare-document') return <PrepareDocumentPage/>
-  if(id==='redact') return <RedactionPage/>
-  if(id==='compare') return <ComparePdfPage/>
-  if(id==='tribunal-presets') return <TribunalPresetsPage/>
-  if(id==='trust-report') return <TrustReportPage/>
-  if(id==='organize') return <PageWorkspacePage mode="organize"/>
-  if(id==='edit-pages') return <PageWorkspacePage mode="edit-pages"/>
-  if(id==='ocr') return <OcrToolPage/>
-  if(id==='batch') return <BatchToolPage/>
-  if(id && documentToolIds.has(id as DocumentToolId)) return <DocumentToolsPage toolId={id as DocumentToolId}/>
-  return <ClassicToolPage/>
+  let content
+  if(id==='prepare-document') content=<PrepareDocumentPage/>
+  else if(id==='redact') content=<RedactionPage/>
+  else if(id==='compare') content=<ComparePdfPage/>
+  else if(id==='tribunal-presets') content=<TribunalPresetsPage/>
+  else if(id==='trust-report') content=<TrustReportPage/>
+  else if(id==='organize') content=<PageWorkspacePage mode="organize"/>
+  else if(id==='edit-pages') content=<PageWorkspacePage mode="edit-pages"/>
+  else if(id==='ocr') content=<OcrToolPage/>
+  else if(id==='batch') content=<BatchToolPage/>
+  else if(id && documentToolIds.has(id as DocumentToolId)) content=<DocumentToolsPage toolId={id as DocumentToolId}/>
+  else content=<ClassicToolPage/>
+  return <Suspense fallback={<ToolFallback/>}>{content}</Suspense>
 }
 
 function ClassicToolPage(){
@@ -70,10 +78,16 @@ function ClassicToolPage(){
   useEffect(()=>{ setFiles([]); setProgress(0); setStatus('Pronto.'); setSuccess(''); setErrorMessage(''); setAnalysis(null); setDragIndex(null); setDragOverIndex(null); setShowAllMergeFiles(false); setMergeBookmarks(true); setMergeToc(true); setMergeTocTitle('Índice de documentos'); setMergeBookmarkHierarchy(true); setMergeCategoryOptions(['PETIÇÕES','DOCUMENTOS','CONTRATOS']); setMergeFileCategories([]); setNewMergeCategory(''); setActivityLog([]) },[toolId])
   useEffect(()=>{
     const file=files[0]
-    if(file && file.type==='application/pdf' && canvasRef.current){
-      renderFirstPage(file,canvasRef.current).catch(()=>{})
-      inspectPdf(file).then(i=>setAnalysis({pages:i.pages,recommended:i.recommended})).catch(()=>{})
-    }
+    const canvas=canvasRef.current
+    if(!file || file.type!=='application/pdf' || !canvas) return
+    let cancelled=false
+    void import('../lib/pdfPreview').then(async ({renderFirstPage,inspectPdf})=>{
+      await Promise.allSettled([
+        renderFirstPage(file,canvas),
+        inspectPdf(file).then(i=>{ if(!cancelled) setAnalysis({pages:i.pages,recommended:i.recommended}) }),
+      ])
+    }).catch(()=>{})
+    return ()=>{ cancelled=true }
   },[files])
   useEffect(()=>{
     const file=files[0]
@@ -202,6 +216,7 @@ function ClassicToolPage(){
     await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
     try{
       if(toolId==='compress'){
+        const { compressPdf, compressPdfToTarget } = await import('../lib/pdf')
         if(mode==='target'){
           const result=await compressPdfToTarget(files[0],targetMb,update)
           if(!result.bytes || result.bytes.byteLength<100){
@@ -276,6 +291,7 @@ function ClassicToolPage(){
         }
       } else if(toolId==='merge'){
         if(files.length<2) throw new Error('Selecione pelo menos 2 PDFs.')
+        const { mergePdfs } = await import('../lib/pdf')
         const result=await mergePdfs(files,update,{createBookmarks:mergeBookmarks,createTableOfContents:mergeToc,tocTitle:mergeTocTitle,bookmarkHierarchy:mergeBookmarkHierarchy,bookmarkCategories:mergeFileCategories})
         if(!result.blob || result.blob.size<100) throw new Error('O PDF final ficou vazio e o download foi bloqueado.')
         downloadBlob(result.blob,'pdf-studio-mesclado.pdf')
@@ -299,6 +315,7 @@ function ClassicToolPage(){
           setStatus(`Concluído com avisos. Ignorados: ${result.skippedFiles.slice(0,8).join(', ')}${skipped>8?` e mais ${skipped-8}`:''}.`)
         }
       } else if(toolId==='split'){
+        const [{ splitPdfBySize }, { default: JSZip }] = await Promise.all([import('../lib/pdf'), import('jszip')])
         const parts=await splitPdfBySize(files[0],splitMb,update)
         const zip=new JSZip()
         parts.forEach((p,i)=>zip.file(`${stem(files[0].name)}_parte_${String(i+1).padStart(3,'0')}.pdf`,p))
@@ -308,23 +325,28 @@ function ClassicToolPage(){
         update(100,'Concluído.')
         setSuccess(`PDF dividido com sucesso em ${parts.length} parte(s).`)
       } else if(toolId==='pdf-jpg' || toolId==='pdf-png'){
+        const { pdfToImagesZip } = await import('../lib/pdf')
         const format=toolId==='pdf-jpg'?'jpeg':'png'
         const blob=await pdfToImagesZip(files[0],format,dpi,update)
         downloadBlob(blob,`${stem(files[0].name)}_${format}.zip`)
         setSuccess(`Páginas convertidas para ${format.toUpperCase()} com sucesso.`)
       } else if(toolId==='images-pdf'){
+        const { imagesToPdf } = await import('../lib/pdf')
         const bytes=await imagesToPdf(files,update)
         downloadBlob(new Blob([bytes],{type:'application/pdf'}),'imagens_convertidas.pdf')
         setSuccess(`${files.length} imagem(ns) convertidas para PDF.`)
       } else if(toolId==='pdf-txt'){
+        const { extractPdfText } = await import('../lib/pdf')
         const pages=await extractPdfText(files[0],update)
         downloadBlob(new Blob([pages.join('\n\n--- PÁGINA ---\n\n')],{type:'text/plain;charset=utf-8'}),`${stem(files[0].name)}.txt`)
         setSuccess('Texto extraído com sucesso.')
       } else if(toolId==='pdf-word'){
+        const { pdfToWord } = await import('../lib/word')
         const blob=await pdfToWord(files[0],update)
         downloadBlob(blob,`${stem(files[0].name)}.docx`)
         setSuccess('DOCX criado. Conversão Beta: prioriza texto e pode simplificar layouts complexos.')
       } else if(toolId==='word-pdf'){
+        const { wordToPdf } = await import('../lib/word')
         const blob=await wordToPdf(files[0],update)
         downloadBlob(blob,`${stem(files[0].name)}.pdf`)
         setSuccess('PDF criado. Conversão Beta: documentos Word complexos podem ter diferenças visuais.')

@@ -3,7 +3,7 @@ import { ArrowLeft, Check, CheckCircle2, Download, File, FileJson2, Fingerprint,
 import { Link } from 'react-router-dom'
 import { tools } from '../lib/tools'
 import { downloadBlob, humanSize, stem } from '../lib/files'
-import { renderFirstPage } from '../lib/pdf'
+import { renderFirstPage } from '../lib/pdfPreview'
 import { prepareDocument, type PrepareCompressionMode, type PrepareDocumentResult, type PrepareStepKey, type PrepareStepState } from '../lib/prepareDocument'
 import type { BlankSensitivity, NumberPosition, PdfaVersion, WatermarkPosition } from '../lib/documentTools'
 import type { OcrLanguage } from '../lib/ocr'

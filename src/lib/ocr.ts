@@ -1,8 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
-import * as pdfjsLib from 'pdfjs-dist'
+import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
 import { nextFrame } from './files'
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 export type OcrLanguage = 'por' | 'eng' | 'por+eng'
 export type OcrProgress = (value: number, message: string) => void
@@ -56,7 +54,7 @@ export async function ocrPdfToSearchable(
   onProgress: OcrProgress,
 ): Promise<OcrResult> {
   const sourceBytes = new Uint8Array(await file.arrayBuffer())
-  const pdfjs = await pdfjsLib.getDocument({ data: new Uint8Array(sourceBytes) }).promise
+  const pdfjs = await loadPdfJsDocument(sourceBytes)
   const output = await PDFDocument.load(sourceBytes)
   const outputPages = output.getPages()
   const font = await output.embedFont(StandardFonts.Helvetica)
@@ -144,6 +142,6 @@ export async function ocrPdfToSearchable(
     return { bytes, text, recognizedPages, skippedPages, characters: text.length }
   } finally {
     await worker.terminate().catch(() => {})
-    await pdfjs.destroy().catch(() => {})
+    await destroyPdfJsDocument(pdfjs)
   }
 }

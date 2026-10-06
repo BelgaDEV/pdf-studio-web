@@ -1,13 +1,16 @@
-import mammoth from 'mammoth/mammoth.browser'
-import DOMPurify from 'dompurify'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
-import { Document, Packer, Paragraph, PageBreak, TextRun } from 'docx'
-import type { ProgressFn } from './pdf'
-import { extractPdfText } from './pdf'
+import { sanitizeOfficeHtml } from './htmlSecurity'
 import { nextFrame } from './files'
 
+export type ProgressFn = (value: number, message: string) => void
+
 export async function wordToPdf(file: File, onProgress: ProgressFn) {
+  onProgress(5, 'Carregando conversor Word…')
+  const [{ default: mammoth }, { default: html2canvas }, { jsPDF }] = await Promise.all([
+    import('mammoth/mammoth.browser'),
+    import('html2canvas'),
+    import('jspdf'),
+  ])
+
   onProgress(8, 'Lendo o documento Word…')
   const arrayBuffer = await file.arrayBuffer()
   const result = await mammoth.convertToHtml({ arrayBuffer })
@@ -23,7 +26,7 @@ export async function wordToPdf(file: File, onProgress: ProgressFn) {
   wrapper.style.background = '#fff'
   wrapper.style.color = '#111'
   wrapper.style.font = '16px/1.5 Arial, sans-serif'
-  wrapper.innerHTML = DOMPurify.sanitize(result.value)
+  wrapper.innerHTML = sanitizeOfficeHtml(result.value)
   wrapper.querySelectorAll('img').forEach((img) => {
     ;(img as HTMLImageElement).style.maxWidth = '100%'
     ;(img as HTMLImageElement).style.height = 'auto'
@@ -39,7 +42,6 @@ export async function wordToPdf(file: File, onProgress: ProgressFn) {
   const pageW = pdf.internal.pageSize.getWidth()
   const pageH = pdf.internal.pageSize.getHeight()
   const imgW = pageW
-  const imgH = canvas.height * imgW / canvas.width
   const pageCanvasHeightPx = Math.floor(canvas.width * pageH / pageW)
   const pageCount = Math.max(1, Math.ceil(canvas.height / pageCanvasHeightPx))
 
@@ -62,9 +64,15 @@ export async function wordToPdf(file: File, onProgress: ProgressFn) {
 }
 
 export async function pdfToWord(file: File, onProgress: ProgressFn) {
+  onProgress(4, 'Carregando conversor Word…')
+  const [{ Document, Packer, Paragraph, PageBreak, TextRun }, { extractPdfText }] = await Promise.all([
+    import('docx'),
+    import('./pdf'),
+  ])
+
   const pages = await extractPdfText(file, (v, m) => onProgress(Math.round(v * 0.8), m))
   onProgress(84, 'Montando documento Word…')
-  const children: Paragraph[] = []
+  const children: InstanceType<typeof Paragraph>[] = []
   pages.forEach((text, index) => {
     const chunks = text.split(/(?<=[.!?])\s+/).filter(Boolean)
     if (chunks.length === 0) chunks.push('')

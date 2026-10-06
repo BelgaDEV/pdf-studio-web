@@ -1,0 +1,900 @@
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/BUILD_PRODUCAO.bat internal_v208/BUILD_PRODUCAO.bat
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/BUILD_PRODUCAO.bat	2026-10-06 13:02:42.000000000 +0000
++++ internal_v208/BUILD_PRODUCAO.bat	2026-10-06 18:13:49.159202186 +0000
+@@ -9,5 +9,13 @@
+   exit /b 1
+ )
+ echo.
++echo Analisando carregamento inicial...
++call npm run performance:bundle
++if errorlevel 1 (
++  echo Analise de performance falhou.
++  pause
++  exit /b 1
++)
++echo.
+ echo Build concluido. Pasta pronta para hospedagem: dist
+ pause
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/INSTALAR_E_TESTAR.bat internal_v208/INSTALAR_E_TESTAR.bat
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-06 17:53:05.000000000 +0000
++++ internal_v208/INSTALAR_E_TESTAR.bat	2026-10-06 18:09:47.904238958 +0000
+@@ -3,7 +3,7 @@
+ cd /d "%~dp0"
+ 
+ echo =============================================
+-echo   PDF Studio v2.0.7 - Instalar e validar
++echo   PDF Studio v2.0.8 - Instalar e validar
+ echo =============================================
+ 
+ where node >nul 2>nul
+@@ -18,37 +18,42 @@
+ node --version
+ 
+ echo.
+-echo [1/6] Instalando dependencias e atualizando package-lock...
++echo [1/7] Instalando dependencias e atualizando package-lock...
+ call npm install
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [2/6] Validando TypeScript...
++echo [2/7] Validando TypeScript...
+ call npm run check
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [3/6] Executando testes unitarios e de seguranca...
++echo [3/7] Executando testes unitarios e de seguranca...
+ call npm run test
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [4/6] Executando regressao PDF...
++echo [4/7] Executando regressao PDF...
+ call npm run test:pdf
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [5/6] Auditando dependencias high/critical...
++echo [5/7] Auditando dependencias high/critical...
+ call npm run security
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [6/6] Gerando build de producao...
++echo [6/7] Gerando build de producao...
+ call npm run build
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [OK] v2.0.7 validada. Abrindo servidor local...
++echo [7/7] Validando lazy loading e bundle inicial...
++call npm run performance:bundle
++if errorlevel 1 goto fail
++
++echo.
++echo [OK] v2.0.8 validada. Abrindo servidor local...
+ echo http://localhost:5173
+ start "" http://localhost:5173
+ call npm run dev -- --host 127.0.0.1
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/PERFORMANCE_V2_0_8.md internal_v208/PERFORMANCE_V2_0_8.md
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/PERFORMANCE_V2_0_8.md	1970-01-01 00:00:00.000000000 +0000
++++ internal_v208/PERFORMANCE_V2_0_8.md	2026-10-06 18:14:37.733475904 +0000
+@@ -0,0 +1,31 @@
++# PDF Studio v2.0.8 — Performance / Lazy Loading
++
++## Objetivo
++A Home deve carregar apenas a interface necessária para navegação. Motores de PDF, OCR, Word e WebAssembly só são requisitados quando a ação correspondente é usada.
++
++## Alterações
++- Rotas `/tool/:id`, FAQ, Roadmap e Workflows agora usam `React.lazy`.
++- Ferramentas avançadas dentro de `ToolPage` também são carregadas sob demanda.
++- `ToolPage` não possui mais imports estáticos de `pdf.ts`, `word.ts` ou `jszip`.
++- PDF.js foi retirado do import estático de `pdf.ts` e `documentTools.ts`.
++- Preview/inspeção foi isolado em `pdfPreview.ts`.
++- Ghostscript/qpdf continuam atrás de imports dinâmicos e não entram no grafo inicial.
++- Tesseract continua sendo carregado somente ao executar OCR.
++- Mammoth, html2canvas, jsPDF e docx agora são carregados por operação, não juntos.
++- JSZip passa a ser carregado somente nas operações que realmente geram ZIP.
++- O build gera `dist/.vite/manifest.json` e `npm run performance:bundle` valida o grafo estático inicial.
++
++## Regra de performance
++O script falha se detectar Ghostscript, qpdf, PDF.js, Tesseract, Mammoth, jsPDF, html2canvas ou docx no grafo estático do entrypoint.
++
++## Validação no Windows
++```powershell
++npm install
++npm run check
++npm run test
++npm run test:pdf
++npm run build
++npm run performance:bundle
++```
++
++Depois abra DevTools > Network, marque "Disable cache", recarregue a Home e confirme que `gs-core*.wasm`, `qpdf-core*.wasm`, `pdf.worker*.mjs` e assets de OCR não são baixados até uma ferramenta que precise deles ser acionada.
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/README.md internal_v208/README.md
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/README.md	2026-10-06 17:52:30.000000000 +0000
++++ internal_v208/README.md	2026-10-06 18:14:54.355460741 +0000
+@@ -1,6 +1,6 @@
+-# PDF Studio v2.0.7
++# PDF Studio v2.0.8
+ 
+-Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.7 mantém a interface e a legibilidade da v2.0.4 e adiciona Security Hardening: header distribuído em toda a largura, mega menu com as 25 ferramentas, atalho direto para Comparar PDF, busca, filtros por categoria e grid priorizado por uso na primeira dobra, preservando as seções premium de Redline, privacidade e planos. O projeto também mantém a separação entre repositório interno e release comercial.
++Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.8 mantém a interface premium e o Security Hardening das versões anteriores e adiciona Performance / Lazy Loading: a Home carrega apenas a camada de interface, enquanto PDF.js, Ghostscript, qpdf, OCR e conversores pesados são carregados sob demanda. O projeto também mantém a separação entre repositório interno e release comercial.
+ 
+ ## Desenvolvimento
+ 
+@@ -21,10 +21,11 @@
+ npm run test:pdf
+ npm run security
+ npm run build
++npm run performance:bundle
+ npm run test:e2e
+ ```
+ 
+-`npm run ci` executa TypeScript, testes unitários, regressão PDF e build. O Playwright fica separado porque instala um navegador próprio no CI.
++`npm run ci` executa TypeScript, testes unitários, regressão PDF, build e validação do grafo de carregamento inicial. O Playwright fica separado porque instala um navegador próprio no CI.
+ 
+ ## Release comercial
+ 
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/VALIDAR_SEGURANCA.bat internal_v208/VALIDAR_SEGURANCA.bat
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/VALIDAR_SEGURANCA.bat	2026-10-06 17:53:05.000000000 +0000
++++ internal_v208/VALIDAR_SEGURANCA.bat	2026-10-06 18:09:47.904283245 +0000
+@@ -2,7 +2,7 @@
+ setlocal
+ cd /d "%~dp0"
+ echo =============================================
+-echo   PDF Studio v2.0.7 - Security Gate
++echo   PDF Studio v2.0.8 - Security Gate
+ echo =============================================
+ if not exist node_modules (
+   echo Instalando dependencias...
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/VALIDATION_V2_0_8.md internal_v208/VALIDATION_V2_0_8.md
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/VALIDATION_V2_0_8.md	1970-01-01 00:00:00.000000000 +0000
++++ internal_v208/VALIDATION_V2_0_8.md	2026-10-06 18:14:37.734309509 +0000
+@@ -0,0 +1,19 @@
++# PDF Studio v2.0.8 — Validation
++
++Esta versão mantém as correções visuais e de segurança anteriores e adiciona code splitting/lazy loading.
++
++## Gates
++1. `npm run check`
++2. `npm run test`
++3. `npm run test:pdf`
++4. `npm run security` — falha somente em high/critical; os 3 moderates transitivos conhecidos do Mammoth permanecem documentados.
++5. `npm run build`
++6. `npm run performance:bundle`
++
++## Resultado esperado
++- 0 High / 0 Critical de produção.
++- Home sem motores pesados no grafo estático.
++- Ghostscript e qpdf WebAssembly somente sob demanda.
++- PDF.js/worker somente quando preview/render/inspeção for necessária.
++- Tesseract somente ao executar OCR.
++- Pilha Word separada por direção de conversão.
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/VERSAO.txt internal_v208/VERSAO.txt
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/VERSAO.txt	2026-10-06 17:52:30.000000000 +0000
++++ internal_v208/VERSAO.txt	2026-10-06 18:09:47.904138276 +0000
+@@ -1 +1 @@
+-2.0.7
++2.0.8
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/package.json internal_v208/package.json
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/package.json	2026-10-06 17:52:30.000000000 +0000
++++ internal_v208/package.json	2026-10-06 18:08:34.762364227 +0000
+@@ -1,7 +1,7 @@
+ {
+   "name": "pdf-studio-web-client",
+   "private": true,
+-  "version": "2.0.7",
++  "version": "2.0.8",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -12,10 +12,12 @@
+     "test:pdf": "vitest run tests/pdf-regression.test.ts",
+     "test:e2e": "playwright test",
+     "security": "npm run security:prod && npm run security:all",
+-    "ci": "npm run check && npm run test && npm run test:pdf && npm run build",
++    "ci": "npm run check && npm run test && npm run test:pdf && npm run build && npm run performance:bundle",
+     "release:commercial": "node scripts/create-commercial-release.mjs",
+     "security:prod": "npm audit --omit=dev --audit-level=high",
+-    "security:all": "npm audit --audit-level=high"
++    "security:all": "npm audit --audit-level=high",
++    "performance:bundle": "node scripts/analyze-bundle.mjs",
++    "build:analyze": "npm run build && npm run performance:bundle"
+   },
+   "dependencies": {
+     "@wasm-zoo/ghostscript": "^0.7.2",
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/scripts/analyze-bundle.mjs internal_v208/scripts/analyze-bundle.mjs
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/scripts/analyze-bundle.mjs	1970-01-01 00:00:00.000000000 +0000
++++ internal_v208/scripts/analyze-bundle.mjs	2026-10-06 18:15:45.157141856 +0000
+@@ -0,0 +1,63 @@
++import { readFile, stat } from 'node:fs/promises'
++import { join } from 'node:path'
++
++const distDir = join(process.cwd(), 'dist')
++const manifestPath = join(distDir, '.vite', 'manifest.json')
++const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
++const entries = Object.entries(manifest)
++const entryPair = entries.find(([, value]) => value?.isEntry)
++if (!entryPair) throw new Error('Manifest do Vite não contém um entrypoint.')
++
++const [entryKey] = entryPair
++const initialKeys = new Set()
++function walkStatic(key) {
++  if (!key || initialKeys.has(key)) return
++  initialKeys.add(key)
++  const item = manifest[key]
++  if (!item) return
++  for (const dep of item.imports || []) walkStatic(dep)
++}
++walkStatic(entryKey)
++
++const files = new Set()
++for (const key of initialKeys) {
++  const item = manifest[key]
++  if (!item) continue
++  if (item.file) files.add(item.file)
++  for (const css of item.css || []) files.add(css)
++}
++
++let total = 0
++const rows = []
++for (const file of files) {
++  const bytes = (await stat(join(distDir, file))).size
++  total += bytes
++  rows.push({ file, bytes })
++}
++rows.sort((a,b) => b.bytes-a.bytes)
++
++const heavyPattern = /(ghostscript|qpdf|pdfjs|pdf\.worker|tesseract|mammoth|jspdf|html2canvas|docx|pdf-lib|jszip)/i
++const staticHeavy = [...initialKeys].filter(key => {
++  const item = manifest[key] || {}
++  return heavyPattern.test(`${key} ${item.name || ''} ${item.src || ''} ${item.file || ''}`)
++})
++
++const mb = value => `${(value / 1024 / 1024).toFixed(2)} MB`
++console.log('\nPDF Studio — análise do carregamento inicial')
++console.log('Entry:', entryKey)
++console.log('Payload estático aproximado (JS + CSS, sem gzip):', mb(total))
++for (const row of rows.slice(0, 12)) console.log(`  ${mb(row.bytes).padStart(8)}  ${row.file}`)
++
++if (staticHeavy.length) {
++  console.error('\n[ERRO] Motores pesados entraram no grafo inicial:')
++  for (const key of staticHeavy) console.error(' -', key)
++  process.exitCode = 1
++} else {
++  console.log('\n[OK] Ghostscript, qpdf, PDF.js, Tesseract e conversores pesados não fazem parte do grafo inicial.')
++}
++
++if (total > 1_200_000) {
++  console.warn(`[AVISO] O payload inicial sem gzip está acima de ~1,2 MB (${mb(total)}). Ainda há espaço para otimização.`)
++} else {
++  console.log(`[OK] Payload inicial sem gzip dentro da meta atual: ${mb(total)}.`)
++}
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/appMeta.ts internal_v208/src/lib/appMeta.ts
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/appMeta.ts	2026-10-06 17:52:30.000000000 +0000
++++ internal_v208/src/lib/appMeta.ts	2026-10-06 18:09:47.904037613 +0000
+@@ -1,3 +1,3 @@
+ export const APP_NAME = 'PDF Studio'
+-export const APP_VERSION = '2.0.7'
++export const APP_VERSION = '2.0.8'
+ export const APP_TAGLINE = 'Automação documental privada'
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/documentTools.ts internal_v208/src/lib/documentTools.ts
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/documentTools.ts	2026-10-06 17:52:30.000000000 +0000
++++ internal_v208/src/lib/documentTools.ts	2026-10-06 18:07:56.087486815 +0000
+@@ -1,6 +1,4 @@
+ import { PDFDocument, PDFName, StandardFonts, degrees, rgb } from 'pdf-lib'
+-import { loadPdfJsDocument, pdfjsLib } from './pdfjsSecure'
+-import JSZip from 'jszip'
+ import { nextFrame } from './files'
+ 
+ export type DocumentProgressFn = (value: number, message: string) => void
+@@ -23,6 +21,7 @@
+ }
+ 
+ async function loadPdfJs(file: File | Uint8Array) {
++  const { loadPdfJsDocument } = await import('./pdfjsSecure')
+   const data = file instanceof File
+     ? new Uint8Array(await file.arrayBuffer())
+     : new Uint8Array(file)
+@@ -362,7 +361,11 @@
+   onProgress: DocumentProgressFn,
+ ): Promise<{ zip: Blob; count: number }> {
+   const bytes = new Uint8Array(await file.arrayBuffer())
+-  const pdf = await loadPdfJs(bytes)
++  const [{ default: JSZip }, { pdfjsLib }, pdf] = await Promise.all([
++    import('jszip'),
++    import('./pdfjsSecure'),
++    loadPdfJs(bytes),
++  ])
+   const zip = new JSZip()
+   const seen = new Set<string>()
+   let count = 0
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/pdf.ts internal_v208/src/lib/pdf.ts
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/pdf.ts	2026-10-06 17:44:32.000000000 +0000
++++ internal_v208/src/lib/pdf.ts	2026-10-06 18:12:31.280433690 +0000
+@@ -1,11 +1,7 @@
+ import { PDFDocument } from 'pdf-lib'
+-import { addPdfBookmarks, addPdfBookmarksHierarchical, type PdfBookmarkSpec } from './bookmarks'
+-import { addClickableTableOfContents } from './tableOfContents'
+-import { mergeManyPdfs, type LargeMergeResult } from './largeMerge'
+-import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
+-import JSZip from 'jszip'
++import type { PdfBookmarkSpec } from './bookmarks'
++import type { LargeMergeResult } from './largeMerge'
+ import { nextFrame } from './files'
+-import { ghostscriptCompressWasm, qpdfOptimizeWasm } from './wasmCompression'
+ 
+ export type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'|'target'
+ export type PresetCompressionMode = Exclude<CompressionMode, 'target'>
+@@ -18,15 +14,20 @@
+ } as const
+ 
+ async function loadPdfJs(file: File | Uint8Array) {
+-  // PDF.js pode transferir (detach) o ArrayBuffer para o Web Worker.
+-  // Sempre entregamos uma COPIA quando recebemos Uint8Array para não zerar
+-  // o buffer original que ainda será usado como fallback/download.
++  // PDF.js é carregado apenas quando uma operação realmente precisa renderizar
++  // ou inspecionar páginas. Isso evita baixar o worker na Home/ferramentas leves.
++  const { loadPdfJsDocument } = await import('./pdfjsSecure')
+   const data = file instanceof File
+     ? new Uint8Array(await file.arrayBuffer())
+     : new Uint8Array(file)
+   return loadPdfJsDocument(data)
+ }
+ 
++async function destroyPdfJs(pdf: unknown) {
++  const { destroyPdfJsDocument } = await import('./pdfjsSecure')
++  await destroyPdfJsDocument(pdf as any)
++}
++
+ function looksLikePdf(bytes: Uint8Array): boolean {
+   if (bytes.byteLength < 100) return false
+   const limit = Math.min(bytes.byteLength, 1024)
+@@ -49,40 +50,6 @@
+   }
+ }
+ 
+-export async function inspectPdf(file: File) {
+-  const pdf = await loadPdfJs(file)
+-  const sample = Math.min(3, pdf.numPages)
+-  let textChars = 0
+-  for (let i=1;i<=sample;i++) {
+-    const page = await pdf.getPage(i)
+-    const text = await page.getTextContent()
+-    textChars += text.items.reduce((acc: number, item: any) => acc + ('str' in item ? item.str.length : 0), 0)
+-  }
+-  const avgBytes = file.size / Math.max(pdf.numPages,1)
+-  let recommended: PresetCompressionMode = 'medium'
+-  // Evita recomendar Básico para apostilas grandes só porque têm muito texto.
+-  // Tamanho total + bytes/página têm peso maior para decidir se vale
+-  // recompressão. Básico fica reservado a PDFs realmente enxutos.
+-  if (file.size < 8 * 1024 * 1024 && avgBytes < 75_000 && textChars > 900) recommended = 'basic'
+-  else if (avgBytes > 700_000 && textChars < 250) recommended = 'maximum'
+-  else if (avgBytes > 320_000 || file.size > 120 * 1024 * 1024) recommended = 'high'
+-  else recommended = 'medium'
+-  return { pages: pdf.numPages, textChars, avgBytesPerPage: avgBytes, recommended }
+-}
+-
+-export async function renderFirstPage(file: File, canvas: HTMLCanvasElement) {
+-  const pdf = await loadPdfJs(file)
+-  const page = await pdf.getPage(1)
+-  const base = page.getViewport({ scale: 1 })
+-  const maxWidth = Math.min(520, canvas.parentElement?.clientWidth || 520)
+-  const scale = Math.max(0.5, maxWidth / base.width)
+-  const viewport = page.getViewport({ scale })
+-  canvas.width = Math.floor(viewport.width)
+-  canvas.height = Math.floor(viewport.height)
+-  const ctx = canvas.getContext('2d', { alpha: false })!
+-  await page.render({ canvasContext: ctx, viewport, canvas }).promise
+-}
+-
+ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+   return new Promise((resolve, reject) => canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Falha ao converter página em JPEG.')), 'image/jpeg', quality))
+ }
+@@ -92,9 +59,11 @@
+   if (mode === 'target') {
+     throw new Error('Use compressPdfToTarget() para o modo Por tamanho.')
+   }
++  const { ghostscriptCompressWasm, qpdfOptimizeWasm } = await import('./wasmCompression')
+   let selected: PresetCompressionMode = mode
+-  let analysis: Awaited<ReturnType<typeof inspectPdf>> | null = null
++  let analysis: { pages:number; textChars:number; avgBytesPerPage:number; recommended: PresetCompressionMode } | null = null
+   if (mode === 'smart') {
++    const { inspectPdf } = await import('./pdfPreview')
+     analysis = await inspectPdf(file)
+     selected = analysis.recommended
+     const label = selected === 'basic' ? 'Básico' : selected === 'medium' ? 'Médio' : selected === 'high' ? 'Alto' : 'Máximo'
+@@ -256,6 +225,7 @@
+   targetMb: number,
+   onProgress: ProgressFn,
+ ) {
++  const { ghostscriptCompressWasm, qpdfOptimizeWasm } = await import('./wasmCompression')
+   if (!Number.isFinite(targetMb) || targetMb <= 0) {
+     throw new Error('Informe um tamanho alvo válido em MB.')
+   }
+@@ -267,6 +237,7 @@
+   }
+ 
+   onProgress(2, 'Analisando o PDF e calculando a meta…')
++  const { inspectPdf } = await import('./pdfPreview')
+   const analysis = await inspectPdf(file)
+   const original = new Uint8Array(await file.arrayBuffer())
+   ensureValidPdfBytes(original, 'PDF original')
+@@ -714,7 +685,7 @@
+       pageIndex += pages
+     } finally {
+       if (pdf) {
+-        await destroyPdfJsDocument(pdf)
++        await destroyPdfJs(pdf)
+       }
+     }
+ 
+@@ -735,6 +706,10 @@
+   onProgress: ProgressFn,
+   options: Required<Pick<MergeOptions, 'createBookmarks'|'createTableOfContents'|'tocTitle'|'bookmarkHierarchy'>>,
+ ): Promise<{ blob: Blob; bookmarksCreated: number; bookmarkCategoriesCreated: number; tocPagesCreated: number; tocEntriesCreated: number }> {
++  const [{ addClickableTableOfContents }, { addPdfBookmarks, addPdfBookmarksHierarchical }] = await Promise.all([
++    import('./tableOfContents'),
++    import('./bookmarks'),
++  ])
+   onProgress(92, 'Preparando índice e navegação…')
+   await nextFrame()
+ 
+@@ -804,6 +779,7 @@
+     const mappedProgress: ProgressFn = needsNavigation
+       ? (value, message) => onProgress(Math.min(86, Math.round(value * 0.86)), message)
+       : onProgress
++    const { mergeManyPdfs } = await import('./largeMerge')
+     const result = await mergeManyPdfs(files, mappedProgress)
+ 
+     if (!needsNavigation) {
+@@ -877,13 +853,20 @@
+     await nextFrame()
+   }
+ 
++  const navigationModules = needsNavigation
++    ? await Promise.all([import('./tableOfContents'), import('./bookmarks')])
++    : null
++  const addClickableTableOfContents = navigationModules?.[0].addClickableTableOfContents
++  const addPdfBookmarks = navigationModules?.[1].addPdfBookmarks
++  const addPdfBookmarksHierarchical = navigationModules?.[1].addPdfBookmarksHierarchical
++
+   let shiftedSpecs = specs
+   let tocPagesCreated = 0
+   let tocEntriesCreated = 0
+   if (createTableOfContents && specs.length > 0) {
+     onProgress(86, 'Criando índice automático clicável…')
+     await nextFrame()
+-    const toc = await addClickableTableOfContents(out, specs, tocTitle)
++    const toc = await addClickableTableOfContents!(out, specs, tocTitle)
+     shiftedSpecs = toc.shiftedSpecs
+     tocPagesCreated = toc.pagesCreated
+     tocEntriesCreated = toc.entriesCreated
+@@ -897,11 +880,11 @@
+       ? [{ title: tocTitle, pageIndex: 0, root: true }, ...shiftedSpecs]
+       : shiftedSpecs
+     if (bookmarkHierarchy) {
+-      const result = addPdfBookmarksHierarchical(out, bookmarkSpecs, true)
++      const result = addPdfBookmarksHierarchical!(out, bookmarkSpecs, true)
+       bookmarksCreated = result.totalCreated
+       bookmarkCategoriesCreated = result.categoryBookmarksCreated
+     } else {
+-      bookmarksCreated = addPdfBookmarks(out, bookmarkSpecs, true)
++      bookmarksCreated = addPdfBookmarks!(out, bookmarkSpecs, true)
+     }
+     await nextFrame()
+   }
+@@ -967,7 +950,7 @@
+ }
+ 
+ export async function pdfToImagesZip(file: File, format: 'jpeg'|'png', dpi: number, onProgress: ProgressFn) {
+-  const pdf = await loadPdfJs(file)
++  const [{ default: JSZip }, pdf] = await Promise.all([import('jszip'), loadPdfJs(file)])
+   const zip = new JSZip()
+   for(let i=1;i<=pdf.numPages;i++) {
+     const page = await pdf.getPage(i)
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/pdfPreview.ts internal_v208/src/lib/pdfPreview.ts
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/pdfPreview.ts	1970-01-01 00:00:00.000000000 +0000
++++ internal_v208/src/lib/pdfPreview.ts	2026-10-06 18:12:30.734263270 +0000
+@@ -0,0 +1,41 @@
++import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
++
++export type PreviewCompressionRecommendation = 'basic'|'medium'|'high'|'maximum'
++
++export async function inspectPdf(file: File) {
++  const pdf = await loadPdfJsDocument(new Uint8Array(await file.arrayBuffer()))
++  try {
++    const sample = Math.min(3, pdf.numPages)
++    let textChars = 0
++    for (let i=1;i<=sample;i++) {
++      const page = await pdf.getPage(i)
++      const text = await page.getTextContent()
++      textChars += text.items.reduce((acc: number, item: any) => acc + ('str' in item ? item.str.length : 0), 0)
++    }
++    const avgBytes = file.size / Math.max(pdf.numPages,1)
++    let recommended: PreviewCompressionRecommendation = 'medium'
++    if (file.size < 8 * 1024 * 1024 && avgBytes < 75_000 && textChars > 900) recommended = 'basic'
++    else if (avgBytes > 700_000 && textChars < 250) recommended = 'maximum'
++    else if (avgBytes > 320_000 || file.size > 120 * 1024 * 1024) recommended = 'high'
++    return { pages: pdf.numPages, textChars, avgBytesPerPage: avgBytes, recommended }
++  } finally {
++    await destroyPdfJsDocument(pdf)
++  }
++}
++
++export async function renderFirstPage(file: File, canvas: HTMLCanvasElement) {
++  const pdf = await loadPdfJsDocument(new Uint8Array(await file.arrayBuffer()))
++  try {
++    const page = await pdf.getPage(1)
++    const base = page.getViewport({ scale: 1 })
++    const maxWidth = Math.min(520, canvas.parentElement?.clientWidth || 520)
++    const scale = Math.max(0.5, maxWidth / base.width)
++    const viewport = page.getViewport({ scale })
++    canvas.width = Math.floor(viewport.width)
++    canvas.height = Math.floor(viewport.height)
++    const ctx = canvas.getContext('2d', { alpha: false })!
++    await page.render({ canvasContext: ctx, viewport, canvas }).promise
++  } finally {
++    await destroyPdfJsDocument(pdf)
++  }
++}
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/word.ts internal_v208/src/lib/word.ts
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/lib/word.ts	2026-10-06 17:24:44.000000000 +0000
++++ internal_v208/src/lib/word.ts	2026-10-06 18:06:36.325265306 +0000
+@@ -1,13 +1,16 @@
+-import mammoth from 'mammoth/mammoth.browser'
+ import { sanitizeOfficeHtml } from './htmlSecurity'
+-import html2canvas from 'html2canvas'
+-import { jsPDF } from 'jspdf'
+-import { Document, Packer, Paragraph, PageBreak, TextRun } from 'docx'
+-import type { ProgressFn } from './pdf'
+-import { extractPdfText } from './pdf'
+ import { nextFrame } from './files'
+ 
++export type ProgressFn = (value: number, message: string) => void
++
+ export async function wordToPdf(file: File, onProgress: ProgressFn) {
++  onProgress(5, 'Carregando conversor Word…')
++  const [{ default: mammoth }, { default: html2canvas }, { jsPDF }] = await Promise.all([
++    import('mammoth/mammoth.browser'),
++    import('html2canvas'),
++    import('jspdf'),
++  ])
++
+   onProgress(8, 'Lendo o documento Word…')
+   const arrayBuffer = await file.arrayBuffer()
+   const result = await mammoth.convertToHtml({ arrayBuffer })
+@@ -39,7 +42,6 @@
+   const pageW = pdf.internal.pageSize.getWidth()
+   const pageH = pdf.internal.pageSize.getHeight()
+   const imgW = pageW
+-  const imgH = canvas.height * imgW / canvas.width
+   const pageCanvasHeightPx = Math.floor(canvas.width * pageH / pageW)
+   const pageCount = Math.max(1, Math.ceil(canvas.height / pageCanvasHeightPx))
+ 
+@@ -62,9 +64,15 @@
+ }
+ 
+ export async function pdfToWord(file: File, onProgress: ProgressFn) {
++  onProgress(4, 'Carregando conversor Word…')
++  const [{ Document, Packer, Paragraph, PageBreak, TextRun }, { extractPdfText }] = await Promise.all([
++    import('docx'),
++    import('./pdf'),
++  ])
++
+   const pages = await extractPdfText(file, (v, m) => onProgress(Math.round(v * 0.8), m))
+   onProgress(84, 'Montando documento Word…')
+-  const children: Paragraph[] = []
++  const children: InstanceType<typeof Paragraph>[] = []
+   pages.forEach((text, index) => {
+     const chunks = text.split(/(?<=[.!?])\s+/).filter(Boolean)
+     if (chunks.length === 0) chunks.push('')
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/main.tsx internal_v208/src/main.tsx
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/main.tsx	2026-10-06 13:02:42.000000000 +0000
++++ internal_v208/src/main.tsx	2026-10-06 18:05:09.777920126 +0000
+@@ -1,26 +1,33 @@
+-import React from 'react'
++import React, { Suspense, lazy } from 'react'
+ import ReactDOM from 'react-dom/client'
+ import { BrowserRouter, Route, Routes } from 'react-router-dom'
+ import Layout from './components/Layout'
+ import Home from './pages/Home'
+-import ToolPage from './pages/ToolPage'
+-import FaqPage from './pages/FaqPage'
+-import RoadmapPage from './pages/RoadmapPage'
+-import WorkflowsPage from './pages/WorkflowsPage'
+ import './styles.css'
+ 
++const ToolPage = lazy(() => import('./pages/ToolPage'))
++const FaqPage = lazy(() => import('./pages/FaqPage'))
++const RoadmapPage = lazy(() => import('./pages/RoadmapPage'))
++const WorkflowsPage = lazy(() => import('./pages/WorkflowsPage'))
++
++function RouteFallback() {
++  return <div className="route-loading" role="status" aria-live="polite">Carregando…</div>
++}
++
+ ReactDOM.createRoot(document.getElementById('root')!).render(
+   <React.StrictMode>
+     <BrowserRouter>
+-      <Routes>
+-        <Route element={<Layout/>}>
+-          <Route path="/" element={<Home/>}/>
+-          <Route path="/faq" element={<FaqPage/>}/>
+-          <Route path="/roadmap" element={<RoadmapPage/>}/>
+-          <Route path="/workflows" element={<WorkflowsPage/>}/>
+-          <Route path="/tool/:id" element={<ToolPage/>}/>
+-        </Route>
+-      </Routes>
++      <Suspense fallback={<RouteFallback/>}>
++        <Routes>
++          <Route element={<Layout/>}>
++            <Route path="/" element={<Home/>}/>
++            <Route path="/faq" element={<FaqPage/>}/>
++            <Route path="/roadmap" element={<RoadmapPage/>}/>
++            <Route path="/workflows" element={<WorkflowsPage/>}/>
++            <Route path="/tool/:id" element={<ToolPage/>}/>
++          </Route>
++        </Routes>
++      </Suspense>
+     </BrowserRouter>
+   </React.StrictMode>
+ )
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/pages/BatchToolPage.tsx internal_v208/src/pages/BatchToolPage.tsx
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/pages/BatchToolPage.tsx	2026-10-06 13:02:42.000000000 +0000
++++ internal_v208/src/pages/BatchToolPage.tsx	2026-10-06 18:08:04.470265899 +0000
+@@ -1,7 +1,6 @@
+ import { useMemo, useRef, useState } from 'react'
+ import { Link } from 'react-router-dom'
+ import { ArrowLeft, Download, File, Files, LockKeyhole, Trash2, UploadCloud } from 'lucide-react'
+-import JSZip from 'jszip'
+ import { tools } from '../lib/tools'
+ import { compressPdf, compressPdfToTarget, type CompressionMode } from '../lib/pdf'
+ import { downloadBlob, humanSize, stem } from '../lib/files'
+@@ -49,6 +48,7 @@
+     setSuccess('')
+     setProgress(0)
+     setFileStatuses(files.map(file => ({ name: file.name, state: 'waiting', message: 'Aguardando' })))
++    const { default: JSZip } = await import('jszip')
+     const zip = new JSZip()
+     const report: string[] = [`PDF Studio — Processamento em lote`, `Arquivos: ${files.length}`, `Modo: ${mode}`, '']
+     let completed = 0
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/pages/DocumentToolsPage.tsx internal_v208/src/pages/DocumentToolsPage.tsx
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/pages/DocumentToolsPage.tsx	2026-10-06 13:02:42.000000000 +0000
++++ internal_v208/src/pages/DocumentToolsPage.tsx	2026-10-06 18:12:31.279846301 +0000
+@@ -3,7 +3,7 @@
+ import { Link } from 'react-router-dom'
+ import { tools, type ToolId } from '../lib/tools'
+ import { downloadBlob, humanSize, stem } from '../lib/files'
+-import { renderFirstPage } from '../lib/pdf'
++import { renderFirstPage } from '../lib/pdfPreview'
+ import {
+   addPageNumbers,
+   addWatermark,
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/pages/PrepareDocumentPage.tsx internal_v208/src/pages/PrepareDocumentPage.tsx
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/pages/PrepareDocumentPage.tsx	2026-10-06 13:02:42.000000000 +0000
++++ internal_v208/src/pages/PrepareDocumentPage.tsx	2026-10-06 18:12:31.280137091 +0000
+@@ -3,7 +3,7 @@
+ import { Link } from 'react-router-dom'
+ import { tools } from '../lib/tools'
+ import { downloadBlob, humanSize, stem } from '../lib/files'
+-import { renderFirstPage } from '../lib/pdf'
++import { renderFirstPage } from '../lib/pdfPreview'
+ import { prepareDocument, type PrepareCompressionMode, type PrepareDocumentResult, type PrepareStepKey, type PrepareStepState } from '../lib/prepareDocument'
+ import type { BlankSensitivity, NumberPosition, PdfaVersion, WatermarkPosition } from '../lib/documentTools'
+ import type { OcrLanguage } from '../lib/ocr'
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/pages/ToolPage.tsx internal_v208/src/pages/ToolPage.tsx
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/pages/ToolPage.tsx	2026-10-06 13:02:42.000000000 +0000
++++ internal_v208/src/pages/ToolPage.tsx	2026-10-06 18:12:31.279439085 +0000
+@@ -1,37 +1,45 @@
+-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
++import { Suspense, lazy, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+ import { useParams, Link } from 'react-router-dom'
+-import PageWorkspacePage from './PageWorkspacePage'
+-import OcrToolPage from './OcrToolPage'
+-import BatchToolPage from './BatchToolPage'
+-import DocumentToolsPage, { documentToolIds, type DocumentToolId } from './DocumentToolsPage'
+-import PrepareDocumentPage from './PrepareDocumentPage'
+-import RedactionPage from './RedactionPage'
+-import ComparePdfPage from './ComparePdfPage'
+-import TribunalPresetsPage from './TribunalPresetsPage'
+-import TrustReportPage from './TrustReportPage'
+ import { ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Download, File, GripVertical, Info, LockKeyhole, UploadCloud, X } from 'lucide-react'
+ import { tools, type ToolId } from '../lib/tools'
+-import { compressPdf, compressPdfToTarget, extractPdfText, imagesToPdf, inspectPdf, mergePdfs, pdfToImagesZip, renderFirstPage, splitPdfBySize, type CompressionMode } from '../lib/pdf'
+-import { pdfToWord, wordToPdf } from '../lib/word'
+ import { downloadBlob, humanSize, stem } from '../lib/files'
+-import JSZip from 'jszip'
+ 
++type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'|'target'
++type DocumentToolId = 'watermark'|'page-numbers'|'remove-blank'|'remove-metadata'|'protect'|'extract-images'|'pdfa'
++
++const PageWorkspacePage = lazy(() => import('./PageWorkspacePage'))
++const OcrToolPage = lazy(() => import('./OcrToolPage'))
++const BatchToolPage = lazy(() => import('./BatchToolPage'))
++const DocumentToolsPage = lazy(() => import('./DocumentToolsPage'))
++const PrepareDocumentPage = lazy(() => import('./PrepareDocumentPage'))
++const RedactionPage = lazy(() => import('./RedactionPage'))
++const ComparePdfPage = lazy(() => import('./ComparePdfPage'))
++const TribunalPresetsPage = lazy(() => import('./TribunalPresetsPage'))
++const TrustReportPage = lazy(() => import('./TrustReportPage'))
++
++const documentToolIds = new Set<DocumentToolId>(['watermark','page-numbers','remove-blank','remove-metadata','protect','extract-images','pdfa'])
+ const pdfOnly = new Set<ToolId>(['compress','split','pdf-word','pdf-jpg','pdf-png','pdf-txt'])
+ const multiPdf = new Set<ToolId>(['merge'])
+ 
++function ToolFallback(){
++  return <section className="tool-page"><div className="workspace-card route-loading" role="status" aria-live="polite">Carregando ferramenta…</div></section>
++}
++
+ export default function ToolPage(){
+   const { id } = useParams()
+-  if(id==='prepare-document') return <PrepareDocumentPage/>
+-  if(id==='redact') return <RedactionPage/>
+-  if(id==='compare') return <ComparePdfPage/>
+-  if(id==='tribunal-presets') return <TribunalPresetsPage/>
+-  if(id==='trust-report') return <TrustReportPage/>
+-  if(id==='organize') return <PageWorkspacePage mode="organize"/>
+-  if(id==='edit-pages') return <PageWorkspacePage mode="edit-pages"/>
+-  if(id==='ocr') return <OcrToolPage/>
+-  if(id==='batch') return <BatchToolPage/>
+-  if(id && documentToolIds.has(id as DocumentToolId)) return <DocumentToolsPage toolId={id as DocumentToolId}/>
+-  return <ClassicToolPage/>
++  let content
++  if(id==='prepare-document') content=<PrepareDocumentPage/>
++  else if(id==='redact') content=<RedactionPage/>
++  else if(id==='compare') content=<ComparePdfPage/>
++  else if(id==='tribunal-presets') content=<TribunalPresetsPage/>
++  else if(id==='trust-report') content=<TrustReportPage/>
++  else if(id==='organize') content=<PageWorkspacePage mode="organize"/>
++  else if(id==='edit-pages') content=<PageWorkspacePage mode="edit-pages"/>
++  else if(id==='ocr') content=<OcrToolPage/>
++  else if(id==='batch') content=<BatchToolPage/>
++  else if(id && documentToolIds.has(id as DocumentToolId)) content=<DocumentToolsPage toolId={id as DocumentToolId}/>
++  else content=<ClassicToolPage/>
++  return <Suspense fallback={<ToolFallback/>}>{content}</Suspense>
+ }
+ 
+ function ClassicToolPage(){
+@@ -70,10 +78,16 @@
+   useEffect(()=>{ setFiles([]); setProgress(0); setStatus('Pronto.'); setSuccess(''); setErrorMessage(''); setAnalysis(null); setDragIndex(null); setDragOverIndex(null); setShowAllMergeFiles(false); setMergeBookmarks(true); setMergeToc(true); setMergeTocTitle('Índice de documentos'); setMergeBookmarkHierarchy(true); setMergeCategoryOptions(['PETIÇÕES','DOCUMENTOS','CONTRATOS']); setMergeFileCategories([]); setNewMergeCategory(''); setActivityLog([]) },[toolId])
+   useEffect(()=>{
+     const file=files[0]
+-    if(file && file.type==='application/pdf' && canvasRef.current){
+-      renderFirstPage(file,canvasRef.current).catch(()=>{})
+-      inspectPdf(file).then(i=>setAnalysis({pages:i.pages,recommended:i.recommended})).catch(()=>{})
+-    }
++    const canvas=canvasRef.current
++    if(!file || file.type!=='application/pdf' || !canvas) return
++    let cancelled=false
++    void import('../lib/pdfPreview').then(async ({renderFirstPage,inspectPdf})=>{
++      await Promise.allSettled([
++        renderFirstPage(file,canvas),
++        inspectPdf(file).then(i=>{ if(!cancelled) setAnalysis({pages:i.pages,recommended:i.recommended}) }),
++      ])
++    }).catch(()=>{})
++    return ()=>{ cancelled=true }
+   },[files])
+   useEffect(()=>{
+     const file=files[0]
+@@ -202,6 +216,7 @@
+     await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()))
+     try{
+       if(toolId==='compress'){
++        const { compressPdf, compressPdfToTarget } = await import('../lib/pdf')
+         if(mode==='target'){
+           const result=await compressPdfToTarget(files[0],targetMb,update)
+           if(!result.bytes || result.bytes.byteLength<100){
+@@ -276,6 +291,7 @@
+         }
+       } else if(toolId==='merge'){
+         if(files.length<2) throw new Error('Selecione pelo menos 2 PDFs.')
++        const { mergePdfs } = await import('../lib/pdf')
+         const result=await mergePdfs(files,update,{createBookmarks:mergeBookmarks,createTableOfContents:mergeToc,tocTitle:mergeTocTitle,bookmarkHierarchy:mergeBookmarkHierarchy,bookmarkCategories:mergeFileCategories})
+         if(!result.blob || result.blob.size<100) throw new Error('O PDF final ficou vazio e o download foi bloqueado.')
+         downloadBlob(result.blob,'pdf-studio-mesclado.pdf')
+@@ -299,6 +315,7 @@
+           setStatus(`Concluído com avisos. Ignorados: ${result.skippedFiles.slice(0,8).join(', ')}${skipped>8?` e mais ${skipped-8}`:''}.`)
+         }
+       } else if(toolId==='split'){
++        const [{ splitPdfBySize }, { default: JSZip }] = await Promise.all([import('../lib/pdf'), import('jszip')])
+         const parts=await splitPdfBySize(files[0],splitMb,update)
+         const zip=new JSZip()
+         parts.forEach((p,i)=>zip.file(`${stem(files[0].name)}_parte_${String(i+1).padStart(3,'0')}.pdf`,p))
+@@ -308,23 +325,28 @@
+         update(100,'Concluído.')
+         setSuccess(`PDF dividido com sucesso em ${parts.length} parte(s).`)
+       } else if(toolId==='pdf-jpg' || toolId==='pdf-png'){
++        const { pdfToImagesZip } = await import('../lib/pdf')
+         const format=toolId==='pdf-jpg'?'jpeg':'png'
+         const blob=await pdfToImagesZip(files[0],format,dpi,update)
+         downloadBlob(blob,`${stem(files[0].name)}_${format}.zip`)
+         setSuccess(`Páginas convertidas para ${format.toUpperCase()} com sucesso.`)
+       } else if(toolId==='images-pdf'){
++        const { imagesToPdf } = await import('../lib/pdf')
+         const bytes=await imagesToPdf(files,update)
+         downloadBlob(new Blob([bytes],{type:'application/pdf'}),'imagens_convertidas.pdf')
+         setSuccess(`${files.length} imagem(ns) convertidas para PDF.`)
+       } else if(toolId==='pdf-txt'){
++        const { extractPdfText } = await import('../lib/pdf')
+         const pages=await extractPdfText(files[0],update)
+         downloadBlob(new Blob([pages.join('\n\n--- PÁGINA ---\n\n')],{type:'text/plain;charset=utf-8'}),`${stem(files[0].name)}.txt`)
+         setSuccess('Texto extraído com sucesso.')
+       } else if(toolId==='pdf-word'){
++        const { pdfToWord } = await import('../lib/word')
+         const blob=await pdfToWord(files[0],update)
+         downloadBlob(blob,`${stem(files[0].name)}.docx`)
+         setSuccess('DOCX criado. Conversão Beta: prioriza texto e pode simplificar layouts complexos.')
+       } else if(toolId==='word-pdf'){
++        const { wordToPdf } = await import('../lib/word')
+         const blob=await wordToPdf(files[0],update)
+         downloadBlob(blob,`${stem(files[0].name)}.pdf`)
+         setSuccess('PDF criado. Conversão Beta: documentos Word complexos podem ter diferenças visuais.')
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/styles.css internal_v208/src/styles.css
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/src/styles.css	2026-10-06 17:52:30.000000000 +0000
++++ internal_v208/src/styles.css	2026-10-06 18:09:24.518005573 +0000
+@@ -309,3 +309,6 @@
+ }
+ 
+ /* v2.0.7 — PDF.js 6 Compatibility Hotfix (sem alterações visuais em relação à v2.0.4) */
++
++/* v2.0.8 — carregamento progressivo de rotas e motores pesados */
++.route-loading{min-height:180px;display:flex;align-items:center;justify-content:center;color:#9fb2c4;font-size:14px;font-weight:700;letter-spacing:.01em}
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/tests/lazy-loading.test.ts internal_v208/tests/lazy-loading.test.ts
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/tests/lazy-loading.test.ts	1970-01-01 00:00:00.000000000 +0000
++++ internal_v208/tests/lazy-loading.test.ts	2026-10-06 18:09:18.194820365 +0000
+@@ -0,0 +1,40 @@
++import { describe, expect, it } from 'vitest'
++import { readFileSync } from 'node:fs'
++
++const read = (path: string) => readFileSync(path, 'utf8')
++
++describe('v2.0.8 lazy loading', () => {
++  it('keeps tool routes out of the initial Home bundle', () => {
++    const main = read('src/main.tsx')
++    expect(main).toContain("lazy(() => import('./pages/ToolPage'))")
++    expect(main).not.toMatch(/import ToolPage from ['"]\.\/pages\/ToolPage['"]/)
++  })
++
++  it('does not statically import heavy engines from ToolPage', () => {
++    const toolPage = read('src/pages/ToolPage.tsx')
++    expect(toolPage).not.toMatch(/^import .* from ['"]\.\.\/lib\/pdf['"]/m)
++    expect(toolPage).not.toMatch(/^import .* from ['"]\.\.\/lib\/word['"]/m)
++    expect(toolPage).not.toMatch(/^import JSZip from ['"]jszip['"]/m)
++    expect(toolPage).toContain("await import('../lib/pdf')")
++    expect(toolPage).toContain("await import('../lib/word')")
++  })
++
++  it('keeps PDF.js and WASM engines behind dynamic imports', () => {
++    const pdf = read('src/lib/pdf.ts')
++    expect(pdf).not.toMatch(/^import .*pdfjsSecure/m)
++    expect(pdf).not.toMatch(/^import .*wasmCompression/m)
++    expect(pdf).not.toMatch(/^import JSZip from ['"]jszip['"]/m)
++    expect(pdf).toContain("await import('./pdfjsSecure')")
++    expect(pdf).toContain("await import('./wasmCompression')")
++  })
++
++  it('loads each Word conversion stack only when invoked', () => {
++    const word = read('src/lib/word.ts')
++    expect(word).not.toMatch(/^import .*mammoth/m)
++    expect(word).not.toMatch(/^import .*html2canvas/m)
++    expect(word).not.toMatch(/^import .*jspdf/m)
++    expect(word).not.toMatch(/^import .*docx/m)
++    expect(word).toContain("import('mammoth/mammoth.browser')")
++    expect(word).toContain("import('docx')")
++  })
++})
+diff -ruN '--exclude=PATCH_V2_0_7_PARA_V2_0_8.diff' internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/vite.config.ts internal_v208/vite.config.ts
+--- internal/PDFStudio_Web_Client_v2_0_7_INTERNAL/vite.config.ts	2026-10-06 13:02:42.000000000 +0000
++++ internal_v208/vite.config.ts	2026-10-06 18:08:42.077447743 +0000
+@@ -14,6 +14,7 @@
+   },
+   build: {
+     target: 'es2022',
+-    chunkSizeWarningLimit: 2200,
++    manifest: true,
++    chunkSizeWarningLimit: 1200,
+   },
+ })

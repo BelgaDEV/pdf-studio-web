@@ -1,0 +1,646 @@
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/.github/workflows/ci-cd.yml PDFStudio_Web_Client_v2_0_5_INTERNAL/.github/workflows/ci-cd.yml
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/.github/workflows/ci-cd.yml	2026-10-06 15:39:13.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/.github/workflows/ci-cd.yml	2026-10-06 17:24:44.272510551 +0000
+@@ -19,7 +19,7 @@
+ 
+ jobs:
+   quality:
+-    name: TypeScript · Tests · PDF Regression · Security · Build
++    name: TypeScript · Tests · PDF Regression · Security Hardening · Build
+     runs-on: ubuntu-latest
+     timeout-minutes: 30
+     steps:
+@@ -50,8 +50,11 @@
+       - name: PDF regression tests
+         run: npm run test:pdf
+ 
+-      - name: Security check
+-        run: npm run security
++      - name: Production dependency audit
++        run: npm run security:prod
++
++      - name: Full dependency audit
++        run: npm run security:all
+ 
+       - name: Build
+         run: npm run build
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/INSTALAR_E_TESTAR.bat PDFStudio_Web_Client_v2_0_5_INTERNAL/INSTALAR_E_TESTAR.bat
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-06 16:12:14.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-06 17:27:46.300634620 +0000
+@@ -3,14 +3,13 @@
+ cd /d "%~dp0"
+ 
+ echo =============================================
+-echo      PDF Studio Web - Instalar e testar
++echo   PDF Studio v2.0.5 - Instalar e validar
+ echo =============================================
+ 
+ where node >nul 2>nul
+ if errorlevel 1 (
+   echo [ERRO] Node.js nao encontrado.
+   echo Instale Node.js 22 LTS ou Node.js 24 e tente novamente.
+-  echo https://nodejs.org/
+   pause
+   exit /b 1
+ )
+@@ -19,24 +18,44 @@
+ node --version
+ 
+ echo.
+-echo [1/3] Instalando dependencias...
++echo [1/6] Instalando dependencias e atualizando package-lock...
+ call npm install
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [2/3] Validando TypeScript e build...
++echo [2/6] Validando TypeScript...
++call npm run check
++if errorlevel 1 goto fail
++
++echo.
++echo [3/6] Executando testes unitarios e de seguranca...
++call npm run test
++if errorlevel 1 goto fail
++
++echo.
++echo [4/6] Executando regressao PDF...
++call npm run test:pdf
++if errorlevel 1 goto fail
++
++echo.
++echo [5/6] Auditando dependencias high/critical...
++call npm run security
++if errorlevel 1 goto fail
++
++echo.
++echo [6/6] Gerando build de producao...
+ call npm run build
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [3/3] Abrindo servidor local...
+-echo O navegador deve abrir em http://localhost:5173
++echo [OK] v2.0.5 validada. Abrindo servidor local...
++echo http://localhost:5173
+ start "" http://localhost:5173
+ call npm run dev -- --host 127.0.0.1
+ exit /b 0
+ 
+ :fail
+ echo.
+-echo [ERRO] A instalacao/build falhou. Copie a tela e me envie.
++echo [ERRO] A validacao falhou. Copie a saida do PowerShell e envie para analise.
+ pause
+ exit /b 1
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/README.md PDFStudio_Web_Client_v2_0_5_INTERNAL/README.md
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/README.md	2026-10-06 16:49:26.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/README.md	2026-10-06 17:26:02.875080422 +0000
+@@ -1,6 +1,6 @@
+-# PDF Studio v2.0.4
++# PDF Studio v2.0.5
+ 
+-Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.4 mantém as ferramentas no centro da experiência e melhora a legibilidade do mega menu: header distribuído em toda a largura, mega menu com as 25 ferramentas, atalho direto para Comparar PDF, busca, filtros por categoria e grid priorizado por uso na primeira dobra, preservando as seções premium de Redline, privacidade e planos. O projeto também mantém a separação entre repositório interno e release comercial.
++Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.5 mantém a interface e a legibilidade da v2.0.4 e adiciona Security Hardening: header distribuído em toda a largura, mega menu com as 25 ferramentas, atalho direto para Comparar PDF, busca, filtros por categoria e grid priorizado por uso na primeira dobra, preservando as seções premium de Redline, privacidade e planos. O projeto também mantém a separação entre repositório interno e release comercial.
+ 
+ ## Desenvolvimento
+ 
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/SECURITY.md PDFStudio_Web_Client_v2_0_5_INTERNAL/SECURITY.md
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/SECURITY.md	2026-10-06 15:38:38.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/SECURITY.md	2026-10-06 17:26:02.875022354 +0000
+@@ -2,12 +2,32 @@
+ 
+ ## Princípios
+ 
+-- PDFs não devem ser enviados para backend por padrão.
++- PDFs e DOCX não devem ser enviados para backend por padrão.
++- Todo PDF aberto pela aplicação passa pelo loader endurecido de `src/lib/pdfjsSecure.ts`.
++- A aplicação não instancia `PDFScriptingManager`; scripting de PDF permanece desabilitado por arquitetura.
++- PDF.js roda com `isEvalSupported=false` e `enableXfa=false`.
++- HTML convertido de DOCX é sanitizado com DOMPurify antes de entrar no DOM.
++- A release publica uma Content Security Policy que bloqueia scripts externos, objetos embutidos e framing.
+ - Novas integrações de rede devem ser revisadas antes de produção.
+ - Nenhum segredo deve ser commitado no repositório.
+-- Dependências são verificadas no CI com `npm audit --audit-level=high`.
++- Dependências de produção e desenvolvimento são auditadas separadamente no CI.
+ - Mudanças em motores PDF devem passar pela suíte de regressão.
+ 
++## Gate de release
++
++Antes de publicar:
++
++```powershell
++npm run check
++npm run test
++npm run test:pdf
++npm run build
++npm run security:prod
++npm run security:all
++```
++
++Vulnerabilidades `high` ou `critical` bloqueiam a release até correção ou análise formal. Não use `npm audit fix --force` sem validar as mudanças e os testes de regressão.
++
+ ## Relato de vulnerabilidade
+ 
+ Durante a fase pré-lançamento, vulnerabilidades devem ser tratadas diretamente pelo mantenedor do produto e não publicadas em issues públicas contendo dados sensíveis ou arquivos de clientes.
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/SECURITY_HARDENING_V2_0_5.md PDFStudio_Web_Client_v2_0_5_INTERNAL/SECURITY_HARDENING_V2_0_5.md
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/SECURITY_HARDENING_V2_0_5.md	1970-01-01 00:00:00.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/SECURITY_HARDENING_V2_0_5.md	2026-10-06 17:26:02.875125960 +0000
+@@ -0,0 +1,45 @@
++# PDF Studio v2.0.5 — Security Hardening
++
++Esta versão mantém a interface da v2.0.4 e endurece a cadeia de processamento de documentos não confiáveis.
++
++## Dependências atualizadas
++
++- `jspdf`: 4.2.1
++- `pdfjs-dist`: 6.3.289
++- `mammoth`: 1.13.0
++- `vitest`: 4.1.11
++- `wrangler`: removido das dependências locais; o deploy continua via `cloudflare/wrangler-action` no CI/CD.
++
++As versões críticas de segurança estão fixadas sem `^` para reduzir drift acidental.
++
++## PDF.js
++
++Todo carregamento passa por `src/lib/pdfjsSecure.ts`.
++
++- `isEvalSupported: false`
++- `enableXfa: false`
++- o app não instancia `PDFScriptingManager` nem o viewer genérico; `enableScripting` permanece desabilitado por política
++- CSP bloqueia scripts não pertencentes ao próprio aplicativo
++
++## DOCX / Mammoth
++
++O HTML convertido é sempre passado por `sanitizeOfficeHtml()` antes de entrar no DOM. Conteúdo ativo como `script`, `iframe`, `object`, formulários e atributos perigosos é removido.
++
++## Headers
++
++A release inclui CSP, proteção contra framing, HSTS, nosniff, Referrer-Policy, Permissions-Policy e políticas de origem compatíveis com WebAssembly. `script-src` permanece restrito ao próprio app; apenas as origens de modelo do Tesseract são autorizadas em `connect-src`/`worker-src` para OCR.
++
++## Auditoria
++
++Após `npm install`, execute:
++
++```powershell
++npm run check
++npm run test
++npm run test:pdf
++npm run build
++npm run security:prod
++npm run security:all
++```
++
++O objetivo de release é zero vulnerabilidades `high` ou `critical`. Avisos `moderate` transitivos devem ser avaliados individualmente e não ignorados automaticamente com `npm audit fix --force`.
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/VALIDAR_SEGURANCA.bat PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDAR_SEGURANCA.bat
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/VALIDAR_SEGURANCA.bat	1970-01-01 00:00:00.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDAR_SEGURANCA.bat	2026-10-06 17:27:46.300810686 +0000
+@@ -0,0 +1,22 @@
++@echo off
++setlocal
++cd /d "%~dp0"
++echo =============================================
++echo   PDF Studio v2.0.5 - Security Gate
++echo =============================================
++if not exist node_modules (
++  echo Instalando dependencias...
++  call npm install
++  if errorlevel 1 exit /b 1
++)
++call npm run security:prod
++if errorlevel 1 goto fail
++call npm run security:all
++if errorlevel 1 goto fail
++echo.
++echo [OK] Nenhuma vulnerabilidade HIGH/CRITICAL bloqueante encontrada pelo npm audit.
++exit /b 0
++:fail
++echo.
++echo [ERRO] O security gate encontrou vulnerabilidade HIGH/CRITICAL.
++exit /b 1
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/VALIDATION_V2_0_5.md PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDATION_V2_0_5.md
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/VALIDATION_V2_0_5.md	1970-01-01 00:00:00.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/VALIDATION_V2_0_5.md	2026-10-06 17:24:44.272633036 +0000
+@@ -0,0 +1,20 @@
++# Validação v2.0.5
++
++## Alterações verificadas estaticamente
++
++- versão centralizada em 2.0.5;
++- jsPDF fixado em 4.2.1;
++- PDF.js fixado em 6.3.289;
++- Mammoth fixado em 1.13.0;
++- Vitest fixado em 4.1.11;
++- Wrangler removido das dependências locais;
++- nenhum `getDocument()` direto fora de `pdfjsSecure.ts`;
++- `isEvalSupported=false` e `enableXfa=false` aplicados no loader único;
++- nenhuma instanciação de `PDFScriptingManager` no app;
++- sanitização de HTML Office centralizada;
++- CSP e headers adicionais incluídos;
++- testes de regressão de segurança adicionados.
++
++## Validação que depende do npm
++
++O ambiente de empacotamento não possui acesso ao registry do npm. Após extrair no Windows, rode `npm install` para gerar/atualizar o `package-lock.json` e depois execute `npm run ci`, `npm run test:e2e`, `npm run security:prod` e `npm run security:all`.
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/VERSAO.txt PDFStudio_Web_Client_v2_0_5_INTERNAL/VERSAO.txt
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/VERSAO.txt	2026-10-06 16:49:26.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/VERSAO.txt	2026-10-06 17:24:44.271216745 +0000
+@@ -1 +1 @@
+-2.0.4
++2.0.5
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/package.json PDFStudio_Web_Client_v2_0_5_INTERNAL/package.json
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/package.json	2026-10-06 16:49:26.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/package.json	2026-10-06 17:24:44.271101951 +0000
+@@ -1,7 +1,7 @@
+ {
+   "name": "pdf-studio-web-client",
+   "private": true,
+-  "version": "2.0.4",
++  "version": "2.0.5",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -11,9 +11,11 @@
+     "test": "vitest run --exclude tests/pdf-regression.test.ts",
+     "test:pdf": "vitest run tests/pdf-regression.test.ts",
+     "test:e2e": "playwright test",
+-    "security": "npm audit --omit=dev --audit-level=high",
++    "security": "npm run security:prod && npm run security:all",
+     "ci": "npm run check && npm run test && npm run test:pdf && npm run build",
+-    "release:commercial": "node scripts/create-commercial-release.mjs"
++    "release:commercial": "node scripts/create-commercial-release.mjs",
++    "security:prod": "npm audit --omit=dev --audit-level=high",
++    "security:all": "npm audit --audit-level=high"
+   },
+   "dependencies": {
+     "@wasm-zoo/ghostscript": "^0.7.2",
+@@ -21,12 +23,12 @@
+     "docx": "^9.5.1",
+     "dompurify": "^3.2.6",
+     "html2canvas": "^1.4.1",
+-    "jspdf": "^3.0.1",
++    "jspdf": "4.2.1",
+     "jszip": "^3.10.1",
+     "lucide-react": "^0.468.0",
+-    "mammoth": "^1.10.0",
++    "mammoth": "1.13.0",
+     "pdf-lib": "^1.17.1",
+-    "pdfjs-dist": "^5.4.149",
++    "pdfjs-dist": "6.3.289",
+     "react": "^19.1.1",
+     "react-dom": "^19.1.1",
+     "react-router-dom": "^7.9.1",
+@@ -38,12 +40,11 @@
+     "@vitejs/plugin-react": "^5.0.4",
+     "typescript": "~5.8.3",
+     "vite": "^7.1.7",
+-    "wrangler": "^4.145.0",
+     "@playwright/test": "^1.56.1",
+     "@testing-library/jest-dom": "^6.9.1",
+     "@testing-library/react": "^16.3.0",
+     "jsdom": "^27.0.0",
+-    "vitest": "^3.2.4"
++    "vitest": "4.1.11"
+   },
+   "license": "AGPL-3.0-or-later",
+   "engines": {
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/public/_headers PDFStudio_Web_Client_v2_0_5_INTERNAL/public/_headers
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/public/_headers	2026-10-06 13:02:42.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/public/_headers	2026-10-06 17:26:02.874985238 +0000
+@@ -1,7 +1,12 @@
+ /*
++  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data: https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+   X-Content-Type-Options: nosniff
++  X-Frame-Options: DENY
+   Referrer-Policy: strict-origin-when-cross-origin
+-  Permissions-Policy: camera=(), microphone=(), geolocation=()
++  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
++  Cross-Origin-Opener-Policy: same-origin
++  Cross-Origin-Resource-Policy: same-origin
++  Strict-Transport-Security: max-age=31536000
+ 
+ /*.wasm
+   Content-Type: application/wasm
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/appMeta.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/appMeta.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/appMeta.ts	2026-10-06 16:49:26.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/appMeta.ts	2026-10-06 17:24:44.271185377 +0000
+@@ -1,3 +1,3 @@
+ export const APP_NAME = 'PDF Studio'
+-export const APP_VERSION = '2.0.4'
++export const APP_VERSION = '2.0.5'
+ export const APP_TAGLINE = 'Automação documental privada'
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/documentTools.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/documentTools.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/documentTools.ts	2026-10-06 13:02:42.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/documentTools.ts	2026-10-06 17:24:44.271379681 +0000
+@@ -1,10 +1,8 @@
+ import { PDFDocument, PDFName, StandardFonts, degrees, rgb } from 'pdf-lib'
+-import * as pdfjsLib from 'pdfjs-dist'
++import { loadPdfJsDocument, pdfjsLib } from './pdfjsSecure'
+ import JSZip from 'jszip'
+ import { nextFrame } from './files'
+ 
+-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+-
+ export type DocumentProgressFn = (value: number, message: string) => void
+ export type WatermarkPosition = 'center' | 'top' | 'bottom'
+ export type NumberPosition = 'bottom-center' | 'bottom-right' | 'top-center'
+@@ -28,7 +26,7 @@
+   const data = file instanceof File
+     ? new Uint8Array(await file.arrayBuffer())
+     : new Uint8Array(file)
+-  return pdfjsLib.getDocument({ data }).promise
++  return loadPdfJsDocument(data)
+ }
+ 
+ export async function addWatermark(
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/htmlSecurity.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/htmlSecurity.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/htmlSecurity.ts	1970-01-01 00:00:00.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/htmlSecurity.ts	2026-10-06 17:24:44.271282023 +0000
+@@ -0,0 +1,14 @@
++import DOMPurify from 'dompurify'
++
++/**
++ * Sanitização defensiva para HTML originado de documentos Office.
++ * Mammoth converte DOCX para HTML, mas não sanitiza conteúdo não confiável.
++ */
++export function sanitizeOfficeHtml(html: string): string {
++  return DOMPurify.sanitize(html, {
++    USE_PROFILES: { html: true },
++    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea', 'select', 'option', 'meta', 'link', 'base'],
++    FORBID_ATTR: ['srcdoc'],
++    ALLOW_DATA_ATTR: false,
++  })
++}
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/ocr.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/ocr.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/ocr.ts	2026-10-06 13:02:42.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/ocr.ts	2026-10-06 17:24:44.271445210 +0000
+@@ -1,9 +1,7 @@
+ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+-import * as pdfjsLib from 'pdfjs-dist'
++import { loadPdfJsDocument } from './pdfjsSecure'
+ import { nextFrame } from './files'
+ 
+-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+-
+ export type OcrLanguage = 'por' | 'eng' | 'por+eng'
+ export type OcrProgress = (value: number, message: string) => void
+ 
+@@ -56,7 +54,7 @@
+   onProgress: OcrProgress,
+ ): Promise<OcrResult> {
+   const sourceBytes = new Uint8Array(await file.arrayBuffer())
+-  const pdfjs = await pdfjsLib.getDocument({ data: new Uint8Array(sourceBytes) }).promise
++  const pdfjs = await loadPdfJsDocument(sourceBytes)
+   const output = await PDFDocument.load(sourceBytes)
+   const outputPages = output.getPages()
+   const font = await output.embedFont(StandardFonts.Helvetica)
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/pageEditor.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pageEditor.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/pageEditor.ts	2026-10-06 13:02:42.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pageEditor.ts	2026-10-06 17:24:44.271719154 +0000
+@@ -1,9 +1,7 @@
+ import { degrees, PDFDocument } from 'pdf-lib'
+-import * as pdfjsLib from 'pdfjs-dist'
++import { loadPdfJsDocument } from './pdfjsSecure'
+ import { nextFrame } from './files'
+ 
+-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+-
+ export type PagePlanItem = {
+   id: string
+   sourceIndex: number
+@@ -30,7 +28,7 @@
+   onProgress: PageEditorProgress,
+ ): Promise<PageThumbnail[]> {
+   const data = new Uint8Array(await file.arrayBuffer())
+-  const pdf = await pdfjsLib.getDocument({ data }).promise
++  const pdf = await loadPdfJsDocument(data)
+   const thumbs: PageThumbnail[] = []
+ 
+   try {
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/pdf.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdf.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/pdf.ts	2026-10-06 13:02:42.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdf.ts	2026-10-06 17:24:44.271960800 +0000
+@@ -2,13 +2,11 @@
+ import { addPdfBookmarks, addPdfBookmarksHierarchical, type PdfBookmarkSpec } from './bookmarks'
+ import { addClickableTableOfContents } from './tableOfContents'
+ import { mergeManyPdfs, type LargeMergeResult } from './largeMerge'
+-import * as pdfjsLib from 'pdfjs-dist'
++import { loadPdfJsDocument } from './pdfjsSecure'
+ import JSZip from 'jszip'
+ import { nextFrame } from './files'
+ import { ghostscriptCompressWasm, qpdfOptimizeWasm } from './wasmCompression'
+ 
+-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+-
+ export type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'|'target'
+ export type PresetCompressionMode = Exclude<CompressionMode, 'target'>
+ export type ProgressFn = (value: number, message: string) => void
+@@ -26,7 +24,7 @@
+   const data = file instanceof File
+     ? new Uint8Array(await file.arrayBuffer())
+     : new Uint8Array(file)
+-  return pdfjsLib.getDocument({ data }).promise
++  return loadPdfJsDocument(data)
+ }
+ 
+ function looksLikePdf(bytes: Uint8Array): boolean {
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/pdfCompare.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfCompare.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/pdfCompare.ts	2026-10-06 13:02:42.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfCompare.ts	2026-10-06 17:24:44.271642108 +0000
+@@ -1,8 +1,6 @@
+-import * as pdfjsLib from 'pdfjs-dist'
++import { loadPdfJsDocument } from './pdfjsSecure'
+ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+ 
+-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+-
+ export type CompareProgress = (value:number, message:string)=>void
+ export type CompareStatus = 'unchanged'|'modified'|'added'|'removed'
+ 
+@@ -125,7 +123,7 @@
+ 
+ async function loadPdf(file:File){
+   const data=new Uint8Array(await file.arrayBuffer())
+-  return pdfjsLib.getDocument({data}).promise
++  return loadPdfJsDocument(data)
+ }
+ 
+ export async function inspectPdfForComparison(file:File,onProgress?:CompareProgress,progressStart=0,progressEnd=40):Promise<PdfSnapshot>{
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/pdfjsSecure.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfjsSecure.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/pdfjsSecure.ts	1970-01-01 00:00:00.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/pdfjsSecure.ts	2026-10-06 17:26:02.874793999 +0000
+@@ -0,0 +1,33 @@
++import * as pdfjsLib from 'pdfjs-dist'
++
++pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
++
++/**
++ * Política de segurança do PDF.js.
++ *
++ * Este app usa somente a API de parsing/renderização; não instancia
++ * PDFScriptingManager nem o viewer genérico do PDF.js. A execução de
++ * JavaScript de PDFs permanece desabilitada por arquitetura. Além disso,
++ * desabilitamos eval e XFA no carregamento para reduzir superfície de ataque.
++ */
++export const PDFJS_SECURITY_POLICY = Object.freeze({
++  enableScripting: false,
++  isEvalSupported: false,
++  enableXfa: false,
++})
++
++export { pdfjsLib }
++
++export async function loadPdfJsDocument(source: File | Uint8Array | ArrayBuffer) {
++  const data = typeof File !== 'undefined' && source instanceof File
++    ? new Uint8Array(await source.arrayBuffer())
++    : source instanceof Uint8Array
++      ? new Uint8Array(source)
++      : new Uint8Array(source)
++
++  return pdfjsLib.getDocument({
++    data,
++    isEvalSupported: PDFJS_SECURITY_POLICY.isEvalSupported,
++    enableXfa: PDFJS_SECURITY_POLICY.enableXfa,
++  }).promise
++}
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/redaction.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/redaction.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/redaction.ts	2026-10-06 13:02:42.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/redaction.ts	2026-10-06 17:24:44.272186340 +0000
+@@ -1,9 +1,7 @@
+ import { PDFDocument } from 'pdf-lib'
+-import * as pdfjsLib from 'pdfjs-dist'
++import { loadPdfJsDocument } from './pdfjsSecure'
+ import { nextFrame } from './files'
+ 
+-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+-
+ export type RedactionRect = {
+   id: string
+   x: number
+@@ -25,7 +23,7 @@
+ 
+ export async function loadPdfForRedaction(file: File) {
+   const data = new Uint8Array(await file.arrayBuffer())
+-  return pdfjsLib.getDocument({ data }).promise
++  return loadPdfJsDocument(data)
+ }
+ 
+ export async function renderRedactionPreview(
+@@ -72,7 +70,7 @@
+ }
+ 
+ async function verifyPermanentRedaction(bytes: Uint8Array, redactedPageNumbers: number[], expectedPages: number, onProgress: RedactionProgress) {
+-  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(bytes) }).promise
++  const pdf = await loadPdfJsDocument(bytes)
+   try {
+     if (pdf.numPages !== expectedPages) {
+       throw new Error(`Falha de segurança: o original tem ${expectedPages} página(s), mas o resultado tem ${pdf.numPages}.`)
+@@ -109,7 +107,7 @@
+   if (!redactedPageNumbers.length) throw new Error('Marque pelo menos uma área sensível antes de aplicar a redação permanente.')
+ 
+   onProgress(3, 'Abrindo documento para redação segura…')
+-  const pdfJs = await pdfjsLib.getDocument({ data: new Uint8Array(input) }).promise
++  const pdfJs = await loadPdfJsDocument(input)
+   const source = await PDFDocument.load(input, { updateMetadata: false })
+   const output = await PDFDocument.create()
+   const dpi = Math.max(120, Math.min(300, options.dpi || 200))
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/word.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/word.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/lib/word.ts	2026-10-06 13:02:42.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/lib/word.ts	2026-10-06 17:24:44.272273162 +0000
+@@ -1,5 +1,5 @@
+ import mammoth from 'mammoth/mammoth.browser'
+-import DOMPurify from 'dompurify'
++import { sanitizeOfficeHtml } from './htmlSecurity'
+ import html2canvas from 'html2canvas'
+ import { jsPDF } from 'jspdf'
+ import { Document, Packer, Paragraph, PageBreak, TextRun } from 'docx'
+@@ -23,7 +23,7 @@
+   wrapper.style.background = '#fff'
+   wrapper.style.color = '#111'
+   wrapper.style.font = '16px/1.5 Arial, sans-serif'
+-  wrapper.innerHTML = DOMPurify.sanitize(result.value)
++  wrapper.innerHTML = sanitizeOfficeHtml(result.value)
+   wrapper.querySelectorAll('img').forEach((img) => {
+     ;(img as HTMLImageElement).style.maxWidth = '100%'
+     ;(img as HTMLImageElement).style.height = 'auto'
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/styles.css PDFStudio_Web_Client_v2_0_5_INTERNAL/src/styles.css
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/src/styles.css	2026-10-06 16:49:26.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/src/styles.css	2026-10-06 17:24:44.273339864 +0000
+@@ -307,3 +307,5 @@
+   .landing-shell>.topbar{height:70px;padding-left:24px;padding-right:24px}
+   .landing-shell .mobile-menu{top:70px}
+ }
++
++/* v2.0.5 — Security Hardening (sem alterações visuais em relação à v2.0.4) */
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/tests/html-security.test.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/html-security.test.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/tests/html-security.test.ts	1970-01-01 00:00:00.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/html-security.test.ts	2026-10-06 17:24:44.272392292 +0000
+@@ -0,0 +1,14 @@
++import { describe, expect, it } from 'vitest'
++import { sanitizeOfficeHtml } from '../src/lib/htmlSecurity'
++
++describe('Office HTML sanitization', () => {
++  it('removes active content from converted DOCX HTML', () => {
++    const dirty = '<p>Contrato</p><script>alert(1)</script><iframe srcdoc="<script>alert(2)</script>"></iframe><a href="javascript:alert(3)" onclick="alert(4)">link</a>'
++    const clean = sanitizeOfficeHtml(dirty)
++    expect(clean).toContain('Contrato')
++    expect(clean).not.toMatch(/<script/i)
++    expect(clean).not.toMatch(/<iframe/i)
++    expect(clean).not.toMatch(/javascript:/i)
++    expect(clean).not.toMatch(/onclick=/i)
++  })
++})
+diff -ruN '--exclude=PATCH_V2_0_4_PARA_V2_0_5.diff' internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/tests/security-hardening.test.ts PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/security-hardening.test.ts
+--- internal/PDFStudio_Web_Client_v2_0_4_INTERNAL/tests/security-hardening.test.ts	1970-01-01 00:00:00.000000000 +0000
++++ PDFStudio_Web_Client_v2_0_5_INTERNAL/tests/security-hardening.test.ts	2026-10-06 17:24:44.272366603 +0000
+@@ -0,0 +1,50 @@
++// @vitest-environment node
++import { describe, expect, it } from 'vitest'
++import { readFile, readdir } from 'node:fs/promises'
++import { join } from 'node:path'
++
++async function sourceFiles(dir: string): Promise<string[]> {
++  const entries = await readdir(dir, { withFileTypes: true })
++  const nested = await Promise.all(entries.map(async entry => {
++    const full = join(dir, entry.name)
++    if (entry.isDirectory()) return sourceFiles(full)
++    return /\.(ts|tsx)$/.test(entry.name) ? [full] : []
++  }))
++  return nested.flat()
++}
++
++describe('v2.0.5 security hardening', () => {
++  it('pins security-sensitive dependencies to hardened versions', async () => {
++    const pkg = JSON.parse(await readFile('package.json', 'utf8'))
++    expect(pkg.dependencies.jspdf).toBe('4.2.1')
++    expect(pkg.dependencies['pdfjs-dist']).toBe('6.3.289')
++    expect(pkg.dependencies.mammoth).toBe('1.13.0')
++    expect(pkg.devDependencies.vitest).toBe('4.1.11')
++    expect(pkg.devDependencies.wrangler).toBeUndefined()
++  })
++
++  it('routes every PDF.js document load through the hardened loader', async () => {
++    const files = await sourceFiles('src')
++    const offenders: string[] = []
++    for (const file of files) {
++      if (file.endsWith('pdfjsSecure.ts')) continue
++      const text = await readFile(file, 'utf8')
++      if (/\bgetDocument\s*\(/.test(text) || /PDFScriptingManager/.test(text)) offenders.push(file)
++    }
++    expect(offenders).toEqual([])
++
++    const secureLoader = await readFile('src/lib/pdfjsSecure.ts', 'utf8')
++    expect(secureLoader).toContain('isEvalSupported: false')
++    expect(secureLoader).toContain('enableXfa: false')
++    expect(secureLoader).toContain('enableScripting: false')
++  })
++
++  it('ships a CSP that blocks embedded PDF scripts and framing', async () => {
++    const headers = await readFile('public/_headers', 'utf8')
++    expect(headers).toContain("Content-Security-Policy:")
++    expect(headers).toContain("script-src 'self' 'wasm-unsafe-eval'")
++    expect(headers).toContain("object-src 'none'")
++    expect(headers).toContain("frame-ancestors 'none'")
++    expect(headers).toContain('X-Frame-Options: DENY')
++  })
++})

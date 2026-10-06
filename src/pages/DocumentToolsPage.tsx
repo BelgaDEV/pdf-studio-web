@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, File, Info, LockKeyhole
 import { Link } from 'react-router-dom'
 import { tools, type ToolId } from '../lib/tools'
 import { downloadBlob, humanSize, stem } from '../lib/files'
-import { renderFirstPage } from '../lib/pdf'
+import { renderFirstPage } from '../lib/pdfPreview'
 import {
   addPageNumbers,
   addWatermark,

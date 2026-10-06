@@ -1,0 +1,14 @@
+PDF Studio Web Client v1.1.0
+
+VALIDAÇÕES E OBSERVAÇÕES
+- Estrutura TypeScript revisada; delimitadores de arquivos alterados balanceados.
+- Proteção contra resultado vazio/inválido mantida.
+- Novo compressor usa módulos npm @wasm-zoo/ghostscript e @wasm-zoo/qpdf.
+- O ambiente de geração não possui acesso ao npm registry para baixar os novos pacotes, portanto o build final deve ser validado no PC com `npm install` + `npm run build`.
+- O usuário já validou que o projeto-base Vite/React compila localmente; a v1.1 adiciona apenas os novos motores WASM e integração.
+
+PASSO DE VALIDAÇÃO LOCAL
+1. npm install
+2. npm run build
+3. npm run dev
+4. Testar primeiro o mesmo PDF de 54,1 MB / 477 páginas em Médio e Máximo.

@@ -1,13 +1,7 @@
 import { PDFDocument } from 'pdf-lib'
-import { addPdfBookmarks, addPdfBookmarksHierarchical, type PdfBookmarkSpec } from './bookmarks'
-import { addClickableTableOfContents } from './tableOfContents'
-import { mergeManyPdfs, type LargeMergeResult } from './largeMerge'
-import * as pdfjsLib from 'pdfjs-dist'
-import JSZip from 'jszip'
+import type { PdfBookmarkSpec } from './bookmarks'
+import type { LargeMergeResult } from './largeMerge'
 import { nextFrame } from './files'
-import { ghostscriptCompressWasm, qpdfOptimizeWasm } from './wasmCompression'
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
 export type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'|'target'
 export type PresetCompressionMode = Exclude<CompressionMode, 'target'>
@@ -20,13 +14,18 @@ const profiles = {
 } as const
 
 async function loadPdfJs(file: File | Uint8Array) {
-  // PDF.js pode transferir (detach) o ArrayBuffer para o Web Worker.
-  // Sempre entregamos uma COPIA quando recebemos Uint8Array para não zerar
-  // o buffer original que ainda será usado como fallback/download.
+  // PDF.js é carregado apenas quando uma operação realmente precisa renderizar
+  // ou inspecionar páginas. Isso evita baixar o worker na Home/ferramentas leves.
+  const { loadPdfJsDocument } = await import('./pdfjsSecure')
   const data = file instanceof File
     ? new Uint8Array(await file.arrayBuffer())
     : new Uint8Array(file)
-  return pdfjsLib.getDocument({ data }).promise
+  return loadPdfJsDocument(data)
+}
+
+async function destroyPdfJs(pdf: unknown) {
+  const { destroyPdfJsDocument } = await import('./pdfjsSecure')
+  await destroyPdfJsDocument(pdf as any)
 }
 
 function looksLikePdf(bytes: Uint8Array): boolean {
@@ -51,40 +50,6 @@ async function ensurePdfPageCount(bytes: Uint8Array, expectedPages: number): Pro
   }
 }
 
-export async function inspectPdf(file: File) {
-  const pdf = await loadPdfJs(file)
-  const sample = Math.min(3, pdf.numPages)
-  let textChars = 0
-  for (let i=1;i<=sample;i++) {
-    const page = await pdf.getPage(i)
-    const text = await page.getTextContent()
-    textChars += text.items.reduce((acc: number, item: any) => acc + ('str' in item ? item.str.length : 0), 0)
-  }
-  const avgBytes = file.size / Math.max(pdf.numPages,1)
-  let recommended: PresetCompressionMode = 'medium'
-  // Evita recomendar Básico para apostilas grandes só porque têm muito texto.
-  // Tamanho total + bytes/página têm peso maior para decidir se vale
-  // recompressão. Básico fica reservado a PDFs realmente enxutos.
-  if (file.size < 8 * 1024 * 1024 && avgBytes < 75_000 && textChars > 900) recommended = 'basic'
-  else if (avgBytes > 700_000 && textChars < 250) recommended = 'maximum'
-  else if (avgBytes > 320_000 || file.size > 120 * 1024 * 1024) recommended = 'high'
-  else recommended = 'medium'
-  return { pages: pdf.numPages, textChars, avgBytesPerPage: avgBytes, recommended }
-}
-
-export async function renderFirstPage(file: File, canvas: HTMLCanvasElement) {
-  const pdf = await loadPdfJs(file)
-  const page = await pdf.getPage(1)
-  const base = page.getViewport({ scale: 1 })
-  const maxWidth = Math.min(520, canvas.parentElement?.clientWidth || 520)
-  const scale = Math.max(0.5, maxWidth / base.width)
-  const viewport = page.getViewport({ scale })
-  canvas.width = Math.floor(viewport.width)
-  canvas.height = Math.floor(viewport.height)
-  const ctx = canvas.getContext('2d', { alpha: false })!
-  await page.render({ canvasContext: ctx, viewport, canvas }).promise
-}
-
 function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Falha ao converter página em JPEG.')), 'image/jpeg', quality))
 }
@@ -94,9 +59,11 @@ export async function compressPdf(file: File, mode: CompressionMode, onProgress:
   if (mode === 'target') {
     throw new Error('Use compressPdfToTarget() para o modo Por tamanho.')
   }
+  const { ghostscriptCompressWasm, qpdfOptimizeWasm } = await import('./wasmCompression')
   let selected: PresetCompressionMode = mode
-  let analysis: Awaited<ReturnType<typeof inspectPdf>> | null = null
+  let analysis: { pages:number; textChars:number; avgBytesPerPage:number; recommended: PresetCompressionMode } | null = null
   if (mode === 'smart') {
+    const { inspectPdf } = await import('./pdfPreview')
     analysis = await inspectPdf(file)
     selected = analysis.recommended
     const label = selected === 'basic' ? 'Básico' : selected === 'medium' ? 'Médio' : selected === 'high' ? 'Alto' : 'Máximo'
@@ -258,6 +225,7 @@ export async function compressPdfToTarget(
   targetMb: number,
   onProgress: ProgressFn,
 ) {
+  const { ghostscriptCompressWasm, qpdfOptimizeWasm } = await import('./wasmCompression')
   if (!Number.isFinite(targetMb) || targetMb <= 0) {
     throw new Error('Informe um tamanho alvo válido em MB.')
   }
@@ -269,6 +237,7 @@ export async function compressPdfToTarget(
   }
 
   onProgress(2, 'Analisando o PDF e calculando a meta…')
+  const { inspectPdf } = await import('./pdfPreview')
   const analysis = await inspectPdf(file)
   const original = new Uint8Array(await file.arrayBuffer())
   ensureValidPdfBytes(original, 'PDF original')
@@ -716,7 +685,7 @@ async function buildBookmarkSpecs(
       pageIndex += pages
     } finally {
       if (pdf) {
-        try { await pdf.destroy() } catch { /* best effort */ }
+        await destroyPdfJs(pdf)
       }
     }
 
@@ -737,6 +706,10 @@ async function addNavigationToMergedBlob(
   onProgress: ProgressFn,
   options: Required<Pick<MergeOptions, 'createBookmarks'|'createTableOfContents'|'tocTitle'|'bookmarkHierarchy'>>,
 ): Promise<{ blob: Blob; bookmarksCreated: number; bookmarkCategoriesCreated: number; tocPagesCreated: number; tocEntriesCreated: number }> {
+  const [{ addClickableTableOfContents }, { addPdfBookmarks, addPdfBookmarksHierarchical }] = await Promise.all([
+    import('./tableOfContents'),
+    import('./bookmarks'),
+  ])
   onProgress(92, 'Preparando índice e navegação…')
   await nextFrame()
 
@@ -806,6 +779,7 @@ export async function mergePdfs(files: File[], onProgress: ProgressFn, options: 
     const mappedProgress: ProgressFn = needsNavigation
       ? (value, message) => onProgress(Math.min(86, Math.round(value * 0.86)), message)
       : onProgress
+    const { mergeManyPdfs } = await import('./largeMerge')
     const result = await mergeManyPdfs(files, mappedProgress)
 
     if (!needsNavigation) {
@@ -879,13 +853,20 @@ export async function mergePdfs(files: File[], onProgress: ProgressFn, options: 
     await nextFrame()
   }
 
+  const navigationModules = needsNavigation
+    ? await Promise.all([import('./tableOfContents'), import('./bookmarks')])
+    : null
+  const addClickableTableOfContents = navigationModules?.[0].addClickableTableOfContents
+  const addPdfBookmarks = navigationModules?.[1].addPdfBookmarks
+  const addPdfBookmarksHierarchical = navigationModules?.[1].addPdfBookmarksHierarchical
+
   let shiftedSpecs = specs
   let tocPagesCreated = 0
   let tocEntriesCreated = 0
   if (createTableOfContents && specs.length > 0) {
     onProgress(86, 'Criando índice automático clicável…')
     await nextFrame()
-    const toc = await addClickableTableOfContents(out, specs, tocTitle)
+    const toc = await addClickableTableOfContents!(out, specs, tocTitle)
     shiftedSpecs = toc.shiftedSpecs
     tocPagesCreated = toc.pagesCreated
     tocEntriesCreated = toc.entriesCreated
@@ -899,11 +880,11 @@ export async function mergePdfs(files: File[], onProgress: ProgressFn, options: 
       ? [{ title: tocTitle, pageIndex: 0, root: true }, ...shiftedSpecs]
       : shiftedSpecs
     if (bookmarkHierarchy) {
-      const result = addPdfBookmarksHierarchical(out, bookmarkSpecs, true)
+      const result = addPdfBookmarksHierarchical!(out, bookmarkSpecs, true)
       bookmarksCreated = result.totalCreated
       bookmarkCategoriesCreated = result.categoryBookmarksCreated
     } else {
-      bookmarksCreated = addPdfBookmarks(out, bookmarkSpecs, true)
+      bookmarksCreated = addPdfBookmarks!(out, bookmarkSpecs, true)
     }
     await nextFrame()
   }
@@ -969,7 +950,7 @@ export async function extractPdfText(file: File, onProgress: ProgressFn) {
 }
 
 export async function pdfToImagesZip(file: File, format: 'jpeg'|'png', dpi: number, onProgress: ProgressFn) {
-  const pdf = await loadPdfJs(file)
+  const [{ default: JSZip }, pdf] = await Promise.all([import('jszip'), loadPdfJs(file)])
   const zip = new JSZip()
   for(let i=1;i<=pdf.numPages;i++) {
     const page = await pdf.getPage(i)
