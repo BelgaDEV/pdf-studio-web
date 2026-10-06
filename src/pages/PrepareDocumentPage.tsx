@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, CheckCircle2, Download, File, FileJson2, Fingerprint, Info, LockKeyhole, Search, ShieldCheck, Sparkles, UploadCloud, X } from 'lucide-react'
+import { ArrowLeft, Check, CheckCircle2, Download, File, FileJson2, Fingerprint, Info, LockKeyhole, Save, Search, ShieldCheck, Sparkles, UploadCloud, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { tools } from '../lib/tools'
 import { downloadBlob, humanSize, stem } from '../lib/files'
@@ -8,6 +8,7 @@ import { prepareDocument, type PrepareCompressionMode, type PrepareDocumentResul
 import type { BlankSensitivity, NumberPosition, PdfaVersion, WatermarkPosition } from '../lib/documentTools'
 import type { OcrLanguage } from '../lib/ocr'
 import { consumePreparePreset } from '../lib/tribunalPresets'
+import { consumePrepareWorkflow, saveWorkflowFromPrepare } from '../lib/workflows'
 import { createDocumentTrustReport, trustReportJsonBlob, trustReportPdfBlob, type DocumentTrustReport } from '../lib/trustReport'
 
 const orderedSteps: Array<{ key: PrepareStepKey; label: string }> = [
@@ -73,9 +74,15 @@ export default function PrepareDocumentPage() {
   const [pdfa, setPdfa] = useState(false)
   const [pdfaVersion, setPdfaVersion] = useState<PdfaVersion>(2)
   const [appliedPreset, setAppliedPreset] = useState<string|null>(null)
+  const [appliedWorkflow, setAppliedWorkflow] = useState<string|null>(null)
+  const [showWorkflowSave, setShowWorkflowSave] = useState(false)
+  const [workflowName, setWorkflowName] = useState('')
+  const [workflowSavedMessage, setWorkflowSavedMessage] = useState('')
 
   useEffect(() => {
-    const pending = consumePreparePreset()
+    const workflow = consumePrepareWorkflow()
+    const preset = workflow ? null : consumePreparePreset()
+    const pending = workflow || preset
     if (!pending) return
     const o = pending.settings
     setRemoveBlank(o.removeBlank)
@@ -100,8 +107,16 @@ export default function PrepareDocumentPage() {
     setPageNumberPrefix(o.pageNumberPrefix)
     setPdfa(o.pdfa)
     setPdfaVersion(o.pdfaVersion)
-    setAppliedPreset(`${pending.name} • ${pending.court}`)
-    setStatus(`Preset “${pending.name}” aplicado. Selecione o PDF e revise as etapas antes de executar.`)
+    if (workflow) {
+      setGenerateTrustReport(workflow.generateTrustReport)
+      setAppliedWorkflow(workflow.name)
+      setAppliedPreset(null)
+      setStatus(`Workflow “${workflow.name}” aplicado. Selecione o PDF e revise as etapas antes de executar.`)
+    } else if (preset) {
+      setAppliedPreset(`${preset.name} • ${preset.court}`)
+      setAppliedWorkflow(null)
+      setStatus(`Preset “${preset.name}” aplicado. Selecione o PDF e revise as etapas antes de executar.`)
+    }
   }, [])
 
   useEffect(() => {
@@ -139,37 +154,29 @@ export default function PrepareDocumentPage() {
     if (key === 'pdfa') setPdfa(value)
   }
 
+  function currentPrepareOptions() {
+    return {
+      removeBlank, blankSensitivity, compressionMode, targetMb, ocr, ocrLanguage, ocrDpi, ocrSkipPagesWithText: true,
+      removeMetadata, watermark, watermarkText, watermarkOpacity: watermarkOpacity / 100, watermarkFontSize: watermarkSize,
+      watermarkRotation, watermarkPosition, pageNumbers, pageNumberStart, pageNumberFontSize: pageNumberSize,
+      pageNumberPosition, pageNumberShowTotal, pageNumberPrefix, pdfa, pdfaVersion,
+    }
+  }
+
+  function saveCurrentWorkflow() {
+    const saved = saveWorkflowFromPrepare(workflowName || 'Meu workflow', currentPrepareOptions(), generateTrustReport)
+    setWorkflowName(saved.name)
+    setWorkflowSavedMessage(`Workflow “${saved.name}” salvo neste navegador.`)
+    setShowWorkflowSave(false)
+  }
+
   async function run() {
     if (!file || working || enabledCount === 0) return
     setWorking(true); setProgress(1); setError(''); setResult(null); setStepUi(freshStepState())
     setStatus(`Preparando fluxo com ${enabledCount} etapa(s)…`)
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
     try {
-      const prepareOptions = {
-        removeBlank,
-        blankSensitivity,
-        compressionMode,
-        targetMb,
-        ocr,
-        ocrLanguage,
-        ocrDpi,
-        ocrSkipPagesWithText: true,
-        removeMetadata,
-        watermark,
-        watermarkText,
-        watermarkOpacity: watermarkOpacity / 100,
-        watermarkFontSize: watermarkSize,
-        watermarkRotation,
-        watermarkPosition,
-        pageNumbers,
-        pageNumberStart,
-        pageNumberFontSize: pageNumberSize,
-        pageNumberPosition,
-        pageNumberShowTotal,
-        pageNumberPrefix,
-        pdfa,
-        pdfaVersion,
-      }
+      const prepareOptions = currentPrepareOptions()
       const prepared = await prepareDocument(file, prepareOptions, (overall, message, step, state) => {
         setProgress(overall)
         setStatus(message)
@@ -183,7 +190,7 @@ export default function PrepareDocumentPage() {
       if (generateTrustReport) {
         setStatus('Documento pronto. Calculando SHA-256 e gerando Document Trust Report…')
         try {
-          const report = await createDocumentTrustReport(file, prepared, prepareOptions, outputName, appliedPreset || undefined)
+          const report = await createDocumentTrustReport(file, prepared, prepareOptions, outputName, appliedPreset || (appliedWorkflow ? `Workflow: ${appliedWorkflow}` : undefined))
           setTrustReport(report)
           setStatus('Documento preparado, validado e acompanhado de Trust Report.')
         } catch (trustFailure) {
@@ -219,6 +226,14 @@ export default function PrepareDocumentPage() {
     </div>
 
     {appliedPreset && <div className="preset-applied-banner"><CheckCircle2 size={18}/><div><strong>Preset aplicado: {appliedPreset}</strong><span>As opções abaixo foram carregadas automaticamente. Revise antes de protocolar.</span></div><Link to="/tool/tribunal-presets" className="secondary-btn small">Trocar preset</Link></div>}
+    {appliedWorkflow && <div className="preset-applied-banner workflow-applied-banner"><Sparkles size={18}/><div><strong>Workflow aplicado: {appliedWorkflow}</strong><span>As etapas salvas foram carregadas. Selecione o PDF e execute quando estiver pronto.</span></div><Link to="/workflows" className="secondary-btn small">Trocar workflow</Link></div>}
+
+    <div className="prepare-workflow-toolbar">
+      <div><strong>Reutilizar esta configuração</strong><span>Salve as etapas atuais como workflow para usar novamente.</span></div>
+      <button type="button" className="secondary-btn small" onClick={()=>{setShowWorkflowSave(v=>!v);setWorkflowSavedMessage('')}}><Save size={15}/> Salvar como workflow</button>
+    </div>
+    {showWorkflowSave && <div className="prepare-workflow-save"><input className="text-input" value={workflowName} onChange={e=>setWorkflowName(e.target.value)} placeholder="Ex.: Protocolo cliente X" maxLength={70}/><button type="button" className="primary-btn small" onClick={saveCurrentWorkflow}><Save size={15}/> Salvar</button></div>}
+    {workflowSavedMessage && <div className="success-inline workflow-save-success"><CheckCircle2 size={16}/>{workflowSavedMessage}<Link to="/workflows">Gerenciar workflows</Link></div>}
 
     <div className="workspace-grid prepare-grid">
       <div className="workspace-card">

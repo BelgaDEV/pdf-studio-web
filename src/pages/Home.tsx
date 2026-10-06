@@ -1,8 +1,13 @@
-import { ArrowRight, CheckCircle2, HelpCircle, LockKeyhole, Map, ShieldCheck, UploadCloud, Zap } from 'lucide-react'
+import { ArrowRight, CheckCircle2, HelpCircle, LockKeyhole, Map, ShieldCheck, Star, UploadCloud, Zap } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { tools } from '../lib/tools'
+import { tools, type ToolId } from '../lib/tools'
+import { loadFavoriteToolIds, subscribeProductivity, toggleFavoriteTool } from '../lib/productivity'
 
 export default function Home(){
+  const [favorites,setFavorites]=useState<ToolId[]>(()=>loadFavoriteToolIds())
+  useEffect(()=>subscribeProductivity(()=>setFavorites(loadFavoriteToolIds())),[])
+  function toggleFavorite(id:ToolId){setFavorites(toggleFavoriteTool(id))}
   return <>
     <section className="hero">
       <div className="hero-copy">
@@ -25,9 +30,9 @@ export default function Home(){
 
     <section id="tools" className="section">
       <div className="section-head"><div><p className="kicker">FERRAMENTAS</p><h2>Tudo para trabalhar com PDFs</h2></div><p>Use o menu lateral para navegar rapidamente entre as ferramentas.</p></div>
-      <div className="tool-grid">{tools.map(t=>{const Icon=t.icon;return <Link to={`/tool/${t.id}`} className="tool-card" key={t.id}>
+      <div className="tool-grid">{tools.map(t=>{const Icon=t.icon;const favorite=favorites.includes(t.id);return <div className="tool-card-wrap" key={t.id}><Link to={`/tool/${t.id}`} className="tool-card">
         <div className="tool-icon" style={{background:t.color}}><Icon size={23}/></div><div><div className="tool-title-line"><h3>{t.title}</h3>{'badge' in t && <span className="new-badge">{t.badge}</span>}</div><p>{t.desc}</p></div><ArrowRight className="tool-arrow" size={20}/>
-      </Link>})}</div>
+      </Link><button type="button" className={`favorite-card-btn ${favorite?'active':''}`} onClick={()=>toggleFavorite(t.id)} title={favorite?'Remover dos favoritos':'Adicionar aos favoritos'} aria-label={favorite?`Remover ${t.title} dos favoritos`:`Adicionar ${t.title} aos favoritos`}><Star size={15} fill={favorite?'currentColor':'none'}/></button></div>})}</div>
     </section>
 
     <section className="product-help-section">

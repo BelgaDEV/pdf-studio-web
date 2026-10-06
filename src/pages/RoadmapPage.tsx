@@ -11,7 +11,9 @@ const releases = [
   {version:'v1.7',title:'Legal / Business',status:'done',items:['Preparar documento','Índice automático clicável','Bookmarks Pro hierárquicos','Redação permanente','Comparar PDFs','Presets Tribunal']},
   {version:'v1.8',title:'Document Trust',status:'done',items:['Document Trust Report','SHA-256 original/final','JSON verificável','Verificação posterior do PDF','Fingerprint de documentos']},
   {version:'v1.8.1–1.8.2',title:'Experiência e navegação',status:'done',items:['Correção do painel Preparar documento','Menu lateral global de acesso rápido','FAQ pesquisável','Roadmap dentro do produto']},
-  {version:'v1.8.3',title:'Layout Cleanup',status:'current',items:['Home mais compacta e conteúdo principal mais próximo do topo','Roadmap simplificado e focado no histórico do produto','Ajustes de navegação e apresentação para uma experiência mais limpa']},
+  {version:'v1.8.3–1.8.4',title:'Layout e identidade',status:'done',items:['Home e Roadmap mais compactos','Favicon, manifest, cartões sociais e títulos de página','Polimento de branding e navegação']},
+  {version:'v1.9',title:'Produtividade recorrente',status:'done',items:['Workflows salvos e modelos reutilizáveis','Favoritos no menu lateral','Ferramentas recentes sem armazenar nomes/conteúdo dos PDFs','Salvar a configuração atual do Preparar documento como workflow']},
+  {version:'v1.9.1',title:'Comparação Redline',status:'current',items:['Gerar PDF marcado a partir da comparação','Adições destacadas em azul','Remoções em vermelho tachado','Páginas adicionadas/removidas preservadas no documento de revisão','Alterações somente visuais sinalizadas em laranja']},
 ]
 
 const productPillars = [
@@ -22,7 +24,7 @@ const productPillars = [
 ]
 
 export default function RoadmapPage(){
-  const done=tools.length
+  const done=tools.length+1
   return <div className="info-page roadmap-page roadmap-page-clean">
     <section className="info-hero roadmap-hero">
       <div className="info-hero-icon"><Map size={28}/></div>
@@ -43,7 +45,7 @@ export default function RoadmapPage(){
     </section>
 
     <section className="roadmap-block roadmap-history">
-      <div className="section-head compact"><div><p className="kicker">EVOLUÇÃO</p><h2>Linha do tempo até a v1.8.3</h2></div></div>
+      <div className="section-head compact"><div><p className="kicker">EVOLUÇÃO</p><h2>Linha do tempo até a v1.9.1</h2></div></div>
       <div className="release-timeline">{releases.map(release=><article className={`release-card ${release.status}`} key={release.version}>
         <div className="release-marker">{release.status==='current'?<Clock3 size={17}/>:<CheckCircle2 size={17}/>}</div>
         <div className="release-copy"><div className="release-title"><span>{release.version}</span><h3>{release.title}</h3>{release.status==='current'&&<small>ATUAL</small>}</div><ul>{release.items.map(item=><li key={item}>{item}</li>)}</ul></div>

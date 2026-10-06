@@ -1,0 +1,14 @@
+PDF Studio Web v1.9.0 — Workflows Salvos + Favoritos + Recentes
+
+Validações executadas neste ambiente:
+- ZIP/base v1.8.4 materializada com sucesso.
+- 34 arquivos TS/TSX analisados pelo parser TypeScript 5.8.3.
+- 0 erros de sintaxe.
+- Rota /workflows presente.
+- Favoritos e Recentes integrados ao sidebar/Home.
+- Preparar documento consome workflows salvos.
+- Favicon/manifest da v1.8.4 preservados.
+- package.json atualizado para 1.9.0.
+
+Observação:
+O npm install foi tentado, mas expirou por timeout de rede neste ambiente e não deixou node_modules instalado. Portanto, execute `npm install` e `npm run build` no PC de homologação antes de publicar.

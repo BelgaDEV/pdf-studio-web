@@ -1,4 +1,21 @@
-# PDF Studio Web Client v1.8.4
+# PDF Studio Web Client v1.9.1
+
+
+## v1.9.1 — Comparar PDFs Redline
+
+O Comparar PDFs agora pode gerar um novo PDF marcado para revisão: adições são destacadas em azul, remoções aparecem em vermelho tachado em callouts, páginas adicionadas recebem borda azul, páginas removidas são mantidas com marcação vermelha e mudanças apenas visuais recebem sinalização laranja. O documento marcado preserva as páginas do PDF revisado e reinsere páginas removidas apenas para auditoria da comparação.
+
+
+## v1.9.0 — Workflows Salvos + Favoritos + Recentes
+
+- Nova página **Workflows salvos** em `/workflows`, com modelos prontos e workflows personalizados persistidos no navegador.
+- O usuário pode salvar a configuração atual de **Preparar documento** como workflow reutilizável.
+- Workflows podem combinar limpeza, compressão, OCR, remoção de metadados, marca d’água, numeração, PDF/A e Document Trust Report.
+- **Favoritos** no menu lateral para acesso rápido às ferramentas mais usadas.
+- **Recentes** mostra as últimas ferramentas abertas, sem armazenar nomes ou conteúdo dos documentos.
+- Home passa a exibir acesso rápido a Favoritos/Recentes e um atalho destacado para Workflows.
+
+Veja `FEATURE_WORKFLOWS_FAVORITOS_RECENTES_V1_9.md`.
 
 
 ## v1.8.4 — Layout Cleanup

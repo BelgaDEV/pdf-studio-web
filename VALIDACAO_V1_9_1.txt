@@ -1,0 +1,24 @@
+PDF Studio Web v1.9.1 — Comparar PDFs Redline
+
+Implementado:
+- Novo botão “Baixar PDF marcado” após a comparação.
+- PDF Redline baseado na versão revisada.
+- Conteúdo adicionado: destaque e sublinhado azul na posição detectada pelo PDF.js.
+- Conteúdo removido: callout vermelho com texto tachado.
+- Página adicionada: borda e selo azul.
+- Página removida: página original reinserida no Redline com borda, selo e diagonal vermelhos.
+- Alteração apenas visual: borda/selo laranja.
+- Relatório PDF tradicional preservado.
+- FAQ, Roadmap, descrição da ferramenta e versão atualizados.
+
+Validação estática:
+- 34 arquivos TS/TSX analisados pelo parser TypeScript.
+- 0 erros de sintaxe.
+
+Observação:
+PDF é um formato de layout fixo. Remoções não existem fisicamente na versão revisada, então são representadas por callouts vermelhos tachados para não deslocar o layout do documento. Em scans sem OCR, a marcação textual depende da camada de texto disponível; diferenças visuais continuam sendo detectadas quando essa opção está habilitada.
+
+Validação final recomendada no Windows:
+npm install
+npm run build
+npm run dev

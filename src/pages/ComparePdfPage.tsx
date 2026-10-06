@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { ArrowLeft, CheckCircle2, Download, File, Info, LockKeyhole, Search, UploadCloud, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { buildComparisonReportPdf, comparePdfFiles, renderPdfPageToCanvas, type CompareStatus, type PdfComparisonResult } from '../lib/pdfCompare'
+import { buildComparisonRedlinePdf, buildComparisonReportPdf, comparePdfFiles, renderPdfPageToCanvas, type CompareStatus, type PdfComparisonResult } from '../lib/pdfCompare'
 import { downloadBlob, humanSize, stem } from '../lib/files'
 
 type Slot='original'|'revised'
@@ -21,6 +21,8 @@ export default function ComparePdfPage(){
   const [selectedId,setSelectedId]=useState<string>('')
   const [filter,setFilter]=useState<Filter>('all')
   const [query,setQuery]=useState('')
+  const [redlineWorking,setRedlineWorking]=useState(false)
+  const [redlineStatus,setRedlineStatus]=useState('')
   const originalInput=useRef<HTMLInputElement|null>(null)
   const revisedInput=useRef<HTMLInputElement|null>(null)
   const originalCanvas=useRef<HTMLCanvasElement|null>(null)
@@ -95,6 +97,20 @@ export default function ComparePdfPage(){
     downloadBlob(new Blob([bytes.slice()],{type:'application/pdf'}),`comparacao_${baseOriginal}_vs_${baseRevised}.pdf`)
   }
 
+  async function downloadRedline(){
+    if(!result||!original||!revised||redlineWorking) return
+    setRedlineWorking(true);setError('');setRedlineStatus('Preparando PDF marcado…')
+    try{
+      const bytes=await buildComparisonRedlinePdf(original,revised,result,(value,message)=>{setRedlineStatus(`${message} ${value}%`)})
+      const baseOriginal=stem(result.original.fileName),baseRevised=stem(result.revised.fileName)
+      downloadBlob(new Blob([bytes.slice()],{type:'application/pdf'}),`redline_${baseOriginal}_vs_${baseRevised}.pdf`)
+      setRedlineStatus('PDF marcado gerado com sucesso.')
+    }catch(err){
+      const message=err instanceof Error?err.message:'Não foi possível gerar o PDF marcado.'
+      setError(message);setRedlineStatus(message)
+    }finally{setRedlineWorking(false)}
+  }
+
   function FileSlot({slot,file,title,subtitle}:{slot:Slot,file:File|null,title:string,subtitle:string}){
     const input=slot==='original'?originalInput:revisedInput
     return <div className={`compare-file-slot ${file?'has-file':''}`} onDragOver={e=>e.preventDefault()} onDrop={e=>onDrop(slot,e)} onClick={()=>!working&&input.current?.click()}>
@@ -112,7 +128,7 @@ export default function ComparePdfPage(){
   return <section className="tool-page compare-page">
     <div className="tool-page-head">
       <Link to="/" className="back-link"><ArrowLeft size={17}/> Voltar</Link>
-      <div className="tool-heading"><div className="tool-icon large" style={{background:'#5d7cff'}}><Search size={28}/></div><div><h1>Comparar PDFs</h1><p>Compare duas versões lado a lado, encontre páginas alteradas e gere um relatório das diferenças.</p></div></div>
+      <div className="tool-heading"><div className="tool-icon large" style={{background:'#5d7cff'}}><Search size={28}/></div><div><h1>Comparar PDFs</h1><p>Compare duas versões lado a lado, encontre alterações e gere um PDF Redline marcado.</p></div></div>
       <div className="local-pill"><LockKeyhole size={15}/> Processamento 100% local</div>
     </div>
 
@@ -148,12 +164,24 @@ export default function ComparePdfPage(){
         <div><span>Sem alteração</span><strong>{result.summary.unchanged}</strong></div>
       </div>
 
+      <div className="compare-redline-card workspace-card">
+        <div>
+          <strong>PDF Redline</strong>
+          <span>Gere uma nova cópia marcada: <b className="redline-blue-text">azul</b> para conteúdo adicionado, <b className="redline-red-text">vermelho tachado</b> para conteúdo removido e <b className="redline-amber-text">laranja</b> para alteração apenas visual.</span>
+        </div>
+        <button className="primary-btn redline-download-btn" type="button" onClick={downloadRedline} disabled={redlineWorking}>
+          <Download size={17}/>{redlineWorking?' Gerando PDF marcado…':' Baixar PDF marcado'}
+        </button>
+        {redlineStatus&&<small className="redline-status">{redlineStatus}</small>}
+      </div>
+
       <div className="compare-results-toolbar">
         <div className="compare-filters">
           {([['all','Todas'],['modified','Modificadas'],['added','Adicionadas'],['removed','Removidas']] as [Filter,string][]).map(([value,label])=><button key={value} type="button" className={filter===value?'active':''} onClick={()=>setFilter(value)}>{label}</button>)}
         </div>
         <div className="compare-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar nas diferenças…"/></div>
-        <button className="secondary-btn" type="button" onClick={downloadReport}><Download size={17}/> Baixar relatório PDF</button>
+        <button className="secondary-btn" type="button" onClick={downloadReport}><Download size={17}/> Relatório PDF</button>
+        <button className="secondary-btn redline-toolbar-btn" type="button" onClick={downloadRedline} disabled={redlineWorking}><Download size={17}/> {redlineWorking?'Gerando…':'PDF marcado'}</button>
       </div>
 
       <div className="compare-main-grid">

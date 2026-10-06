@@ -9,7 +9,7 @@ export const tools = [
   { id:'compress', title:'Comprimir PDF', desc:'Reduza o tamanho do PDF diretamente no navegador.', icon:Minimize2, color:'#ff5b66', category:'essential' },
   { id:'merge', title:'Mesclar PDF', desc:'Una PDFs com índice clicável e bookmarks Pro hierárquicos por categoria.', icon:Combine, color:'#8d5bff', badge:'LEGAL', category:'legal' },
   { id:'redact', title:'Redação permanente', desc:'Remova visualmente dados sensíveis sem deixar conteúdo recuperável por baixo da tarja.', icon:EyeOff, color:'#e44f62', badge:'LEGAL', category:'legal' },
-  { id:'compare', title:'Comparar PDFs', desc:'Compare duas versões lado a lado e gere um relatório das diferenças.', icon:Files, color:'#5d7cff', badge:'LEGAL', category:'legal' },
+  { id:'compare', title:'Comparar PDFs', desc:'Compare duas versões, gere relatório e um PDF Redline com alterações marcadas.', icon:Files, color:'#5d7cff', badge:'LEGAL', category:'legal' },
   { id:'watermark', title:'Marca d’água', desc:'Adicione texto de marca d’água a todas as páginas.', icon:Stamp, color:'#27c2a4', category:'document' },
   { id:'page-numbers', title:'Numeração de páginas', desc:'Numere páginas com posição e formato personalizados.', icon:ListOrdered, color:'#4da3ff', category:'document' },
   { id:'remove-blank', title:'Remover páginas em branco', desc:'Detecte e remova páginas vazias automaticamente.', icon:FileMinus2, color:'#ff9d4d', category:'document' },
