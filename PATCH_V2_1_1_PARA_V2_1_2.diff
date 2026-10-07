@@ -1,0 +1,240 @@
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/CRIAR_RELEASE_COMERCIAL.bat /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/CRIAR_RELEASE_COMERCIAL.bat
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/CRIAR_RELEASE_COMERCIAL.bat	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/CRIAR_RELEASE_COMERCIAL.bat	2026-10-07 12:22:24.401967239 +0000
+@@ -3,7 +3,7 @@
+ cd /d "%~dp0"
+ 
+ echo =============================================
+-echo   PDF Studio v2.1.1 - Release comercial
++echo   PDF Studio v2.1.2 - Release comercial
+ echo =============================================
+ 
+ echo [1/7] Instalando dependencias...
+@@ -41,7 +41,7 @@
+ if errorlevel 1 goto :erro
+ 
+ echo.
+-echo [OK] Release v2.1.1 aprovada pelo Quality Gate.
++echo [OK] Release v2.1.2 aprovada pelo Quality Gate.
+ echo Release pronta: release\PDFStudio_Commercial.zip
+ echo Relatorios: quality-results\
+ exit /b 0
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/HOTFIX_V2_1_2_QUALITY_GATE_SELF_TEST.md /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/HOTFIX_V2_1_2_QUALITY_GATE_SELF_TEST.md
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/HOTFIX_V2_1_2_QUALITY_GATE_SELF_TEST.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/HOTFIX_V2_1_2_QUALITY_GATE_SELF_TEST.md	2026-10-07 12:22:24.405291445 +0000
+@@ -0,0 +1,10 @@
++# PDF Studio v2.1.2 — Quality Gate Self-Test Hotfix
++
++## Problema
++A v2.1.1 corrigiu o uso de `import.meta.url` no Windows, porém o teste de wiring procurava no próprio arquivo pela string antiga proibida. Como a string aparecia dentro da própria asserção `not.toContain(...)`, o teste falhava mesmo com a implementação correta.
++
++## Correção
++O teste agora valida diretamente os caminhos nativos gerados por `process.cwd()` + `path.resolve()` e confirma que `package.json` e `tests/quality/browserHarness.ts` podem ser lidos, sem fazer busca autorreferente por texto.
++
++## Escopo
++Nenhum motor de PDF, OCR, Ghostscript, qpdf, segurança ou UI foi alterado.
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/INSTALAR_E_TESTAR.bat /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/INSTALAR_E_TESTAR.bat
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-07 12:22:24.402100063 +0000
+@@ -3,7 +3,7 @@
+ cd /d "%~dp0"
+ 
+ echo =============================================
+-echo   PDF Studio v2.1.1 - Quality Gate completo
++echo   PDF Studio v2.1.2 - Quality Gate completo
+ echo =============================================
+ 
+ where node >nul 2>nul
+@@ -69,7 +69,7 @@
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [OK] v2.1.1 Quality Gate completo: 10 fluxos criticos aprovados.
++echo [OK] v2.1.2 Quality Gate completo: 10 fluxos criticos aprovados.
+ echo Relatorios: quality-results\
+ echo.
+ echo Abrindo servidor local em http://localhost:5173
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/PATCH_V2_1_1_PARA_V2_1_2.diff /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/PATCH_V2_1_1_PARA_V2_1_2.diff
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/PATCH_V2_1_1_PARA_V2_1_2.diff	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/PATCH_V2_1_1_PARA_V2_1_2.diff	2026-10-07 12:22:24.592059253 +0000
+@@ -0,0 +1,56 @@
++diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/CRIAR_RELEASE_COMERCIAL.bat /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/CRIAR_RELEASE_COMERCIAL.bat
++--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/CRIAR_RELEASE_COMERCIAL.bat	2026-10-07 12:13:40.000000000 +0000
+++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/CRIAR_RELEASE_COMERCIAL.bat	2026-10-07 12:22:24.401967239 +0000
++@@ -3,7 +3,7 @@
++ cd /d "%~dp0"
++ 
++ echo =============================================
++-echo   PDF Studio v2.1.1 - Release comercial
+++echo   PDF Studio v2.1.2 - Release comercial
++ echo =============================================
++ 
++ echo [1/7] Instalando dependencias...
++@@ -41,7 +41,7 @@
++ if errorlevel 1 goto :erro
++ 
++ echo.
++-echo [OK] Release v2.1.1 aprovada pelo Quality Gate.
+++echo [OK] Release v2.1.2 aprovada pelo Quality Gate.
++ echo Release pronta: release\PDFStudio_Commercial.zip
++ echo Relatorios: quality-results\
++ exit /b 0
++diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/HOTFIX_V2_1_2_QUALITY_GATE_SELF_TEST.md /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/HOTFIX_V2_1_2_QUALITY_GATE_SELF_TEST.md
++--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/HOTFIX_V2_1_2_QUALITY_GATE_SELF_TEST.md	1970-01-01 00:00:00.000000000 +0000
+++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/HOTFIX_V2_1_2_QUALITY_GATE_SELF_TEST.md	2026-10-07 12:22:24.405291445 +0000
++@@ -0,0 +1,10 @@
+++# PDF Studio v2.1.2 — Quality Gate Self-Test Hotfix
+++
+++## Problema
+++A v2.1.1 corrigiu o uso de `import.meta.url` no Windows, porém o teste de wiring procurava no próprio arquivo pela string antiga proibida. Como a string aparecia dentro da própria asserção `not.toContain(...)`, o teste falhava mesmo com a implementação correta.
+++
+++## Correção
+++O teste agora valida diretamente os caminhos nativos gerados por `process.cwd()` + `path.resolve()` e confirma que `package.json` e `tests/quality/browserHarness.ts` podem ser lidos, sem fazer busca autorreferente por texto.
+++
+++## Escopo
+++Nenhum motor de PDF, OCR, Ghostscript, qpdf, segurança ou UI foi alterado.
++diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/INSTALAR_E_TESTAR.bat /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/INSTALAR_E_TESTAR.bat
++--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-07 12:13:40.000000000 +0000
+++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-07 12:22:24.402100063 +0000
++@@ -3,7 +3,7 @@
++ cd /d "%~dp0"
++ 
++ echo =============================================
++-echo   PDF Studio v2.1.1 - Quality Gate completo
+++echo   PDF Studio v2.1.2 - Quality Gate completo
++ echo =============================================
++ 
++ where node >nul 2>nul
++@@ -69,7 +69,7 @@
++ if errorlevel 1 goto fail
++ 
++ echo.
++-echo [OK] v2.1.1 Quality Gate completo: 10 fluxos criticos aprovados.
+++echo [OK] v2.1.2 Quality Gate completo: 10 fluxos criticos aprovados.
++ echo Relatorios: quality-results\
++ echo.
++ echo Abrindo servidor local em http://localhost:5173
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/QUALITY_GATE_V2_1.md /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/QUALITY_GATE_V2_1.md
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/QUALITY_GATE_V2_1.md	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/QUALITY_GATE_V2_1.md	2026-10-07 12:22:24.402159633 +0000
+@@ -1,4 +1,4 @@
+-# PDF Studio v2.1.1 — Quality Gate
++# PDF Studio v2.1.2 — Quality Gate
+ 
+ A v2.1 muda o critério de release: não basta a função retornar sem exceção. Os fluxos críticos processam um documento representativo, geram uma saída e a saída é reaberta/inspecionada.
+ 
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/README.md /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/README.md
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/README.md	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/README.md	2026-10-07 12:22:24.402209191 +0000
+@@ -1,6 +1,6 @@
+-# PDF Studio v2.1.1
++# PDF Studio v2.1.2
+ 
+-Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.1.1 adiciona um Quality Gate de integração no navegador: as funções críticas processam fixtures fictícias determinísticas, o arquivo gerado é reaberto e propriedades essenciais são verificadas antes de uma release.
++Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.1.2 adiciona um Quality Gate de integração no navegador: as funções críticas processam fixtures fictícias determinísticas, o arquivo gerado é reaberto e propriedades essenciais são verificadas antes de uma release.
+ 
+ ## Desenvolvimento
+ 
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/VALIDAR_SEGURANCA.bat /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/VALIDAR_SEGURANCA.bat
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/VALIDAR_SEGURANCA.bat	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/VALIDAR_SEGURANCA.bat	2026-10-07 12:22:24.403841299 +0000
+@@ -2,7 +2,7 @@
+ setlocal
+ cd /d "%~dp0"
+ echo =============================================
+-echo   PDF Studio v2.1.1 - Security Gate
++echo   PDF Studio v2.1.2 - Security Gate
+ echo =============================================
+ if not exist node_modules (
+   echo Instalando dependencias...
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/VALIDATION_V2_1.md /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/VALIDATION_V2_1.md
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/VALIDATION_V2_1.md	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/VALIDATION_V2_1.md	2026-10-07 12:22:24.403530151 +0000
+@@ -1,4 +1,4 @@
+-# PDF Studio v2.1.1 — Validation
++# PDF Studio v2.1.2 — Validation
+ 
+ ## Mudanças de qualidade
+ 
+@@ -40,6 +40,6 @@
+ 
+ - 60 arquivos TS/TSX do repositório interno: transpile/sintaxe sem erros;
+ - 45 arquivos TS/TSX do Commercial Source: transpile/sintaxe sem erros;
+-- `package.json` válido e versão centralizada em 2.1.1;
++- `package.json` válido e versão centralizada em 2.1.2;
+ - os 10 casos estão registrados no browser harness;
+ - o ambiente de geração não conseguiu concluir `npm install` por indisponibilidade do registry, portanto a execução real de Chromium/Ghostscript/qpdf/Tesseract deve ser feita pelo `INSTALAR_E_TESTAR.bat` na máquina de validação antes do deploy.
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/VERSAO.txt /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/VERSAO.txt
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/VERSAO.txt	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/VERSAO.txt	2026-10-07 12:22:24.402320778 +0000
+@@ -1 +1 @@
+-2.1.1
++2.1.2
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/package.json /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/package.json
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/package.json	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/package.json	2026-10-07 12:22:24.402831062 +0000
+@@ -1,7 +1,7 @@
+ {
+   "name": "pdf-studio-web-client",
+   "private": true,
+-  "version": "2.1.1",
++  "version": "2.1.2",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/src/lib/appMeta.ts /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/src/lib/appMeta.ts
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/src/lib/appMeta.ts	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/src/lib/appMeta.ts	2026-10-07 12:22:24.403289962 +0000
+@@ -1,5 +1,5 @@
+ export const APP_NAME = 'PDF Studio'
+-export const APP_VERSION = '2.1.1'
++export const APP_VERSION = '2.1.2'
+ export const APP_TAGLINE = 'Automação documental privada'
+ 
+ export const APP_META = {
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/tests/public-polish.test.ts /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/tests/public-polish.test.ts
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/tests/public-polish.test.ts	2026-10-07 12:13:40.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/tests/public-polish.test.ts	2026-10-07 12:22:24.402286767 +0000
+@@ -6,7 +6,7 @@
+ 
+ describe('v2.0.9 public polish', () => {
+   it('publishes the current version consistently in public copy', () => {
+-    expect(APP_VERSION).toBe('2.1.1')
++    expect(APP_VERSION).toBe('2.1.2')
+     const faq=read('src/pages/FaqPage.tsx')
+     const roadmap=read('src/pages/RoadmapPage.tsx')
+     expect(faq).not.toContain('v1.9.1')
+diff -ruN /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/tests/quality-gate.test.ts /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/tests/quality-gate.test.ts
+--- /mnt/data/pdfstudio_v212/orig211/PDFStudio_Web_Client_v2_1_1_INTERNAL/tests/quality-gate.test.ts	2026-10-07 12:13:39.000000000 +0000
++++ /mnt/data/pdfstudio_v212/int/PDFStudio_Web_Client_v2_1_1_INTERNAL/tests/quality-gate.test.ts	2026-10-07 12:22:24.404041637 +0000
+@@ -11,9 +11,9 @@
+ const harness = readFileSync(resolve(projectRoot, 'tests', 'quality', 'browserHarness.ts'), 'utf8')
+ 
+ describe('v2.1 Quality Gate wiring', () => {
+-  it('centraliza a versão 2.1.1', () => {
+-    expect(APP_VERSION).toBe('2.1.1')
+-    expect(pkg.version).toBe('2.1.1')
++  it('centraliza a versão 2.1.2', () => {
++    expect(APP_VERSION).toBe('2.1.2')
++    expect(pkg.version).toBe('2.1.2')
+   })
+ 
+   it('registra os 10 fluxos críticos no harness real de navegador', () => {
+@@ -28,9 +28,13 @@
+     expect(pkg.scripts['quality:gate:full']).toContain('test:quality:ocr')
+   })
+ 
+-  it('usa caminhos nativos no wiring test para funcionar no Windows', () => {
+-    const source = readFileSync(resolve(projectRoot, 'tests', 'quality-gate.test.ts'), 'utf8')
+-    expect(source).toContain("resolve(projectRoot, 'package.json')")
+-    expect(source).not.toContain("new URL('../package.json', import.meta.url)")
++  it('resolve arquivos do Quality Gate por caminhos nativos no Windows e CI', () => {
++    const packagePath = resolve(projectRoot, 'package.json')
++    const harnessPath = resolve(projectRoot, 'tests', 'quality', 'browserHarness.ts')
++
++    expect(packagePath).toMatch(/package\.json$/i)
++    expect(harnessPath).toMatch(/browserHarness\.ts$/i)
++    expect(() => readFileSync(packagePath, 'utf8')).not.toThrow()
++    expect(() => readFileSync(harnessPath, 'utf8')).not.toThrow()
+   })
+ })

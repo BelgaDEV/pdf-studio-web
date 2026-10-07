@@ -1,11 +1,12 @@
 import { HelpCircle, Search, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { APP_VERSION } from '../lib/appMeta'
 
 const faq = [
   {cat:'Privacidade',q:'Meus PDFs são enviados para algum servidor?',a:'Nas ferramentas locais do PDF Studio, o arquivo é processado no próprio navegador. O objetivo do projeto é manter o documento no dispositivo do usuário. Recursos futuros que eventualmente precisem de nuvem devem ser identificados de forma explícita antes do processamento.'},
   {cat:'Privacidade',q:'O PDF Studio armazena meus documentos?',a:'Não há banco ou bucket de documentos no fluxo atual. Arquivos e resultados ficam na memória ou no armazenamento temporário do navegador durante a operação e o resultado é baixado para o dispositivo.'},
   {cat:'Automação',q:'O que são Workflows salvos?',a:'São configurações reutilizáveis do Preparar documento. Você escolhe etapas como OCR, compressão, limpeza, numeração, PDF/A e Trust Report, salva com um nome e reaplica o mesmo padrão em novos PDFs.'},
-  {cat:'Automação',q:'Workflows, favoritos e recentes são enviados para um servidor?',a:'Não. Na v1.9 eles ficam no localStorage do próprio navegador. O histórico recente registra somente o identificador da ferramenta usada; não guarda nome nem conteúdo dos PDFs.'},
+  {cat:'Automação',q:'Workflows, favoritos e recentes são enviados para um servidor?',a:'Não. Na versão atual eles ficam no localStorage do próprio navegador. O histórico recente registra somente o identificador da ferramenta usada; não guarda nome nem conteúdo dos PDFs.'},
   {cat:'Ajuda',q:'Como adiciono uma ferramenta aos Favoritos?',a:'No menu lateral do desktop, clique na estrela ao lado da ferramenta. Os favoritos aparecem no topo do menu e também na área de acesso rápido da Home.'},
   {cat:'Compressão',q:'Qual a diferença entre Básico, Médio, Alto, Máximo e Inteligente?',a:'Básico prioriza preservação de estrutura. Médio, Alto e Máximo aumentam a redução e podem recorrer a recompressão/rasterização. Inteligente analisa o documento e escolhe um perfil. Para controle direto, use “Por tamanho”.'},
   {cat:'Compressão',q:'“Comprimir para X MB” garante exatamente o tamanho escolhido?',a:'Não. O app busca chegar abaixo ou o mais próximo possível da meta sem produzir um PDF inválido. Alguns documentos já estão muito otimizados e podem não atingir um alvo agressivo sem perda grande de qualidade.'},
@@ -16,7 +17,7 @@ const faq = [
   {cat:'OCR',q:'Devo aplicar OCR em PDFs que já têm texto?',a:'Normalmente não. A opção de pular páginas que já têm texto reduz tempo e evita processamento desnecessário. OCR é mais útil em scans ou PDFs mistos.'},
   {cat:'Legal / Business',q:'A redação permanente é apenas uma tarja preta?',a:'Não. Nas páginas redigidas, a versão atual renderiza a página já com a área ocultada e reconstrói a página sem carregar por baixo a camada original de texto. Isso é mais seguro do que desenhar um retângulo sobre conteúdo existente.'},
   {cat:'Legal / Business',q:'Por que páginas redigidas podem perder texto selecionável?',a:'Porque a segurança da redação permanente atual vem da rasterização das páginas afetadas. As páginas não redigidas continuam preservadas normalmente.'},
-  {cat:'Legal / Business',q:'Como funciona Comparar PDFs?',a:'A ferramenta tenta alinhar páginas, compara texto e, opcionalmente, diferenças visuais. Além do relatório, a v1.9.1 gera um PDF Redline: adições são marcadas em azul, remoções aparecem em vermelho tachado e alterações apenas visuais recebem marcação laranja. Não é uma perícia forense.'},
+  {cat:'Legal / Business',q:'Como funciona Comparar PDFs?',a:'A ferramenta tenta alinhar páginas, compara texto e, opcionalmente, diferenças visuais. Além do relatório, a versão atual gera um PDF Redline: adições são marcadas em azul, remoções aparecem em vermelho tachado e alterações apenas visuais recebem marcação laranja. Não é uma perícia forense.'},
   {cat:'Legal / Business',q:'O que é Preparar documento?',a:'É um pipeline que encadeia várias ferramentas: páginas em branco, compressão, OCR, metadados, marca d’água, numeração e PDF/A. O resultado final passa de uma etapa para a próxima sem downloads intermediários.'},
   {cat:'Tribunal',q:'Os Presets Tribunal garantem aceitação do arquivo?',a:'Não. Presets são referências e automações configuráveis. Limites e regras podem mudar por tribunal, instalação, classe ou sistema. O usuário deve confirmar a regra atual do destino antes do protocolo.'},
   {cat:'Trust Report',q:'O que é Document Trust Report?',a:'É um registro técnico do processamento contendo SHA-256, tamanhos, páginas, etapas e validações. O JSON verificável permite conferir posteriormente se o PDF final corresponde exatamente ao arquivo registrado.'},
@@ -46,7 +47,7 @@ export default function FaqPage(){
     </section>
     <div className="info-search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar: OCR, mesclar, PDF/A, Trust Report..."/></div>
     <div className="faq-chips">{categories.map(value=><button key={value} className={cat===value?'active':''} onClick={()=>setCat(value)}>{value}</button>)}</div>
-    <div className="faq-meta"><ShieldCheck size={16}/><span>{filtered.length} resposta(s) • conteúdo focado no comportamento atual da v1.9.1</span></div>
+    <div className="faq-meta"><ShieldCheck size={16}/><span>{filtered.length} resposta(s) • conteúdo focado no comportamento atual da v{APP_VERSION}</span></div>
     <section className="faq-list">
       {filtered.map((item,index)=><details key={`${item.cat}-${index}`} className="faq-item">
         <summary><span>{item.q}</span><small>{item.cat}</small></summary>

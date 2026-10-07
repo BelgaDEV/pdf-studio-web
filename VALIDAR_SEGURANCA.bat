@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 echo =============================================
-echo   PDF Studio v2.0.8 - Security Gate
+echo   PDF Studio v2.1.2 - Security Gate
 echo =============================================
 if not exist node_modules (
   echo Instalando dependencias...

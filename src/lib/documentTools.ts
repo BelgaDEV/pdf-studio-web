@@ -461,7 +461,12 @@ export async function convertToPdfA(
     onProgress(94, 'Validando estrutura do PDF gerado…')
     const out = resultBytes(result, `PDF/A-${version}b`)
     const check = await loadPdfJs(out)
-    if (check.numPages < 1) throw new Error('O PDF/A gerado não possui páginas.')
+    try {
+      if (check.numPages < 1) throw new Error('O PDF/A gerado não possui páginas.')
+    } finally {
+      const { destroyPdfJsDocument } = await import('./pdfjsSecure')
+      await destroyPdfJsDocument(check)
+    }
     onProgress(100, `PDF/A-${version}b criado.`)
     return out
   } finally { gs.dispose() }

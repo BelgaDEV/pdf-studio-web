@@ -1,0 +1,38 @@
+--- /mnt/data/pdfstudio_v211/old_quality_gate_test.ts	2026-10-07 12:13:39.333228906 +0000
++++ /mnt/data/pdfstudio_v211/proj/PDFStudio_Web_Client_v2_1_0_INTERNAL/tests/quality-gate.test.ts	2026-10-07 12:13:39.335556591 +0000
+@@ -1,14 +1,19 @@
+ import { describe, expect, it } from 'vitest'
+ import { readFileSync } from 'node:fs'
++import { resolve } from 'node:path'
+ import { APP_VERSION } from '../src/lib/appMeta'
+ 
+-const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+-const harness = readFileSync(new URL('./quality/browserHarness.ts', import.meta.url), 'utf8')
++// Vitest/Vite can transform import.meta.url into a non-file URL on Windows.
++// npm scripts and CI execute from the repository root, so cwd + path.resolve
++// gives us a native Windows/Linux path without depending on URL schemes.
++const projectRoot = process.cwd()
++const pkg = JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8'))
++const harness = readFileSync(resolve(projectRoot, 'tests', 'quality', 'browserHarness.ts'), 'utf8')
+ 
+ describe('v2.1 Quality Gate wiring', () => {
+-  it('centraliza a versão 2.1.0', () => {
+-    expect(APP_VERSION).toBe('2.1.0')
+-    expect(pkg.version).toBe('2.1.0')
++  it('centraliza a versão 2.1.1', () => {
++    expect(APP_VERSION).toBe('2.1.1')
++    expect(pkg.version).toBe('2.1.1')
+   })
+ 
+   it('registra os 10 fluxos críticos no harness real de navegador', () => {
+@@ -22,4 +27,10 @@
+     expect(pkg.scripts['test:quality:ocr']).toContain('[online')
+     expect(pkg.scripts['quality:gate:full']).toContain('test:quality:ocr')
+   })
++
++  it('usa caminhos nativos no wiring test para funcionar no Windows', () => {
++    const source = readFileSync(resolve(projectRoot, 'tests', 'quality-gate.test.ts'), 'utf8')
++    expect(source).toContain("resolve(projectRoot, 'package.json')")
++    expect(source).not.toContain("new URL('../package.json', import.meta.url)")
++  })
+ })

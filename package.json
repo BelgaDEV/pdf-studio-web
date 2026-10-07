@@ -1,7 +1,7 @@
 {
   "name": "pdf-studio-web-client",
   "private": true,
-  "version": "2.0.8",
+  "version": "2.1.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,13 @@
     "security:prod": "npm audit --omit=dev --audit-level=high",
     "security:all": "npm audit --audit-level=high",
     "performance:bundle": "node scripts/analyze-bundle.mjs",
-    "build:analyze": "npm run build && npm run performance:bundle"
+    "build:analyze": "npm run build && npm run performance:bundle",
+    "test:quality": "playwright test -c playwright.quality.config.ts --grep \"\\[core\\]\"",
+    "test:quality:ocr": "playwright test -c playwright.quality.config.ts --grep \"\\[online\\]\"",
+    "test:quality:full": "playwright test -c playwright.quality.config.ts",
+    "quality:gate": "npm run check && npm run test && npm run test:pdf && npm run test:quality && npm run build && npm run performance:bundle",
+    "quality:gate:full": "npm run quality:gate && npm run test:quality:ocr",
+    "quality:install": "playwright install chromium"
   },
   "dependencies": {
     "@wasm-zoo/ghostscript": "^0.7.2",

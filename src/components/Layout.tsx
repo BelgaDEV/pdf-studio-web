@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { tools, type ToolCategory, type ToolId } from '../lib/tools'
 import { loadFavoriteToolIds, loadRecentToolIds, recordRecentTool, subscribeProductivity, toggleFavoriteTool } from '../lib/productivity'
-import { APP_VERSION } from '../lib/appMeta'
+import { APP_META, APP_NAME, APP_VERSION } from '../lib/appMeta'
 
 const groups: { id:ToolCategory; title:string }[] = [
   { id:'legal', title:'Legal & Business' },
@@ -63,16 +63,30 @@ export default function Layout(){
 
   useEffect(()=>{
     const path=location.pathname
-    let title='PDF Studio — automação documental privada'
-    if(path==='/faq') title='FAQ e Ajuda — PDF Studio'
-    else if(path==='/roadmap') title='Roadmap — PDF Studio'
-    else if(path==='/workflows') title='Workflows salvos — PDF Studio'
+    let meta: {title:string;description:string} = APP_META.home
+    if(path==='/faq') meta=APP_META.faq
+    else if(path==='/roadmap') meta=APP_META.roadmap
+    else if(path==='/workflows') meta=APP_META.workflows
+    else if(path==='/privacy') meta=APP_META.privacy
+    else if(path==='/terms') meta=APP_META.terms
+    else if(path==='/licenses') meta=APP_META.licenses
+    else if(path==='/contact') meta=APP_META.contact
     else if(path.startsWith('/tool/')){
       const id=path.split('/').filter(Boolean).pop()
       const tool=tools.find(t=>t.id===id)
-      if(tool) title=`${tool.title} — PDF Studio`
+      meta=tool
+        ? {title:`${tool.title} — ${APP_NAME}`,description:tool.desc}
+        : APP_META.notFound
+    } else if(path!=='/') meta=APP_META.notFound
+
+    document.title=meta.title
+    let description=document.querySelector('meta[name="description"]')
+    if(!description){
+      description=document.createElement('meta')
+      description.setAttribute('name','description')
+      document.head.appendChild(description)
     }
-    document.title=title
+    description.setAttribute('content',meta.description)
   },[location.pathname])
 
   useEffect(()=>subscribeProductivity(()=>{setFavorites(loadFavoriteToolIds());setRecents(loadRecentToolIds())}),[])
@@ -206,7 +220,7 @@ export default function Layout(){
     </div>}
     <main className="app-main"><Outlet/></main>
     <footer className="footer">
-      <div><div className="brand footer-brand"><span className="brand-mark">P</span><span>PDF Studio</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p></div>
+      <div className="footer-identity"><div className="brand footer-brand"><span className="brand-mark">P</span><span>PDF Studio</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p><nav className="footer-links" aria-label="Informações públicas"><Link to="/privacy">Privacidade</Link><Link to="/terms">Termos</Link><Link to="/licenses">Licenças</Link><Link to="/contact">Contato</Link><Link to="/faq">Ajuda</Link></nav></div>
       <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span><span>v{APP_VERSION}</span></div>
     </footer>
   </div>

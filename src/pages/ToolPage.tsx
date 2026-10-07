@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState, type DragEvent } 
 import { useParams, Link } from 'react-router-dom'
 import { ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Download, File, GripVertical, Info, LockKeyhole, UploadCloud, X } from 'lucide-react'
 import { tools, type ToolId } from '../lib/tools'
+import NotFoundPage from './NotFoundPage'
 import { downloadBlob, humanSize, stem } from '../lib/files'
 
 type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'|'target'
@@ -27,6 +28,9 @@ function ToolFallback(){
 
 export default function ToolPage(){
   const { id } = useParams()
+  const knownTool = id ? tools.some(tool => tool.id === id) : false
+  if(!knownTool) return <NotFoundPage/>
+
   let content
   if(id==='prepare-document') content=<PrepareDocumentPage/>
   else if(id==='redact') content=<RedactionPage/>
@@ -44,7 +48,7 @@ export default function ToolPage(){
 
 function ClassicToolPage(){
   const { id } = useParams()
-  const tool = tools.find(t=>t.id===id) || tools[0]
+  const tool = tools.find(t=>t.id===id)! // ToolPage já validou o id antes de renderizar esta rota
   const toolId = tool.id as ToolId
   const [files,setFiles] = useState<File[]>([])
   const [progress,setProgress] = useState(0)

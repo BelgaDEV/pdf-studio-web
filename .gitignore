@@ -8,3 +8,6 @@ playwright-report/
 test-results/
 coverage/
 *.tsbuildinfo
+quality-results/
+tests/fixtures/private/*
+!tests/fixtures/private/.gitkeep

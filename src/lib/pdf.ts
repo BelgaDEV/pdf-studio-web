@@ -45,8 +45,12 @@ function ensureValidPdfBytes(bytes: Uint8Array, label = 'PDF gerado'): Uint8Arra
 
 async function ensurePdfPageCount(bytes: Uint8Array, expectedPages: number): Promise<void> {
   const pdf = await loadPdfJs(bytes)
-  if (pdf.numPages !== expectedPages) {
-    throw new Error(`Validação falhou: o original tem ${expectedPages} páginas e o resultado tem ${pdf.numPages}. O download foi bloqueado.`)
+  try {
+    if (pdf.numPages !== expectedPages) {
+      throw new Error(`Validação falhou: o original tem ${expectedPages} páginas e o resultado tem ${pdf.numPages}. O download foi bloqueado.`)
+    }
+  } finally {
+    await destroyPdfJs(pdf)
   }
 }
 
@@ -938,15 +942,19 @@ export async function splitPdfBySize(file: File, maxMb: number, onProgress: Prog
 
 export async function extractPdfText(file: File, onProgress: ProgressFn) {
   const pdf = await loadPdfJs(file)
-  const pages: string[] = []
-  for(let i=1;i<=pdf.numPages;i++) {
-    const page = await pdf.getPage(i)
-    const content = await page.getTextContent()
-    const text = content.items.map((x:any)=>('str' in x ? x.str : '')).join(' ')
-    pages.push(text)
-    onProgress(Math.round(i/pdf.numPages*100), `Extraindo texto: página ${i}/${pdf.numPages}`)
+  try {
+    const pages: string[] = []
+    for(let i=1;i<=pdf.numPages;i++) {
+      const page = await pdf.getPage(i)
+      const content = await page.getTextContent()
+      const text = content.items.map((x:any)=>('str' in x ? x.str : '')).join(' ')
+      pages.push(text)
+      onProgress(Math.round(i/pdf.numPages*100), `Extraindo texto: página ${i}/${pdf.numPages}`)
+    }
+    return pages
+  } finally {
+    await destroyPdfJs(pdf)
   }
-  return pages
 }
 
 export async function pdfToImagesZip(file: File, format: 'jpeg'|'png', dpi: number, onProgress: ProgressFn) {

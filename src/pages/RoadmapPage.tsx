@@ -1,19 +1,16 @@
 import { CheckCircle2, Clock3, Map, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { APP_VERSION } from '../lib/appMeta'
 import { tools } from '../lib/tools'
 
 const releases = [
-  {version:'v1.0',title:'Base web local-first',status:'done',items:['React + Vite + Cloudflare Static Assets','Compressão, mesclagem, divisão e conversões básicas','Processamento no navegador, sem backend de documentos']},
-  {version:'v1.1–1.3',title:'Compressão profissional',status:'done',items:['Ghostscript/qpdf WebAssembly','Fallback adaptativo','Comprimir para X MB','Proteções contra PDF vazio/inválido']},
-  {version:'v1.3.1–1.4',title:'Organização e produtividade',status:'done',items:['Ordenação drag-and-drop na mesclagem','Organizador visual de páginas','Editor básico de páginas','OCR pesquisável','Processamento em lote']},
-  {version:'v1.5',title:'Navegação documental',status:'done',items:['Bookmarks automáticos pelo nome do arquivo','Preparação da base para documentos compostos']},
-  {version:'v1.6',title:'Document Tools',status:'done',items:['Marca d’água','Numeração de páginas','Remover páginas em branco','Remover metadados','Proteger com senha','Extrair imagens','PDF → PDF/A']},
-  {version:'v1.7',title:'Legal / Business',status:'done',items:['Preparar documento','Índice automático clicável','Bookmarks Pro hierárquicos','Redação permanente','Comparar PDFs','Presets Tribunal']},
-  {version:'v1.8',title:'Document Trust',status:'done',items:['Document Trust Report','SHA-256 original/final','JSON verificável','Verificação posterior do PDF','Fingerprint de documentos']},
-  {version:'v1.8.1–1.8.2',title:'Experiência e navegação',status:'done',items:['Correção do painel Preparar documento','Menu lateral global de acesso rápido','FAQ pesquisável','Roadmap dentro do produto']},
-  {version:'v1.8.3–1.8.4',title:'Layout e identidade',status:'done',items:['Home e Roadmap mais compactos','Favicon, manifest, cartões sociais e títulos de página','Polimento de branding e navegação']},
-  {version:'v1.9',title:'Produtividade recorrente',status:'done',items:['Workflows salvos e modelos reutilizáveis','Favoritos no menu lateral','Ferramentas recentes sem armazenar nomes/conteúdo dos PDFs','Salvar a configuração atual do Preparar documento como workflow']},
-  {version:'v1.9.1',title:'Comparação Redline',status:'current',items:['Gerar PDF marcado a partir da comparação','Adições destacadas em azul','Remoções em vermelho tachado','Páginas adicionadas/removidas preservadas no documento de revisão','Alterações somente visuais sinalizadas em laranja']},
+  {version:'v1.0–1.4',title:'Base web e ferramentas essenciais',status:'done',items:['React + Vite + processamento local-first','Compressão, mesclagem, divisão, conversões e OCR','Ghostscript/qpdf WebAssembly e organização visual de páginas']},
+  {version:'v1.5–1.9.1',title:'Produtividade e Legal / Business',status:'done',items:['Bookmarks, índice e Document Tools','Redação permanente, Comparar PDFs e Presets Tribunal','Trust Report, workflows, favoritos, recentes e Redline']},
+  {version:'v2.0–2.0.4',title:'Experiência comercial',status:'done',items:['Landing premium com ferramentas primeiro','Mega menu e navegação simplificada','Pacote interno/comercial separado e correções de navegação']},
+  {version:'v2.0.5–2.0.7',title:'Security Hardening e qualidade',status:'done',items:['Atualização do PDF.js e jsPDF','CSP, sanitização HTML e loaders seguros','TypeScript, testes de segurança e regressão PDF verdes']},
+  {version:'v2.0.8',title:'Performance / Lazy Loading',status:'done',items:['Code splitting de rotas e ferramentas','Motores pesados carregados somente sob demanda','Payload inicial validado em aproximadamente 0,39 MB sem gzip']},
+  {version:'v2.0.9',title:'Public Polish',status:'done',items:['404 real e tratamento global de falhas','Páginas públicas de Privacidade, Termos, Licenças e Contato','Versão centralizada, textos públicos coerentes e cache de assets versionados']},
+  {version:`v${APP_VERSION}`,title:'Quality Gate',status:'current',items:['Fixtures fictícias determinísticas e reabertura dos arquivos gerados','9 fluxos críticos validados no navegador + OCR real em gate completo','Relatórios Playwright, CI e validação de Ghostscript/qpdf/PDF.js/Word']},
 ]
 
 const productPillars = [
@@ -28,7 +25,7 @@ export default function RoadmapPage(){
   return <div className="info-page roadmap-page roadmap-page-clean">
     <section className="info-hero roadmap-hero">
       <div className="info-hero-icon"><Map size={28}/></div>
-      <div><p className="kicker">MAPA DO PRODUTO</p><h1>Roadmap do PDF Studio</h1><p>Uma visão limpa da evolução do produto e das principais entregas incorporadas ao PDF Studio até a versão atual.</p></div>
+      <div><p className="kicker">MAPA DO PRODUTO</p><h1>Roadmap do PDF Studio</h1><p>Uma visão limpa da evolução do produto e das principais entregas incorporadas até a versão atual v{APP_VERSION}.</p></div>
     </section>
 
     <section className="roadmap-kpis">
@@ -45,7 +42,7 @@ export default function RoadmapPage(){
     </section>
 
     <section className="roadmap-block roadmap-history">
-      <div className="section-head compact"><div><p className="kicker">EVOLUÇÃO</p><h2>Linha do tempo até a v1.9.1</h2></div></div>
+      <div className="section-head compact"><div><p className="kicker">EVOLUÇÃO</p><h2>Linha do tempo até a v{APP_VERSION}</h2></div></div>
       <div className="release-timeline">{releases.map(release=><article className={`release-card ${release.status}`} key={release.version}>
         <div className="release-marker">{release.status==='current'?<Clock3 size={17}/>:<CheckCircle2 size={17}/>}</div>
         <div className="release-copy"><div className="release-title"><span>{release.version}</span><h3>{release.title}</h3>{release.status==='current'&&<small>ATUAL</small>}</div><ul>{release.items.map(item=><li key={item}>{item}</li>)}</ul></div>

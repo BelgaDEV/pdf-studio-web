@@ -33,7 +33,7 @@ test('landing preserves privacy, redline and commercial sections', async ({ page
 
   await expect(page.locator('#legal-redline')).toContainText('Veja o que mudou')
   await expect(page.locator('#privacidade')).toContainText('Seu documento não precisa viajar')
-  await expect(page.locator('#planos')).toContainText('PRO LEGAL')
+  await expect(page.locator('#planos')).toContainText('PROFISSIONAL')
 })
 
 
@@ -57,4 +57,19 @@ test('mega-menu descriptions are readable and can wrap to two lines', async ({ p
   })
   expect(metrics.fontSize).toBeGreaterThanOrEqual(9.5)
   expect(metrics.whiteSpace).toBe('normal')
+})
+
+
+test('unknown routes and invalid tools render a real 404', async ({ page }) => {
+  await page.goto('/nao-existe')
+  await expect(page.getByRole('heading', { name: /Essa página não existe/i })).toBeVisible()
+  await page.goto('/tool/nao-existe')
+  await expect(page.getByRole('heading', { name: /Essa página não existe/i })).toBeVisible()
+})
+
+test('public trust pages are reachable from the footer', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Privacidade' }).last().click()
+  await expect(page).toHaveURL(/\/privacy$/)
+  await expect(page.getByRole('heading', { name: /Privacidade por arquitetura/i })).toBeVisible()
 })

@@ -21,7 +21,7 @@ jobs:
   quality:
     name: TypeScript · Tests · PDF Regression · Security Hardening · Build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -62,8 +62,26 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Playwright
+      - name: Playwright UI
         run: npm run test:e2e
+
+      - name: Quality Gate — 9 critical document flows
+        run: npm run test:quality
+
+      - name: Quality Gate — real OCR
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        run: npm run test:quality:ocr
+
+      - name: Upload Quality Gate diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-${{ github.sha }}
+          path: |
+            quality-results/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Build commercial release folder
         run: npm run release:commercial

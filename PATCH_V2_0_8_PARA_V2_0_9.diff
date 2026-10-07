@@ -1,0 +1,670 @@
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/INSTALAR_E_TESTAR.bat work/PDFStudio_Web_Client_v2_0_8_INTERNAL/INSTALAR_E_TESTAR.bat
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-06 18:09:47.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-06 19:59:32.155487256 +0000
+@@ -3,7 +3,7 @@
+ cd /d "%~dp0"
+ 
+ echo =============================================
+-echo   PDF Studio v2.0.8 - Instalar e validar
++echo   PDF Studio v2.0.9 - Instalar e validar
+ echo =============================================
+ 
+ where node >nul 2>nul
+@@ -53,7 +53,7 @@
+ if errorlevel 1 goto fail
+ 
+ echo.
+-echo [OK] v2.0.8 validada. Abrindo servidor local...
++echo [OK] v2.0.9 validada. Abrindo servidor local...
+ echo http://localhost:5173
+ start "" http://localhost:5173
+ call npm run dev -- --host 127.0.0.1
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/PATCH_V2_0_8_PARA_V2_0_9.diff work/PDFStudio_Web_Client_v2_0_8_INTERNAL/PATCH_V2_0_8_PARA_V2_0_9.diff
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/PATCH_V2_0_8_PARA_V2_0_9.diff	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/PATCH_V2_0_8_PARA_V2_0_9.diff	2026-10-06 20:05:30.345464939 +0000
+@@ -0,0 +1,21 @@
++diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/INSTALAR_E_TESTAR.bat work/PDFStudio_Web_Client_v2_0_8_INTERNAL/INSTALAR_E_TESTAR.bat
++--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-06 18:09:47.000000000 +0000
+++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/INSTALAR_E_TESTAR.bat	2026-10-06 19:59:32.155487256 +0000
++@@ -3,7 +3,7 @@
++ cd /d "%~dp0"
++ 
++ echo =============================================
++-echo   PDF Studio v2.0.8 - Instalar e validar
+++echo   PDF Studio v2.0.9 - Instalar e validar
++ echo =============================================
++ 
++ where node >nul 2>nul
++@@ -53,7 +53,7 @@
++ if errorlevel 1 goto fail
++ 
++ echo.
++-echo [OK] v2.0.8 validada. Abrindo servidor local...
+++echo [OK] v2.0.9 validada. Abrindo servidor local...
++ echo http://localhost:5173
++ start "" http://localhost:5173
++ call npm run dev -- --host 127.0.0.1
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/PUBLIC_POLISH_V2_0_9.md work/PDFStudio_Web_Client_v2_0_8_INTERNAL/PUBLIC_POLISH_V2_0_9.md
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/PUBLIC_POLISH_V2_0_9.md	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/PUBLIC_POLISH_V2_0_9.md	2026-10-06 20:02:42.333382137 +0000
+@@ -0,0 +1,22 @@
++# PDF Studio v2.0.9 — Public Polish
++
++Esta versão não adiciona novas ferramentas. Ela prepara a superfície pública do produto para usuários reais.
++
++## Alterações
++
++- versão centralizada em `APP_VERSION = 2.0.9`;
++- FAQ e Roadmap deixam de exibir versões antigas como se fossem atuais;
++- Roadmap condensado e atualizado até a v2.0.9;
++- rota 404 real para URLs desconhecidas e IDs de ferramentas inválidos;
++- `ErrorBoundary` global com recuperação por recarregamento ou retorno à Home;
++- páginas públicas `/privacy`, `/terms`, `/licenses` e `/contact`;
++- rodapé com links permanentes para informações públicas;
++- cartões de planos deixam explícito que a camada comercial ainda está em preparação;
++- metadados de título e descrição passam a variar por rota;
++- assets com hash em `/assets/*` recebem cache de 1 ano + `immutable`;
++- `index.html` usa `no-cache` para facilitar atualização da aplicação;
++- testes automáticos para as garantias acima.
++
++## Princípio
++
++A v2.0.9 evita prometer cobrança, suporte ou conformidade que ainda não estão operacionalizados. A intenção é que a interface pública diga exatamente o que o produto faz hoje.
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/README.md work/PDFStudio_Web_Client_v2_0_8_INTERNAL/README.md
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/README.md	2026-10-06 18:14:54.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/README.md	2026-10-06 19:59:32.155401306 +0000
+@@ -1,6 +1,6 @@
+-# PDF Studio v2.0.8
++# PDF Studio v2.0.9
+ 
+-Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.8 mantém a interface premium e o Security Hardening das versões anteriores e adiciona Performance / Lazy Loading: a Home carrega apenas a camada de interface, enquanto PDF.js, Ghostscript, qpdf, OCR e conversores pesados são carregados sob demanda. O projeto também mantém a separação entre repositório interno e release comercial.
++Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.9 mantém a interface premium e o Security Hardening das versões anteriores e adiciona Performance / Lazy Loading: a Home carrega apenas a camada de interface, enquanto PDF.js, Ghostscript, qpdf, OCR e conversores pesados são carregados sob demanda. O projeto também mantém a separação entre repositório interno e release comercial.
+ 
+ ## Desenvolvimento
+ 
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/VALIDAR_SEGURANCA.bat work/PDFStudio_Web_Client_v2_0_8_INTERNAL/VALIDAR_SEGURANCA.bat
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/VALIDAR_SEGURANCA.bat	2026-10-06 18:09:47.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/VALIDAR_SEGURANCA.bat	2026-10-06 20:02:42.186661549 +0000
+@@ -2,7 +2,7 @@
+ setlocal
+ cd /d "%~dp0"
+ echo =============================================
+-echo   PDF Studio v2.0.8 - Security Gate
++echo   PDF Studio v2.0.9 - Security Gate
+ echo =============================================
+ if not exist node_modules (
+   echo Instalando dependencias...
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/VALIDATION_V2_0_9.md work/PDFStudio_Web_Client_v2_0_8_INTERNAL/VALIDATION_V2_0_9.md
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/VALIDATION_V2_0_9.md	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/VALIDATION_V2_0_9.md	2026-10-06 20:02:42.334320851 +0000
+@@ -0,0 +1,26 @@
++# PDF Studio v2.0.9 — Validation
++
++Execute na máquina de desenvolvimento:
++
++```powershell
++npm install
++npm run check
++npm run test
++npm run test:pdf
++npm run security
++npm run build
++npm run performance:bundle
++npm run test:e2e
++```
++
++## Critérios esperados
++
++- TypeScript sem erros;
++- testes unitários, segurança e Public Polish aprovados;
++- regressão PDF aprovada;
++- 0 vulnerabilidades High/Critical pelo gate atual;
++- build Vite concluído;
++- motores pesados fora do grafo inicial;
++- `/privacy`, `/terms`, `/licenses`, `/contact` acessíveis;
++- URL inválida e `/tool/<id-inválido>` exibem 404 real;
++- footer mostra a versão 2.0.9.
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/VERSAO.txt work/PDFStudio_Web_Client_v2_0_8_INTERNAL/VERSAO.txt
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/VERSAO.txt	2026-10-06 18:09:47.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/VERSAO.txt	2026-10-06 19:59:32.155342607 +0000
+@@ -1 +1 @@
+-2.0.8
++2.0.9
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/package.json work/PDFStudio_Web_Client_v2_0_8_INTERNAL/package.json
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/package.json	2026-10-06 18:08:34.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/package.json	2026-10-06 19:59:32.155310759 +0000
+@@ -1,7 +1,7 @@
+ {
+   "name": "pdf-studio-web-client",
+   "private": true,
+-  "version": "2.0.8",
++  "version": "2.0.9",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/public/_headers work/PDFStudio_Web_Client_v2_0_8_INTERNAL/public/_headers
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/public/_headers	2026-10-06 17:26:02.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/public/_headers	2026-10-06 20:02:03.899513872 +0000
+@@ -8,6 +8,12 @@
+   Cross-Origin-Resource-Policy: same-origin
+   Strict-Transport-Security: max-age=31536000
+ 
++/index.html
++  Cache-Control: no-cache
++
++/assets/*
++  Cache-Control: public, max-age=31536000, immutable
++
+ /*.wasm
+   Content-Type: application/wasm
+   Cache-Control: public, max-age=31536000, immutable
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/components/ErrorBoundary.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/components/ErrorBoundary.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/components/ErrorBoundary.tsx	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/components/ErrorBoundary.tsx	2026-10-06 20:05:15.761846169 +0000
+@@ -0,0 +1,36 @@
++import { Component, type ErrorInfo, type ReactNode } from 'react'
++import { Home, RefreshCw, TriangleAlert } from 'lucide-react'
++import { APP_NAME, APP_VERSION } from '../lib/appMeta'
++
++type Props = { children: ReactNode }
++type State = { hasError: boolean; message: string }
++
++export default class ErrorBoundary extends Component<Props, State> {
++  state: State = { hasError: false, message: '' }
++
++  static getDerivedStateFromError(error: unknown): State {
++    const message = error instanceof Error ? error.message : 'Falha inesperada na interface.'
++    return { hasError: true, message }
++  }
++
++  componentDidCatch(error: unknown, info: ErrorInfo) {
++    console.error(`[${APP_NAME} v${APP_VERSION}] erro de interface`, error, info)
++  }
++
++  render() {
++    if (!this.state.hasError) return this.props.children
++    return <main className="fatal-error-page" role="alert">
++      <div className="fatal-error-card">
++        <span className="fatal-error-icon"><TriangleAlert size={30}/></span>
++        <p className="kicker">RECUPERAÇÃO SEGURA</p>
++        <h1>Algo saiu do esperado.</h1>
++        <p>O PDF Studio interrompeu esta tela para evitar continuar em um estado inconsistente. Seus documentos não são enviados automaticamente por causa deste erro.</p>
++        <div className="fatal-error-diagnostic"><strong>Diagnóstico local</strong><code>{this.state.message}</code><span>PDF Studio v{APP_VERSION}</span></div>
++        <div className="fatal-error-actions">
++          <button type="button" className="primary-btn" onClick={() => window.location.reload()}><RefreshCw size={17}/> Recarregar</button>
++          <a className="secondary-btn" href="/"><Home size={17}/> Voltar ao início</a>
++        </div>
++      </div>
++    </main>
++  }
++}
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/components/Layout.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/components/Layout.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/components/Layout.tsx	2026-10-06 16:50:21.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/components/Layout.tsx	2026-10-06 20:02:03.093261856 +0000
+@@ -3,7 +3,7 @@
+ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+ import { tools, type ToolCategory, type ToolId } from '../lib/tools'
+ import { loadFavoriteToolIds, loadRecentToolIds, recordRecentTool, subscribeProductivity, toggleFavoriteTool } from '../lib/productivity'
+-import { APP_VERSION } from '../lib/appMeta'
++import { APP_META, APP_NAME, APP_VERSION } from '../lib/appMeta'
+ 
+ const groups: { id:ToolCategory; title:string }[] = [
+   { id:'legal', title:'Legal & Business' },
+@@ -63,16 +63,30 @@
+ 
+   useEffect(()=>{
+     const path=location.pathname
+-    let title='PDF Studio — automação documental privada'
+-    if(path==='/faq') title='FAQ e Ajuda — PDF Studio'
+-    else if(path==='/roadmap') title='Roadmap — PDF Studio'
+-    else if(path==='/workflows') title='Workflows salvos — PDF Studio'
++    let meta: {title:string;description:string} = APP_META.home
++    if(path==='/faq') meta=APP_META.faq
++    else if(path==='/roadmap') meta=APP_META.roadmap
++    else if(path==='/workflows') meta=APP_META.workflows
++    else if(path==='/privacy') meta=APP_META.privacy
++    else if(path==='/terms') meta=APP_META.terms
++    else if(path==='/licenses') meta=APP_META.licenses
++    else if(path==='/contact') meta=APP_META.contact
+     else if(path.startsWith('/tool/')){
+       const id=path.split('/').filter(Boolean).pop()
+       const tool=tools.find(t=>t.id===id)
+-      if(tool) title=`${tool.title} — PDF Studio`
++      meta=tool
++        ? {title:`${tool.title} — ${APP_NAME}`,description:tool.desc}
++        : APP_META.notFound
++    } else if(path!=='/') meta=APP_META.notFound
++
++    document.title=meta.title
++    let description=document.querySelector('meta[name="description"]')
++    if(!description){
++      description=document.createElement('meta')
++      description.setAttribute('name','description')
++      document.head.appendChild(description)
+     }
+-    document.title=title
++    description.setAttribute('content',meta.description)
+   },[location.pathname])
+ 
+   useEffect(()=>subscribeProductivity(()=>{setFavorites(loadFavoriteToolIds());setRecents(loadRecentToolIds())}),[])
+@@ -206,7 +220,7 @@
+     </div>}
+     <main className="app-main"><Outlet/></main>
+     <footer className="footer">
+-      <div><div className="brand footer-brand"><span className="brand-mark">P</span><span>PDF Studio</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p></div>
++      <div className="footer-identity"><div className="brand footer-brand"><span className="brand-mark">P</span><span>PDF Studio</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p><nav className="footer-links" aria-label="Informações públicas"><Link to="/privacy">Privacidade</Link><Link to="/terms">Termos</Link><Link to="/licenses">Licenças</Link><Link to="/contact">Contato</Link><Link to="/faq">Ajuda</Link></nav></div>
+       <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span><span>v{APP_VERSION}</span></div>
+     </footer>
+   </div>
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/lib/appMeta.ts work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/lib/appMeta.ts
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/lib/appMeta.ts	2026-10-06 18:09:47.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/lib/appMeta.ts	2026-10-06 19:59:32.155181303 +0000
+@@ -1,3 +1,42 @@
+ export const APP_NAME = 'PDF Studio'
+-export const APP_VERSION = '2.0.8'
++export const APP_VERSION = '2.0.9'
+ export const APP_TAGLINE = 'Automação documental privada'
++
++export const APP_META = {
++  home: {
++    title: `${APP_NAME} — ${APP_TAGLINE.toLowerCase()}`,
++    description: 'Junte, divida, comprima, converta, proteja e compare PDFs com processamento local no navegador.',
++  },
++  faq: {
++    title: `FAQ e Ajuda — ${APP_NAME}`,
++    description: 'Respostas sobre privacidade, OCR, compressão, comparação, PDF/A e ferramentas do PDF Studio.',
++  },
++  roadmap: {
++    title: `Roadmap — ${APP_NAME}`,
++    description: `Evolução e principais entregas do ${APP_NAME} v${APP_VERSION}.`,
++  },
++  workflows: {
++    title: `Workflows salvos — ${APP_NAME}`,
++    description: 'Fluxos documentais reutilizáveis salvos localmente no navegador.',
++  },
++  privacy: {
++    title: `Privacidade — ${APP_NAME}`,
++    description: 'Como o PDF Studio trata documentos, preferências locais e recursos externos.',
++  },
++  terms: {
++    title: `Termos de uso — ${APP_NAME}`,
++    description: 'Condições de uso e limitações das ferramentas do PDF Studio.',
++  },
++  licenses: {
++    title: `Licenças — ${APP_NAME}`,
++    description: 'Informações sobre a licença do PDF Studio e componentes de terceiros.',
++  },
++  contact: {
++    title: `Contato e suporte — ${APP_NAME}`,
++    description: 'Orientações de suporte, diagnóstico e contato do PDF Studio.',
++  },
++  notFound: {
++    title: `Página não encontrada — ${APP_NAME}`,
++    description: 'A página solicitada não foi encontrada.',
++  },
++} as const
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/main.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/main.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/main.tsx	2026-10-06 18:05:09.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/main.tsx	2026-10-06 20:00:55.422343177 +0000
+@@ -1,6 +1,7 @@
+ import React, { Suspense, lazy } from 'react'
+ import ReactDOM from 'react-dom/client'
+ import { BrowserRouter, Route, Routes } from 'react-router-dom'
++import ErrorBoundary from './components/ErrorBoundary'
+ import Layout from './components/Layout'
+ import Home from './pages/Home'
+ import './styles.css'
+@@ -9,6 +10,11 @@
+ const FaqPage = lazy(() => import('./pages/FaqPage'))
+ const RoadmapPage = lazy(() => import('./pages/RoadmapPage'))
+ const WorkflowsPage = lazy(() => import('./pages/WorkflowsPage'))
++const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
++const TermsPage = lazy(() => import('./pages/TermsPage'))
++const LicensesPage = lazy(() => import('./pages/LicensesPage'))
++const ContactPage = lazy(() => import('./pages/ContactPage'))
++const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+ 
+ function RouteFallback() {
+   return <div className="route-loading" role="status" aria-live="polite">Carregando…</div>
+@@ -17,17 +23,24 @@
+ ReactDOM.createRoot(document.getElementById('root')!).render(
+   <React.StrictMode>
+     <BrowserRouter>
+-      <Suspense fallback={<RouteFallback/>}>
+-        <Routes>
+-          <Route element={<Layout/>}>
+-            <Route path="/" element={<Home/>}/>
+-            <Route path="/faq" element={<FaqPage/>}/>
+-            <Route path="/roadmap" element={<RoadmapPage/>}/>
+-            <Route path="/workflows" element={<WorkflowsPage/>}/>
+-            <Route path="/tool/:id" element={<ToolPage/>}/>
+-          </Route>
+-        </Routes>
+-      </Suspense>
++      <ErrorBoundary>
++        <Suspense fallback={<RouteFallback/>}>
++          <Routes>
++            <Route element={<Layout/>}>
++              <Route path="/" element={<Home/>}/>
++              <Route path="/faq" element={<FaqPage/>}/>
++              <Route path="/roadmap" element={<RoadmapPage/>}/>
++              <Route path="/workflows" element={<WorkflowsPage/>}/>
++              <Route path="/privacy" element={<PrivacyPage/>}/>
++              <Route path="/terms" element={<TermsPage/>}/>
++              <Route path="/licenses" element={<LicensesPage/>}/>
++              <Route path="/contact" element={<ContactPage/>}/>
++              <Route path="/tool/:id" element={<ToolPage/>}/>
++              <Route path="*" element={<NotFoundPage/>}/>
++            </Route>
++          </Routes>
++        </Suspense>
++      </ErrorBoundary>
+     </BrowserRouter>
+   </React.StrictMode>
+ )
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/ContactPage.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/ContactPage.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/ContactPage.tsx	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/ContactPage.tsx	2026-10-06 20:05:15.762005560 +0000
+@@ -0,0 +1,15 @@
++import { Bug, HelpCircle, Info } from 'lucide-react'
++import { Link } from 'react-router-dom'
++import { APP_NAME, APP_VERSION } from '../lib/appMeta'
++
++export default function ContactPage(){
++  return <div className="info-page public-info-page">
++    <section className="info-hero"><div className="info-hero-icon"><HelpCircle size={28}/></div><div><p className="kicker">CONTATO E SUPORTE</p><h1>Ajuda para diagnosticar sem expor documentos.</h1><p>Enquanto o canal comercial dedicado está em preparação, use estas orientações para identificar problemas no {APP_NAME} v{APP_VERSION}.</p></div></section>
++    <section className="public-info-grid">
++      <article><HelpCircle/><h2>Primeiro: Central de Ajuda</h2><p>O FAQ cobre privacidade, compressão, OCR, comparação, PDF/A, limites de navegador e operações pesadas.</p><Link to="/faq">Abrir FAQ →</Link></article>
++      <article><Bug/><h2>Ao reportar um problema</h2><p>Informe versão do app, navegador, ferramenta utilizada, etapa em que falhou e mensagem de erro. Não envie conteúdo confidencial apenas para reproduzir um problema.</p></article>
++      <article><Info/><h2>Canal comercial</h2><p>O canal oficial de contato e contratação será publicado aqui antes da abertura dos planos pagos. Nenhuma cobrança está ativa nesta versão.</p></article>
++    </section>
++    <section className="public-copy-block"><h2>Diagnóstico recomendado</h2><p>Para um relato técnico útil, informe: <strong>PDF Studio v{APP_VERSION}</strong>, navegador e versão, sistema operacional, tamanho aproximado do arquivo, número de páginas e texto exato do erro. Prefira um arquivo fictício para reproduções.</p></section>
++  </div>
++}
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/FaqPage.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/FaqPage.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/FaqPage.tsx	2026-10-06 13:02:42.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/FaqPage.tsx	2026-10-06 20:00:56.578398168 +0000
+@@ -1,11 +1,12 @@
+ import { HelpCircle, Search, ShieldCheck } from 'lucide-react'
+ import { useMemo, useState } from 'react'
++import { APP_VERSION } from '../lib/appMeta'
+ 
+ const faq = [
+   {cat:'Privacidade',q:'Meus PDFs são enviados para algum servidor?',a:'Nas ferramentas locais do PDF Studio, o arquivo é processado no próprio navegador. O objetivo do projeto é manter o documento no dispositivo do usuário. Recursos futuros que eventualmente precisem de nuvem devem ser identificados de forma explícita antes do processamento.'},
+   {cat:'Privacidade',q:'O PDF Studio armazena meus documentos?',a:'Não há banco ou bucket de documentos no fluxo atual. Arquivos e resultados ficam na memória ou no armazenamento temporário do navegador durante a operação e o resultado é baixado para o dispositivo.'},
+   {cat:'Automação',q:'O que são Workflows salvos?',a:'São configurações reutilizáveis do Preparar documento. Você escolhe etapas como OCR, compressão, limpeza, numeração, PDF/A e Trust Report, salva com um nome e reaplica o mesmo padrão em novos PDFs.'},
+-  {cat:'Automação',q:'Workflows, favoritos e recentes são enviados para um servidor?',a:'Não. Na v1.9 eles ficam no localStorage do próprio navegador. O histórico recente registra somente o identificador da ferramenta usada; não guarda nome nem conteúdo dos PDFs.'},
++  {cat:'Automação',q:'Workflows, favoritos e recentes são enviados para um servidor?',a:'Não. Na versão atual eles ficam no localStorage do próprio navegador. O histórico recente registra somente o identificador da ferramenta usada; não guarda nome nem conteúdo dos PDFs.'},
+   {cat:'Ajuda',q:'Como adiciono uma ferramenta aos Favoritos?',a:'No menu lateral do desktop, clique na estrela ao lado da ferramenta. Os favoritos aparecem no topo do menu e também na área de acesso rápido da Home.'},
+   {cat:'Compressão',q:'Qual a diferença entre Básico, Médio, Alto, Máximo e Inteligente?',a:'Básico prioriza preservação de estrutura. Médio, Alto e Máximo aumentam a redução e podem recorrer a recompressão/rasterização. Inteligente analisa o documento e escolhe um perfil. Para controle direto, use “Por tamanho”.'},
+   {cat:'Compressão',q:'“Comprimir para X MB” garante exatamente o tamanho escolhido?',a:'Não. O app busca chegar abaixo ou o mais próximo possível da meta sem produzir um PDF inválido. Alguns documentos já estão muito otimizados e podem não atingir um alvo agressivo sem perda grande de qualidade.'},
+@@ -16,7 +17,7 @@
+   {cat:'OCR',q:'Devo aplicar OCR em PDFs que já têm texto?',a:'Normalmente não. A opção de pular páginas que já têm texto reduz tempo e evita processamento desnecessário. OCR é mais útil em scans ou PDFs mistos.'},
+   {cat:'Legal / Business',q:'A redação permanente é apenas uma tarja preta?',a:'Não. Nas páginas redigidas, a versão atual renderiza a página já com a área ocultada e reconstrói a página sem carregar por baixo a camada original de texto. Isso é mais seguro do que desenhar um retângulo sobre conteúdo existente.'},
+   {cat:'Legal / Business',q:'Por que páginas redigidas podem perder texto selecionável?',a:'Porque a segurança da redação permanente atual vem da rasterização das páginas afetadas. As páginas não redigidas continuam preservadas normalmente.'},
+-  {cat:'Legal / Business',q:'Como funciona Comparar PDFs?',a:'A ferramenta tenta alinhar páginas, compara texto e, opcionalmente, diferenças visuais. Além do relatório, a v1.9.1 gera um PDF Redline: adições são marcadas em azul, remoções aparecem em vermelho tachado e alterações apenas visuais recebem marcação laranja. Não é uma perícia forense.'},
++  {cat:'Legal / Business',q:'Como funciona Comparar PDFs?',a:'A ferramenta tenta alinhar páginas, compara texto e, opcionalmente, diferenças visuais. Além do relatório, a versão atual gera um PDF Redline: adições são marcadas em azul, remoções aparecem em vermelho tachado e alterações apenas visuais recebem marcação laranja. Não é uma perícia forense.'},
+   {cat:'Legal / Business',q:'O que é Preparar documento?',a:'É um pipeline que encadeia várias ferramentas: páginas em branco, compressão, OCR, metadados, marca d’água, numeração e PDF/A. O resultado final passa de uma etapa para a próxima sem downloads intermediários.'},
+   {cat:'Tribunal',q:'Os Presets Tribunal garantem aceitação do arquivo?',a:'Não. Presets são referências e automações configuráveis. Limites e regras podem mudar por tribunal, instalação, classe ou sistema. O usuário deve confirmar a regra atual do destino antes do protocolo.'},
+   {cat:'Trust Report',q:'O que é Document Trust Report?',a:'É um registro técnico do processamento contendo SHA-256, tamanhos, páginas, etapas e validações. O JSON verificável permite conferir posteriormente se o PDF final corresponde exatamente ao arquivo registrado.'},
+@@ -46,7 +47,7 @@
+     </section>
+     <div className="info-search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar: OCR, mesclar, PDF/A, Trust Report..."/></div>
+     <div className="faq-chips">{categories.map(value=><button key={value} className={cat===value?'active':''} onClick={()=>setCat(value)}>{value}</button>)}</div>
+-    <div className="faq-meta"><ShieldCheck size={16}/><span>{filtered.length} resposta(s) • conteúdo focado no comportamento atual da v1.9.1</span></div>
++    <div className="faq-meta"><ShieldCheck size={16}/><span>{filtered.length} resposta(s) • conteúdo focado no comportamento atual da v{APP_VERSION}</span></div>
+     <section className="faq-list">
+       {filtered.map((item,index)=><details key={`${item.cat}-${index}`} className="faq-item">
+         <summary><span>{item.q}</span><small>{item.cat}</small></summary>
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/Home.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/Home.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/Home.tsx	2026-10-06 16:24:59.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/Home.tsx	2026-10-06 20:02:03.749510634 +0000
+@@ -135,11 +135,11 @@
+     </section>
+ 
+     <section className="landing-section plans-section" id="planos">
+-      <div className="landing-section-intro"><p className="kicker">DO USO RÁPIDO AO FLUXO PROFISSIONAL</p><h2>Comece simples. Cresça quando precisar.</h2><p>Ferramentas essenciais para o dia a dia e uma camada profissional para revisão, privacidade, padronização e governança documental.</p></div>
++      <div className="landing-section-intro"><p className="kicker">DO USO RÁPIDO AO FLUXO PROFISSIONAL</p><h2>Use agora. Evolua com o produto.</h2><p>As ferramentas atuais já podem ser usadas no navegador. A estrutura de planos profissionais está em preparação e será publicada com preços e condições antes de qualquer cobrança.</p></div>
+       <div className="commercial-plan-grid">
+-        <article><span className="plan-label">FREE</span><h3>PDF Essentials</h3><p>Para tarefas rápidas e documentos do dia a dia.</p><ul><li><Check/> Compressão e organização</li><li><Check/> Mesclar e dividir</li><li><Check/> Conversores essenciais</li></ul><Link to="/tool/compress">Começar agora <ArrowRight size={15}/></Link></article>
+-        <article className="highlight"><span className="plan-label">PRO LEGAL</span><h3>Document Workflow</h3><p>Para fluxos profissionais e documentos sensíveis.</p><ul><li><Check/> OCR e preparação documental</li><li><Check/> Redline e redação permanente</li><li><Check/> Presets, PDF/A e Trust Report</li></ul><Link to="/tool/prepare-document">Explorar Pro Legal <ArrowRight size={15}/></Link></article>
+-        <article><span className="plan-label">BUSINESS</span><h3>Teams & Governance</h3><p>Para equipes que precisam de padrão, controle e distribuição corporativa.</p><ul><li><Check/> Presets organizacionais</li><li><Check/> Gestão e licenciamento</li><li><Check/> Distribuição corporativa</li></ul><span className="plan-soon">Em preparação</span></article>
++        <article><span className="plan-label">DISPONÍVEL AGORA</span><h3>PDF Essentials</h3><p>Para tarefas rápidas e documentos do dia a dia.</p><ul><li><Check/> Compressão e organização</li><li><Check/> Mesclar e dividir</li><li><Check/> Conversores essenciais</li></ul><Link to="/tool/compress">Começar agora <ArrowRight size={15}/></Link></article>
++        <article className="highlight"><span className="plan-label">PROFISSIONAL · EM PREPARAÇÃO</span><h3>Document Workflow</h3><p>Recursos avançados já disponíveis para experimentar, com modelo comercial ainda em definição.</p><ul><li><Check/> OCR e preparação documental</li><li><Check/> Redline e redação permanente</li><li><Check/> Presets, PDF/A e Trust Report</li></ul><Link to="/tool/prepare-document">Explorar recursos profissionais <ArrowRight size={15}/></Link></article>
++        <article><span className="plan-label">BUSINESS · EM PREPARAÇÃO</span><h3>Teams & Governance</h3><p>Direção futura para equipes que precisam de padrão, controle e distribuição corporativa.</p><ul><li><Check/> Presets organizacionais</li><li><Check/> Gestão e licenciamento</li><li><Check/> Distribuição corporativa</li></ul><Link to="/contact" className="plan-soon">Acompanhar evolução</Link></article>
+       </div>
+     </section>
+ 
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/LicensesPage.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/LicensesPage.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/LicensesPage.tsx	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/LicensesPage.tsx	2026-10-06 20:05:15.762061174 +0000
+@@ -0,0 +1,14 @@
++import { FileCheck2, Info, Scale } from 'lucide-react'
++import { APP_NAME, APP_VERSION } from '../lib/appMeta'
++
++export default function LicensesPage(){
++  return <div className="info-page public-info-page">
++    <section className="info-hero"><div className="info-hero-icon"><FileCheck2 size={28}/></div><div><p className="kicker">LICENÇAS</p><h1>Transparência sobre o software.</h1><p>Informações de licenciamento relevantes ao {APP_NAME} v{APP_VERSION} e aos componentes usados no processamento documental.</p></div></section>
++    <section className="public-info-grid">
++      <article><Scale/><h2>Aplicação</h2><p>A distribuição atual do projeto é identificada como AGPL-3.0-or-later. O modelo de licenciamento comercial deverá ser revisto antes da abertura de uma oferta proprietária paga.</p></article>
++      <article><Info/><h2>Componentes de terceiros</h2><p>O produto utiliza bibliotecas e motores independentes, cada um sujeito à sua própria licença. O pacote-fonte inclui avisos de terceiros para auditoria da distribuição.</p></article>
++      <article><FileCheck2/><h2>Ghostscript</h2><p>O Ghostscript possui licenciamento próprio, incluindo AGPL e opção comercial do fornecedor. Esse ponto é tratado como requisito explícito antes de uma distribuição proprietária comercial.</p></article>
++    </section>
++    <section className="public-copy-block"><h2>Por que esta página existe</h2><p>Licenciamento é parte da segurança jurídica do produto. A página não substitui os textos integrais das licenças nem os avisos incluídos no código-fonte, mas torna os principais pontos visíveis para usuários e avaliadores.</p><h2>Antes da venda</h2><p>Qualquer mudança de modelo comercial deverá preservar as obrigações das dependências utilizadas ou substituir os componentes cujo licenciamento não seja compatível com o modelo escolhido.</p></section>
++  </div>
++}
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/NotFoundPage.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/NotFoundPage.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/NotFoundPage.tsx	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/NotFoundPage.tsx	2026-10-06 20:00:21.235643576 +0000
+@@ -0,0 +1,15 @@
++import { ArrowLeft, SearchX } from 'lucide-react'
++import { Link } from 'react-router-dom'
++
++export default function NotFoundPage(){
++  return <div className="info-page public-status-page">
++    <section className="public-status-card">
++      <span className="public-status-code">404</span>
++      <div className="info-hero-icon"><SearchX size={28}/></div>
++      <p className="kicker">NÃO ENCONTRADO</p>
++      <h1>Essa página não existe.</h1>
++      <p>O endereço pode estar incorreto ou a ferramenta pode ter mudado. Volte para a Home para localizar a função desejada.</p>
++      <div className="public-status-actions"><Link className="primary-btn" to="/"><ArrowLeft size={17}/> Ver todas as ferramentas</Link><Link className="secondary-btn" to="/faq">Abrir Central de Ajuda</Link></div>
++    </section>
++  </div>
++}
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/PrivacyPage.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/PrivacyPage.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/PrivacyPage.tsx	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/PrivacyPage.tsx	2026-10-06 20:00:21.236579546 +0000
+@@ -0,0 +1,14 @@
++import { Database, HardDrive, LockKeyhole, ShieldCheck } from 'lucide-react'
++import { APP_NAME, APP_VERSION } from '../lib/appMeta'
++
++export default function PrivacyPage(){
++  return <div className="info-page public-info-page">
++    <section className="info-hero"><div className="info-hero-icon"><ShieldCheck size={28}/></div><div><p className="kicker">PRIVACIDADE</p><h1>Privacidade por arquitetura.</h1><p>Esta página descreve o comportamento atual do {APP_NAME} v{APP_VERSION}. O princípio do produto é processar documentos localmente sempre que a ferramenta permitir.</p></div></section>
++    <section className="public-info-grid">
++      <article><HardDrive/><h2>Documentos no dispositivo</h2><p>Nas ferramentas locais, o conteúdo do PDF é processado no navegador. O fluxo atual não depende de um backend que receba e armazene seus documentos.</p></article>
++      <article><Database/><h2>Preferências locais</h2><p>Favoritos, recentes e workflows podem usar armazenamento local do navegador. Esses dados servem à experiência do produto e não incluem o conteúdo dos PDFs.</p></article>
++      <article><LockKeyhole/><h2>Recursos externos</h2><p>Alguns motores podem baixar arquivos técnicos necessários ao processamento, como modelos de idioma para OCR. Isso é diferente de enviar o conteúdo do documento para processamento remoto.</p></article>
++    </section>
++    <section className="public-copy-block"><h2>O que o produto não promete</h2><p>Processamento local reduz exposição, mas não substitui controles do dispositivo, do navegador, da rede ou políticas internas da sua organização. Arquivos baixados continuam sob responsabilidade do usuário após o processamento.</p><h2>Dados de diagnóstico</h2><p>A versão atual não envia o nome ou o conteúdo do documento como telemetria de produto. Se futuramente forem adicionadas métricas anônimas de funcionamento, essa página deverá ser atualizada antes da ativação.</p><h2>Atualizações desta página</h2><p>Esta descrição acompanha o comportamento técnico do produto e deve ser revista sempre que houver mudança relevante de arquitetura, armazenamento ou processamento.</p></section>
++  </div>
++}
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/RoadmapPage.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/RoadmapPage.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/RoadmapPage.tsx	2026-10-06 13:02:42.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/RoadmapPage.tsx	2026-10-06 20:00:56.776910650 +0000
+@@ -1,19 +1,15 @@
+ import { CheckCircle2, Clock3, Map, ShieldCheck } from 'lucide-react'
+ import { Link } from 'react-router-dom'
++import { APP_VERSION } from '../lib/appMeta'
+ import { tools } from '../lib/tools'
+ 
+ const releases = [
+-  {version:'v1.0',title:'Base web local-first',status:'done',items:['React + Vite + Cloudflare Static Assets','Compressão, mesclagem, divisão e conversões básicas','Processamento no navegador, sem backend de documentos']},
+-  {version:'v1.1–1.3',title:'Compressão profissional',status:'done',items:['Ghostscript/qpdf WebAssembly','Fallback adaptativo','Comprimir para X MB','Proteções contra PDF vazio/inválido']},
+-  {version:'v1.3.1–1.4',title:'Organização e produtividade',status:'done',items:['Ordenação drag-and-drop na mesclagem','Organizador visual de páginas','Editor básico de páginas','OCR pesquisável','Processamento em lote']},
+-  {version:'v1.5',title:'Navegação documental',status:'done',items:['Bookmarks automáticos pelo nome do arquivo','Preparação da base para documentos compostos']},
+-  {version:'v1.6',title:'Document Tools',status:'done',items:['Marca d’água','Numeração de páginas','Remover páginas em branco','Remover metadados','Proteger com senha','Extrair imagens','PDF → PDF/A']},
+-  {version:'v1.7',title:'Legal / Business',status:'done',items:['Preparar documento','Índice automático clicável','Bookmarks Pro hierárquicos','Redação permanente','Comparar PDFs','Presets Tribunal']},
+-  {version:'v1.8',title:'Document Trust',status:'done',items:['Document Trust Report','SHA-256 original/final','JSON verificável','Verificação posterior do PDF','Fingerprint de documentos']},
+-  {version:'v1.8.1–1.8.2',title:'Experiência e navegação',status:'done',items:['Correção do painel Preparar documento','Menu lateral global de acesso rápido','FAQ pesquisável','Roadmap dentro do produto']},
+-  {version:'v1.8.3–1.8.4',title:'Layout e identidade',status:'done',items:['Home e Roadmap mais compactos','Favicon, manifest, cartões sociais e títulos de página','Polimento de branding e navegação']},
+-  {version:'v1.9',title:'Produtividade recorrente',status:'done',items:['Workflows salvos e modelos reutilizáveis','Favoritos no menu lateral','Ferramentas recentes sem armazenar nomes/conteúdo dos PDFs','Salvar a configuração atual do Preparar documento como workflow']},
+-  {version:'v1.9.1',title:'Comparação Redline',status:'current',items:['Gerar PDF marcado a partir da comparação','Adições destacadas em azul','Remoções em vermelho tachado','Páginas adicionadas/removidas preservadas no documento de revisão','Alterações somente visuais sinalizadas em laranja']},
++  {version:'v1.0–1.4',title:'Base web e ferramentas essenciais',status:'done',items:['React + Vite + processamento local-first','Compressão, mesclagem, divisão, conversões e OCR','Ghostscript/qpdf WebAssembly e organização visual de páginas']},
++  {version:'v1.5–1.9.1',title:'Produtividade e Legal / Business',status:'done',items:['Bookmarks, índice e Document Tools','Redação permanente, Comparar PDFs e Presets Tribunal','Trust Report, workflows, favoritos, recentes e Redline']},
++  {version:'v2.0–2.0.4',title:'Experiência comercial',status:'done',items:['Landing premium com ferramentas primeiro','Mega menu e navegação simplificada','Pacote interno/comercial separado e correções de navegação']},
++  {version:'v2.0.5–2.0.7',title:'Security Hardening e qualidade',status:'done',items:['Atualização do PDF.js e jsPDF','CSP, sanitização HTML e loaders seguros','TypeScript, testes de segurança e regressão PDF verdes']},
++  {version:'v2.0.8',title:'Performance / Lazy Loading',status:'done',items:['Code splitting de rotas e ferramentas','Motores pesados carregados somente sob demanda','Payload inicial validado em aproximadamente 0,39 MB sem gzip']},
++  {version:`v${APP_VERSION}`,title:'Public Polish',status:'current',items:['404 real e tratamento global de falhas','Páginas públicas de Privacidade, Termos, Licenças e Contato','Versão centralizada, textos públicos coerentes e cache de assets versionados']},
+ ]
+ 
+ const productPillars = [
+@@ -28,7 +24,7 @@
+   return <div className="info-page roadmap-page roadmap-page-clean">
+     <section className="info-hero roadmap-hero">
+       <div className="info-hero-icon"><Map size={28}/></div>
+-      <div><p className="kicker">MAPA DO PRODUTO</p><h1>Roadmap do PDF Studio</h1><p>Uma visão limpa da evolução do produto e das principais entregas incorporadas ao PDF Studio até a versão atual.</p></div>
++      <div><p className="kicker">MAPA DO PRODUTO</p><h1>Roadmap do PDF Studio</h1><p>Uma visão limpa da evolução do produto e das principais entregas incorporadas até a versão atual v{APP_VERSION}.</p></div>
+     </section>
+ 
+     <section className="roadmap-kpis">
+@@ -45,7 +41,7 @@
+     </section>
+ 
+     <section className="roadmap-block roadmap-history">
+-      <div className="section-head compact"><div><p className="kicker">EVOLUÇÃO</p><h2>Linha do tempo até a v1.9.1</h2></div></div>
++      <div className="section-head compact"><div><p className="kicker">EVOLUÇÃO</p><h2>Linha do tempo até a v{APP_VERSION}</h2></div></div>
+       <div className="release-timeline">{releases.map(release=><article className={`release-card ${release.status}`} key={release.version}>
+         <div className="release-marker">{release.status==='current'?<Clock3 size={17}/>:<CheckCircle2 size={17}/>}</div>
+         <div className="release-copy"><div className="release-title"><span>{release.version}</span><h3>{release.title}</h3>{release.status==='current'&&<small>ATUAL</small>}</div><ul>{release.items.map(item=><li key={item}>{item}</li>)}</ul></div>
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/TermsPage.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/TermsPage.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/TermsPage.tsx	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/TermsPage.tsx	2026-10-06 20:00:21.237374924 +0000
+@@ -0,0 +1,14 @@
++import { FileCheck2, Scale, TriangleAlert } from 'lucide-react'
++import { APP_NAME, APP_VERSION } from '../lib/appMeta'
++
++export default function TermsPage(){
++  return <div className="info-page public-info-page">
++    <section className="info-hero"><div className="info-hero-icon"><Scale size={28}/></div><div><p className="kicker">TERMOS DE USO</p><h1>Uso responsável das ferramentas.</h1><p>Condições gerais para uso do {APP_NAME} v{APP_VERSION} enquanto o produto está em fase pública de evolução.</p></div></section>
++    <section className="public-info-grid">
++      <article><FileCheck2/><h2>Você controla os arquivos</h2><p>Use somente documentos que você tenha autorização para processar, editar, converter, proteger ou compartilhar.</p></article>
++      <article><TriangleAlert/><h2>Revise o resultado</h2><p>Conversão, OCR, compressão, comparação, redação e PDF/A podem variar conforme o documento. Resultados profissionais devem ser conferidos antes de protocolo, assinatura ou entrega.</p></article>
++      <article><Scale/><h2>Não substitui validação profissional</h2><p>Presets, Trust Report, Redline e recursos jurídicos são ferramentas de apoio. Eles não constituem parecer jurídico, perícia, certificação, assinatura digital ou garantia de aceitação por terceiros.</p></article>
++    </section>
++    <section className="public-copy-block"><h2>Disponibilidade</h2><p>O serviço pode evoluir, mudar ou interromper recursos durante a fase pública. Funcionalidades marcadas como Beta podem apresentar limitações adicionais.</p><h2>Responsabilidade do usuário</h2><p>Antes de depender de um resultado para finalidade regulatória, judicial, contratual ou de arquivamento, valide o arquivo e as regras aplicáveis ao destino.</p><h2>Planos comerciais</h2><p>Os recursos profissionais apresentados na Home representam a direção comercial do produto. Enquanto a contratação não estiver oficialmente disponível, eles não constituem oferta de assinatura ou compromisso de preço.</p></section>
++  </div>
++}
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/ToolPage.tsx work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/ToolPage.tsx
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/ToolPage.tsx	2026-10-06 18:12:31.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/pages/ToolPage.tsx	2026-10-06 20:00:55.944103070 +0000
+@@ -2,6 +2,7 @@
+ import { useParams, Link } from 'react-router-dom'
+ import { ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Download, File, GripVertical, Info, LockKeyhole, UploadCloud, X } from 'lucide-react'
+ import { tools, type ToolId } from '../lib/tools'
++import NotFoundPage from './NotFoundPage'
+ import { downloadBlob, humanSize, stem } from '../lib/files'
+ 
+ type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'|'target'
+@@ -27,6 +28,9 @@
+ 
+ export default function ToolPage(){
+   const { id } = useParams()
++  const knownTool = id ? tools.some(tool => tool.id === id) : false
++  if(!knownTool) return <NotFoundPage/>
++
+   let content
+   if(id==='prepare-document') content=<PrepareDocumentPage/>
+   else if(id==='redact') content=<RedactionPage/>
+@@ -44,7 +48,7 @@
+ 
+ function ClassicToolPage(){
+   const { id } = useParams()
+-  const tool = tools.find(t=>t.id===id) || tools[0]
++  const tool = tools.find(t=>t.id===id)! // ToolPage já validou o id antes de renderizar esta rota
+   const toolId = tool.id as ToolId
+   const [files,setFiles] = useState<File[]>([])
+   const [progress,setProgress] = useState(0)
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/styles.css work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/styles.css
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/styles.css	2026-10-06 18:09:24.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/src/styles.css	2026-10-06 20:02:03.899513872 +0000
+@@ -312,3 +312,7 @@
+ 
+ /* v2.0.8 — carregamento progressivo de rotas e motores pesados */
+ .route-loading{min-height:180px;display:flex;align-items:center;justify-content:center;color:#9fb2c4;font-size:14px;font-weight:700;letter-spacing:.01em}
++
++/* v2.0.9 — Public Polish */
++.footer-identity{display:flex;flex-direction:column;align-items:flex-start;gap:7px}.footer-identity>p{margin:0}.footer-links{display:flex;flex-wrap:wrap;gap:11px 16px;margin-top:3px}.footer-links a{color:#7f98af;font-size:9.5px;font-weight:750;transition:.18s}.footer-links a:hover{color:#c6f9da}.public-info-page{display:grid;gap:18px}.public-info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.public-info-grid article{border:1px solid #203b53;background:linear-gradient(145deg,#0c1b29,#091722);border-radius:16px;padding:18px}.public-info-grid article>svg{color:var(--green);margin-bottom:13px}.public-info-grid h2{font-size:15px;margin:0 0 7px}.public-info-grid p{font-size:11px;line-height:1.65;color:#91a7bc;margin:0}.public-info-grid a{display:inline-flex;margin-top:11px;color:#94efb8;font-size:10px;font-weight:850}.public-copy-block{border:1px solid #1d364c;background:#081622;border-radius:18px;padding:22px}.public-copy-block h2{font-size:17px;margin:0 0 8px}.public-copy-block h2:not(:first-child){margin-top:23px}.public-copy-block p{margin:0;color:#98adc1;line-height:1.72;font-size:11.5px;max-width:940px}.public-status-page{min-height:55vh;display:grid;place-items:center}.public-status-card{position:relative;width:min(680px,100%);text-align:center;border:1px solid #244159;background:linear-gradient(145deg,#0d1d2d,#081622);border-radius:24px;padding:38px 28px;overflow:hidden}.public-status-card .info-hero-icon{margin:0 auto 14px}.public-status-card h1{font-size:36px;margin:5px 0 8px}.public-status-card>p:not(.kicker){color:#93a9bd;line-height:1.6;max-width:560px;margin:0 auto}.public-status-code{position:absolute;right:24px;top:12px;font-size:72px;font-weight:950;color:rgba(255,255,255,.035);letter-spacing:-.08em}.public-status-actions,.fatal-error-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:22px}.fatal-error-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 20%,rgba(255,173,66,.08),transparent 30rem),#07111d}.fatal-error-card{width:min(680px,100%);border:1px solid #3b4651;background:#0b1824;border-radius:22px;padding:30px;text-align:center}.fatal-error-icon{width:58px;height:58px;border-radius:17px;display:grid;place-items:center;margin:0 auto 13px;background:rgba(255,174,68,.11);color:#ffc36c;border:1px solid rgba(255,174,68,.22)}.fatal-error-card h1{font-size:31px;margin:5px 0 9px}.fatal-error-card>p:not(.kicker){color:#9cb0c3;line-height:1.6}.fatal-error-diagnostic{margin:18px auto 0;text-align:left;border:1px solid #2a4155;background:#07131e;border-radius:12px;padding:13px;display:grid;gap:7px;max-width:560px}.fatal-error-diagnostic strong,.fatal-error-diagnostic span{font-size:9px;color:#7f98ae}.fatal-error-diagnostic code{font-size:10.5px;color:#d7e5f1;white-space:pre-wrap;overflow-wrap:anywhere}
++@media(max-width:850px){.public-info-grid{grid-template-columns:1fr}.footer-links{gap:9px 13px}.public-status-card h1{font-size:29px}}
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/tests/e2e/landing.spec.ts work/PDFStudio_Web_Client_v2_0_8_INTERNAL/tests/e2e/landing.spec.ts
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/tests/e2e/landing.spec.ts	2026-10-06 16:49:27.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/tests/e2e/landing.spec.ts	2026-10-06 20:02:04.391353847 +0000
+@@ -33,7 +33,7 @@
+ 
+   await expect(page.locator('#legal-redline')).toContainText('Veja o que mudou')
+   await expect(page.locator('#privacidade')).toContainText('Seu documento não precisa viajar')
+-  await expect(page.locator('#planos')).toContainText('PRO LEGAL')
++  await expect(page.locator('#planos')).toContainText('PROFISSIONAL')
+ })
+ 
+ 
+@@ -58,3 +58,18 @@
+   expect(metrics.fontSize).toBeGreaterThanOrEqual(9.5)
+   expect(metrics.whiteSpace).toBe('normal')
+ })
++
++
++test('unknown routes and invalid tools render a real 404', async ({ page }) => {
++  await page.goto('/nao-existe')
++  await expect(page.getByRole('heading', { name: /Essa página não existe/i })).toBeVisible()
++  await page.goto('/tool/nao-existe')
++  await expect(page.getByRole('heading', { name: /Essa página não existe/i })).toBeVisible()
++})
++
++test('public trust pages are reachable from the footer', async ({ page }) => {
++  await page.goto('/')
++  await page.getByRole('link', { name: 'Privacidade' }).last().click()
++  await expect(page).toHaveURL(/\/privacy$/)
++  await expect(page.getByRole('heading', { name: /Privacidade por arquitetura/i })).toBeVisible()
++})
+diff -ruN '--exclude=node_modules' '--exclude=dist' orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/tests/public-polish.test.ts work/PDFStudio_Web_Client_v2_0_8_INTERNAL/tests/public-polish.test.ts
+--- orig/PDFStudio_Web_Client_v2_0_8_INTERNAL/tests/public-polish.test.ts	1970-01-01 00:00:00.000000000 +0000
++++ work/PDFStudio_Web_Client_v2_0_8_INTERNAL/tests/public-polish.test.ts	2026-10-06 20:02:03.901390463 +0000
+@@ -0,0 +1,36 @@
++import { describe, expect, it } from 'vitest'
++import { readFileSync } from 'node:fs'
++import { APP_VERSION } from '../src/lib/appMeta'
++
++const read = (path:string) => readFileSync(path,'utf8')
++
++describe('v2.0.9 public polish', () => {
++  it('publishes the current version consistently in public copy', () => {
++    expect(APP_VERSION).toBe('2.0.9')
++    const faq=read('src/pages/FaqPage.tsx')
++    const roadmap=read('src/pages/RoadmapPage.tsx')
++    expect(faq).not.toContain('v1.9.1')
++    expect(roadmap).not.toContain('Linha do tempo até a v1.9.1')
++    expect(roadmap).toContain('APP_VERSION')
++  })
++
++  it('has explicit public information and 404 routes', () => {
++    const main=read('src/main.tsx')
++    for(const path of ['/privacy','/terms','/licenses','/contact']) expect(main).toContain(`path="${path}"`)
++    expect(main).toContain('path="*"')
++  })
++
++  it('does not silently map an invalid tool id to the first tool', () => {
++    const page=read('src/pages/ToolPage.tsx')
++    expect(page).not.toContain("tools.find(t=>t.id===id) || tools[0]")
++    expect(page).toContain('if(!knownTool) return <NotFoundPage/>')
++  })
++
++  it('keeps hashed assets immutable while revalidating the app shell', () => {
++    const headers=read('public/_headers')
++    expect(headers).toContain('/assets/*')
++    expect(headers).toContain('max-age=31536000, immutable')
++    expect(headers).toContain('/index.html')
++    expect(headers).toContain('Cache-Control: no-cache')
++  })
++})

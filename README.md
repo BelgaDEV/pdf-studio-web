@@ -1,6 +1,6 @@
-# PDF Studio v2.0.8
+# PDF Studio v2.1.2
 
-Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.0.8 mantém a interface premium e o Security Hardening das versões anteriores e adiciona Performance / Lazy Loading: a Home carrega apenas a camada de interface, enquanto PDF.js, Ghostscript, qpdf, OCR e conversores pesados são carregados sob demanda. O projeto também mantém a separação entre repositório interno e release comercial.
+Aplicação web local-first para preparação, comparação, proteção e transformação de documentos PDF. A v2.1.2 adiciona um Quality Gate de integração no navegador: as funções críticas processam fixtures fictícias determinísticas, o arquivo gerado é reaberto e propriedades essenciais são verificadas antes de uma release.
 
 ## Desenvolvimento
 
@@ -23,9 +23,19 @@ npm run security
 npm run build
 npm run performance:bundle
 npm run test:e2e
+npm run test:quality
+npm run test:quality:ocr
 ```
 
-`npm run ci` executa TypeScript, testes unitários, regressão PDF, build e validação do grafo de carregamento inicial. O Playwright fica separado porque instala um navegador próprio no CI.
+Na primeira execução do Quality Gate instale o Chromium: `npm run quality:install`.
+
+- `npm run test:quality`: 9 fluxos críticos determinísticos no navegador.
+- `npm run test:quality:ocr`: OCR real com modelo de idioma; requer internet para obter o modelo do Tesseract quando ainda não estiver em cache.
+- `npm run test:quality:full`: os 10 fluxos.
+- `npm run quality:gate`: TypeScript + unitários + regressão + 9 críticos + build + performance.
+- `npm run quality:gate:full`: gate completo + OCR real.
+
+Os relatórios ficam em `quality-results/` e não são versionados.
 
 ## Release comercial
 
@@ -42,7 +52,9 @@ A release comercial não contém histórico de desenvolvimento, scripts de atual
 
 `.github/workflows/ci-cd.yml` implementa:
 
-`Commit → TypeScript → Unit Tests → PDF Regression → Security → Build → Playwright → Artifact → Staging/Production`
+`Commit → TypeScript → Unit Tests → PDF Regression → Security → Build → Playwright UI → Quality Gate crítico → Artifact → Staging/Production`
+
+Em tags de release e execuções manuais, o pipeline também exige o gate de OCR real antes do deploy.
 
 - push em `develop`: pode publicar staging;
 - tag `v*`: pode publicar produção;
