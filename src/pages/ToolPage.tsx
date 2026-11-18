@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import PlanGate from '../components/PlanGate'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Download, File, GripVertical, Info, LockKeyhole, UploadCloud, X } from 'lucide-react'
 import { tools, type ToolId } from '../lib/tools'
@@ -43,7 +44,7 @@ export default function ToolPage(){
   else if(id==='batch') content=<BatchToolPage/>
   else if(id && documentToolIds.has(id as DocumentToolId)) content=<DocumentToolsPage toolId={id as DocumentToolId}/>
   else content=<ClassicToolPage/>
-  return <Suspense fallback={<ToolFallback/>}>{content}</Suspense>
+  return <Suspense fallback={<ToolFallback/>}><PlanGate toolId={id!}>{content}</PlanGate></Suspense>
 }
 
 function ClassicToolPage(){

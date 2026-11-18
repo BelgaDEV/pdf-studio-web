@@ -318,3 +318,27 @@ radial-gradient(circle at 85% 10%,rgba(36,224,122,.12),transparent 26rem),linear
 @media(max-width:850px){.public-info-grid{grid-template-columns:1fr}.footer-links{gap:9px 13px}.public-status-card h1{font-size:29px}}
 /* Marca Lauda: o logo é um SVG dentro de .brand-mark */
 .brand-mark{background:linear-gradient(135deg,var(--green),#8dffbf)!important;padding:0;overflow:hidden}.brand-mark svg rect{fill:transparent}.brand-mark svg{width:100%;height:100%;display:block}
+/* Conta e planos */
+.auth-page{display:flex;justify-content:center;padding:48px 20px 80px}
+.auth-card{width:100%;max-width:440px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:32px;display:flex;flex-direction:column;gap:18px}
+.auth-card-head{display:flex;align-items:center;gap:12px}.auth-card-head h1{margin:0;font-size:26px}
+.auth-icon{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(57,239,136,.12);color:var(--green)}
+.auth-lead{margin:0;color:#b3c2d5;line-height:1.6}
+.auth-form{display:flex;flex-direction:column;gap:14px}.auth-form label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:650;color:#c2d0e2}
+.auth-form input{background:#0b1724;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px 14px;color:#eef6ff;font-size:15px;min-height:44px}
+.auth-form input:focus{outline:2px solid var(--green);outline-offset:1px}
+.auth-form .primary-btn{min-height:46px}.auth-form .primary-btn:disabled{opacity:.6;cursor:wait}
+.auth-error{margin:0;color:#ffb4b4;background:rgba(255,80,80,.08);border:1px solid rgba(255,80,80,.25);border-radius:10px;padding:10px 12px;font-size:14px}
+.auth-notice{margin:0;display:flex;gap:8px;align-items:flex-start;color:#aaf4c8;background:rgba(57,239,136,.08);border:1px solid rgba(57,239,136,.22);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5}
+.auth-switch{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.auth-switch button,.auth-switch a{background:none;border:0;color:#aaf4c8;font-weight:650;font-size:14px;padding:8px 0;display:inline-flex;align-items:center;gap:6px}
+.auth-foot{margin:0;font-size:13px;color:#8fa1b8;line-height:1.5}.auth-foot a{color:#aaf4c8}
+.account-details{margin:0;display:flex;flex-direction:column;gap:12px}.account-details div{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.account-details dt{color:#8fa1b8;font-size:14px}.account-details dd{margin:0;font-weight:650;overflow-wrap:anywhere}
+.plan-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:13px;background:rgba(255,255,255,.08)}
+.plan-badge.plan-premium{background:rgba(226,176,74,.16);color:#f3cf86}
+.account-upgrade{border:1px solid rgba(226,176,74,.25);background:rgba(226,176,74,.06);border-radius:12px;padding:16px}
+.account-upgrade h2{margin:0 0 8px;font-size:17px;display:flex;align-items:center;gap:8px;color:#f3cf86}.account-upgrade p{margin:6px 0 0;color:#c2d0e2;font-size:14px;line-height:1.6}.account-upgrade a{color:#aaf4c8}
+.plan-gate{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:48px 24px}.plan-gate h1{margin:0;font-size:26px}.plan-gate p{margin:0;color:#b3c2d5;max-width:480px;line-height:1.6}
+.plan-gate-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+

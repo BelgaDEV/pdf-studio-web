@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { tools, type ToolCategory, type ToolId } from '../lib/tools'
 import { loadFavoriteToolIds, loadRecentToolIds, recordRecentTool, subscribeProductivity, toggleFavoriteTool } from '../lib/productivity'
 import { APP_META, APP_NAME, APP_SITE_URL, APP_VERSION } from '../lib/appMeta'
+import { useAuth } from '../lib/auth'
 
 const groups: { id:ToolCategory; title:string }[] = [
   { id:'legal', title:'Legal & Business' },
@@ -22,6 +23,8 @@ const megaMenuGroups: Array<{title:string; eyebrow:string; ids:ToolId[]}> = [
 ]
 
 export default function Layout(){
+  const { session } = useAuth()
+  const accountLink = session ? {to:'/conta',label:'Minha conta'} : {to:'/entrar',label:'Entrar'}
   const location=useLocation()
   const [open,setOpen]=useState(false)
   const [collapsed,setCollapsed]=useState(false)
@@ -71,6 +74,9 @@ export default function Layout(){
     else if(path==='/terms') meta=APP_META.terms
     else if(path==='/licenses') meta=APP_META.licenses
     else if(path==='/contact') meta=APP_META.contact
+    else if(path==='/entrar') meta=APP_META.login
+    else if(path==='/conta') meta=APP_META.account
+    else if(path==='/nova-senha') meta=APP_META.resetPassword
     else if(path.startsWith('/tool/')){
       const id=path.split('/').filter(Boolean).pop()
       const tool=tools.find(t=>t.id===id)
@@ -198,9 +204,10 @@ export default function Layout(){
           </div>
           <Link className="topbar-compare-link" to="/tool/compare">Comparar PDF</Link>
           <Link to="/faq">Ajuda</Link>
+          <Link to={accountLink.to}>{accountLink.label}</Link>
           <Link className="topbar-cta" to="/tool/prepare-document">Preparar documento <ArrowRight size={15}/></Link>
         </>:<>
-          <Link to="/">Início</Link><Link to="/workflows">Workflows</Link><Link to="/faq">FAQ</Link><Link to="/roadmap">Roadmap</Link><Link to="/#privacidade">Privacidade</Link>
+          <Link to="/">Início</Link><Link to="/workflows">Workflows</Link><Link to="/faq">FAQ</Link><Link to="/roadmap">Roadmap</Link><Link to="/#privacidade">Privacidade</Link><Link to={accountLink.to}>{accountLink.label}</Link>
         </>}
       </nav>
       <button className="menu-btn" onClick={()=>setOpen(!open)} aria-label="Menu">{open?<X/>:<Menu/>}</button>
@@ -218,6 +225,7 @@ export default function Layout(){
         <a href="#planos" onClick={()=>setOpen(false)}>Planos</a>
         <NavLink to="/faq" onClick={()=>setOpen(false)}>FAQ / Ajuda</NavLink>
         <NavLink to="/tool/prepare-document" onClick={()=>setOpen(false)}>Preparar documento</NavLink>
+        <NavLink to={accountLink.to} onClick={()=>setOpen(false)}>{accountLink.label}</NavLink>
       </>:<>
         <NavLink to="/" onClick={()=>setOpen(false)}>Início</NavLink>
         <NavLink to="/workflows" onClick={()=>setOpen(false)}>Workflows salvos</NavLink>
