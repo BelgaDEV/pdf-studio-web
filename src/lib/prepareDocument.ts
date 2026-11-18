@@ -12,6 +12,7 @@ import {
   type PdfaVersion,
   type WatermarkPosition,
 } from './documentTools'
+import { loadPdfDocument } from './pdfOpen'
 
 export type PrepareCompressionMode = 'off' | CompressionMode
 export type PrepareStepKey = 'remove-blank' | 'compress' | 'ocr' | 'remove-metadata' | 'watermark' | 'page-numbers' | 'pdfa'
@@ -113,7 +114,7 @@ export async function prepareDocument(
   if (!steps.length) throw new Error('Selecione pelo menos uma etapa para preparar o documento.')
 
   const originalBytes = source.size
-  const originalDoc = await PDFDocument.load(new Uint8Array(await source.arrayBuffer()), { updateMetadata: false })
+  const originalDoc = await loadPdfDocument(new Uint8Array(await source.arrayBuffer()), { updateMetadata: false })
   const originalPages = originalDoc.getPageCount()
   if (!originalPages) throw new Error('O PDF não possui páginas válidas.')
 
@@ -240,7 +241,7 @@ export async function prepareDocument(
 
   const finalBytes = new Uint8Array(await current.arrayBuffer())
   if (finalBytes.byteLength < 100) throw new Error('O documento final ficou vazio ou inválido.')
-  const finalDoc = await PDFDocument.load(finalBytes, { updateMetadata: false })
+  const finalDoc = await loadPdfDocument(finalBytes, { updateMetadata: false })
   const finalPages = finalDoc.getPageCount()
   if (!finalPages) throw new Error('O documento final não possui páginas válidas.')
 

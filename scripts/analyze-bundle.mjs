@@ -36,7 +36,7 @@ for (const file of files) {
 }
 rows.sort((a,b) => b.bytes-a.bytes)
 
-const heavyPattern = /(ghostscript|qpdf|pdfjs|pdf\.worker|tesseract|mammoth|jspdf|html2canvas|docx|pdf-lib|jszip)/i
+const heavyPattern = /(qpdf|pdfjs|pdf\.worker|tesseract|mammoth|jspdf|html2canvas|docx|pdf-lib|jszip)/i
 const staticHeavy = [...initialKeys].filter(key => {
   const item = manifest[key] || {}
   return heavyPattern.test(`${key} ${item.name || ''} ${item.src || ''} ${item.file || ''}`)
@@ -53,7 +53,7 @@ if (staticHeavy.length) {
   for (const key of staticHeavy) console.error(' -', key)
   process.exitCode = 1
 } else {
-  console.log('\n[OK] Ghostscript, qpdf, PDF.js, Tesseract e conversores pesados não fazem parte do grafo inicial.')
+  console.log('\n[OK] qpdf, PDF.js, Tesseract e conversores pesados não fazem parte do grafo inicial.')
 }
 
 if (total > 1_200_000) {

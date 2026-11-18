@@ -134,7 +134,19 @@ async function extractText(bytes: Uint8Array, name = 'quality.pdf'): Promise<str
 async function runMerge(): Promise<Record<string, string | number | boolean>> {
   const { mergePdfs } = await import('/src/lib/pdf.ts')
   const a = toFile(await textPdf(['DOCUMENTO ALFA. Conteúdo jurídico fictício para teste de mesclagem.']), 'alfa.pdf')
-  const b = toFile(await textPdf(['DOCUMENTO BETA. Segunda peça fictícia para validar ordem e integridade.']), 'beta.pdf')
+  // Beta vem "protegido" só com senha de proprietário (abre sem senha, mas
+  // com restrições), como muitas apostilas. A mesclagem deve aceitar.
+  const { load } = await import('@wasm-zoo/qpdf')
+  const qpdf = await load()
+  const plainBeta = await textPdf(['DOCUMENTO BETA. Segunda peça fictícia para validar ordem e integridade.'])
+  const encrypted = await qpdf.exec(['--encrypt', '', 'dono-quality', '256', '--modify=none', '--extract=n', '--', '/in.pdf', '/out.pdf'], {
+    files: [{ name: '/in.pdf', data: plainBeta }],
+    outputs: ['/out.pdf'],
+  })
+  qpdf.dispose()
+  const encryptedBeta = encrypted.files?.[0]?.data
+  assert(encryptedBeta, 'Não foi possível criar o PDF protegido de teste.')
+  const b = toFile(encryptedBeta, 'beta-protegido.pdf')
   const result = await mergePdfs([a, b], noopProgress, { createBookmarks: false, createTableOfContents: false })
   const bytes = new Uint8Array(await result.blob.arrayBuffer())
   assert(await pageCount(bytes) === 2, 'Juntar PDF alterou a quantidade esperada de páginas.')
@@ -163,8 +175,34 @@ async function runCompress(): Promise<Record<string, string | number | boolean>>
   const result = await compressPdf(toFile(sourceBytes, 'imagem-pesada.pdf'), 'medium', noopProgress)
   assert(result.bytes.byteLength > 100, 'Comprimir PDF gerou saída vazia.')
   assert(await pageCount(result.bytes) === 1, 'Comprimir PDF alterou a quantidade de páginas.')
-  assert(String(result.engine).includes('ghostscript'), `Compressão média não passou pelo Ghostscript: ${result.engine}.`)
-  return { engine: result.engine, beforeBytes: sourceBytes.byteLength, afterBytes: result.bytes.byteLength, rasterized: result.rasterized }
+  assert(String(result.engine).includes('image-recompress'), `Compressão média não passou pela recompressão de imagens: ${result.engine}.`)
+  assert(!result.rasterized, 'Compressão média não deveria rasterizar páginas.')
+  const high = await compressPdf(toFile(sourceBytes, 'imagem-pesada.pdf'), 'high', noopProgress)
+  assert(String(high.engine).includes('image-recompress'), `Compressão alta não passou pela recompressão de imagens: ${high.engine}.`)
+  assert(!high.rasterized, 'Compressão alta não deveria rasterizar páginas.')
+  assert(await pageCount(high.bytes) === 1, 'Compressão alta alterou a quantidade de páginas.')
+  assert(high.bytes.byteLength < sourceBytes.byteLength * 0.9, `Compressão alta reduziu pouco: ${sourceBytes.byteLength} → ${high.bytes.byteLength}.`)
+  // Imagem Flate (PNG) em alta resolução: o Médio deve reduzir DPI sem rasterizar a página.
+  const canvas = document.createElement('canvas')
+  canvas.width = 1800
+  canvas.height = 1800
+  const ctx = canvas.getContext('2d')!
+  const gradient = ctx.createLinearGradient(0, 0, 1800, 1800)
+  gradient.addColorStop(0, '#1d4ed8')
+  gradient.addColorStop(1, '#f59e0b')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, 1800, 1800)
+  ctx.putImageData(seededNoise(600, 600, 0xBEEF), 600, 600)
+  const png = new Uint8Array(await (await canvasBlob(canvas, 'image/png')).arrayBuffer())
+  const pngDoc = await PDFDocument.create()
+  const pngImage = await pngDoc.embedPng(png)
+  pngDoc.addPage([595, 595]).drawImage(pngImage, { x: 0, y: 0, width: 595, height: 595 })
+  const pngBytes = await pngDoc.save({ useObjectStreams: true })
+  const flate = await compressPdf(toFile(pngBytes, 'png-alta.pdf'), 'medium', noopProgress)
+  assert(!flate.rasterized, 'Compressão média de imagem Flate não deveria rasterizar.')
+  assert(await pageCount(flate.bytes) === 1, 'Compressão de imagem Flate alterou páginas.')
+  assert(flate.bytes.byteLength < pngBytes.byteLength * 0.5, `Imagem Flate reduziu pouco: ${pngBytes.byteLength} → ${flate.bytes.byteLength}.`)
+  return { engine: result.engine, beforeBytes: sourceBytes.byteLength, afterBytes: result.bytes.byteLength, highAfterBytes: high.bytes.byteLength, flateBefore: pngBytes.byteLength, flateAfter: flate.bytes.byteLength, rasterized: result.rasterized }
 }
 
 async function runRedaction(): Promise<Record<string, string | number | boolean>> {

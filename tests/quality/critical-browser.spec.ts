@@ -21,11 +21,11 @@ async function attachReport(testInfo: TestInfo, title: string, results: QualityR
 const coreCases: Array<{ name: QualityCaseName; label: string }> = [
   { name: 'merge', label: 'Juntar PDF' },
   { name: 'split', label: 'Dividir PDF' },
-  { name: 'compress', label: 'Comprimir PDF / Ghostscript' },
+  { name: 'compress', label: 'Comprimir PDF / imagens + qpdf' },
   { name: 'redaction', label: 'Redação Permanente' },
   { name: 'compare', label: 'Comparar PDFs' },
   { name: 'protect', label: 'Proteger PDF / AES-256' },
-  { name: 'pdfa', label: 'PDF/A / Ghostscript' },
+  { name: 'pdfa', label: 'PDF/A / pdf-lib' },
   { name: 'word-to-pdf', label: 'Word → PDF' },
   { name: 'prepare', label: 'Preparar Documento' },
 ]

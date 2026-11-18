@@ -3,6 +3,7 @@ import { PDFDocument } from 'pdf-lib'
 import { jsPDF } from 'jspdf'
 import type { PrepareDocumentOptions, PrepareDocumentResult } from './prepareDocument'
 import { humanSize } from './files'
+import { loadPdfDocument } from './pdfOpen'
 
 export const TRUST_REPORT_SCHEMA = 'pdf-studio-trust/v1' as const
 export const TRUST_REPORT_VERSION = '1.0'
@@ -114,7 +115,7 @@ async function recomputeReportHash(report: DocumentTrustReport): Promise<string>
 }
 
 async function pagesFromBytes(bytes: Uint8Array): Promise<number> {
-  const doc = await PDFDocument.load(bytes.slice(), { updateMetadata: false })
+  const doc = await loadPdfDocument(bytes.slice(), { updateMetadata: false })
   return doc.getPageCount()
 }
 

@@ -1,6 +1,7 @@
 import { degrees, PDFDocument } from 'pdf-lib'
 import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
 import { nextFrame } from './files'
+import { loadPdfDocument } from './pdfOpen'
 
 export type PagePlanItem = {
   id: string
@@ -74,7 +75,7 @@ export async function buildPdfFromPagePlan(
 ): Promise<Uint8Array> {
   if (plan.length === 0) throw new Error('O documento precisa ter pelo menos uma página.')
   const original = new Uint8Array(await file.arrayBuffer())
-  const source = await PDFDocument.load(original)
+  const source = await loadPdfDocument(original)
   const output = await PDFDocument.create()
 
   for (let index = 0; index < plan.length; index++) {

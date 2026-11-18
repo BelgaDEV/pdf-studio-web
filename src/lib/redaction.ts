@@ -1,6 +1,7 @@
 import { PDFDocument } from 'pdf-lib'
 import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
 import { nextFrame } from './files'
+import { loadPdfDocument } from './pdfOpen'
 
 export type RedactionRect = {
   id: string
@@ -108,7 +109,7 @@ export async function permanentlyRedactPdf(
 
   onProgress(3, 'Abrindo documento para redação segura…')
   const pdfJs = await loadPdfJsDocument(input)
-  const source = await PDFDocument.load(input, { updateMetadata: false })
+  const source = await loadPdfDocument(input, { updateMetadata: false })
   const output = await PDFDocument.create()
   const dpi = Math.max(120, Math.min(300, options.dpi || 200))
   const renderScale = dpi / 72
