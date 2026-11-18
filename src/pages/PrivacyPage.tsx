@@ -1,5 +1,5 @@
 import { Database, HardDrive, LockKeyhole, ShieldCheck } from 'lucide-react'
-import { APP_NAME, APP_VERSION } from '../lib/appMeta'
+import { APP_CONTACT_EMAIL, APP_NAME, APP_OWNER, APP_VERSION } from '../lib/appMeta'
 
 export default function PrivacyPage(){
   return <div className="info-page public-info-page">
@@ -9,6 +9,6 @@ export default function PrivacyPage(){
       <article><Database/><h2>Preferências locais</h2><p>Favoritos, recentes e workflows podem usar armazenamento local do navegador. Esses dados servem à experiência do produto e não incluem o conteúdo dos PDFs.</p></article>
       <article><LockKeyhole/><h2>Recursos externos</h2><p>Alguns motores podem baixar arquivos técnicos necessários ao processamento, como modelos de idioma para OCR. Isso é diferente de enviar o conteúdo do documento para processamento remoto.</p></article>
     </section>
-    <section className="public-copy-block"><h2>O que o produto não promete</h2><p>Processamento local reduz exposição, mas não substitui controles do dispositivo, do navegador, da rede ou políticas internas da sua organização. Arquivos baixados continuam sob responsabilidade do usuário após o processamento.</p><h2>Dados de diagnóstico</h2><p>A versão atual não envia o nome ou o conteúdo do documento como telemetria de produto. Se futuramente forem adicionadas métricas anônimas de funcionamento, essa página deverá ser atualizada antes da ativação.</p><h2>Atualizações desta página</h2><p>Esta descrição acompanha o comportamento técnico do produto e deve ser revista sempre que houver mudança relevante de arquitetura, armazenamento ou processamento.</p></section>
+    <section className="public-copy-block"><h2>O que o produto não promete</h2><p>Processamento local reduz exposição, mas não substitui controles do dispositivo, do navegador, da rede ou políticas internas da sua organização. Arquivos baixados continuam sob responsabilidade do usuário após o processamento.</p><h2>Dados de diagnóstico</h2><p>A versão atual não envia o nome ou o conteúdo do documento como telemetria de produto. Se futuramente forem adicionadas métricas anônimas de funcionamento, essa página deverá ser atualizada antes da ativação.</p><h2>Responsável e contato</h2><p>O {APP_NAME} é mantido por <strong>{APP_OWNER}</strong>, responsável pelo tratamento dos poucos dados pessoais envolvidos no site. Para dúvidas sobre privacidade ou para exercer os direitos previstos na LGPD (Lei nº 13.709/2018), como acesso, correção ou exclusão de dados, escreva para <a href={`mailto:${APP_CONTACT_EMAIL}`}>{APP_CONTACT_EMAIL}</a>.</p><h2>Atualizações desta página</h2><p>Esta descrição acompanha o comportamento técnico do produto e deve ser revista sempre que houver mudança relevante de arquitetura, armazenamento ou processamento.</p></section>
   </div>
 }

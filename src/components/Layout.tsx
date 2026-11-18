@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { tools, type ToolCategory, type ToolId } from '../lib/tools'
 import { loadFavoriteToolIds, loadRecentToolIds, recordRecentTool, subscribeProductivity, toggleFavoriteTool } from '../lib/productivity'
-import { APP_META, APP_NAME, APP_VERSION } from '../lib/appMeta'
+import { APP_META, APP_NAME, APP_SITE_URL, APP_VERSION } from '../lib/appMeta'
 
 const groups: { id:ToolCategory; title:string }[] = [
   { id:'legal', title:'Legal & Business' },
@@ -87,6 +87,14 @@ export default function Layout(){
       document.head.appendChild(description)
     }
     description.setAttribute('content',meta.description)
+    // Endereço oficial: evita que o Google trate o workers.dev como conteúdo duplicado.
+    let canonical=document.querySelector('link[rel="canonical"]')
+    if(!canonical){
+      canonical=document.createElement('link')
+      canonical.setAttribute('rel','canonical')
+      document.head.appendChild(canonical)
+    }
+    canonical.setAttribute('href',`${APP_SITE_URL}${path==='/'?'/':path}`)
   },[location.pathname])
 
   useEffect(()=>subscribeProductivity(()=>{setFavorites(loadFavoriteToolIds());setRecents(loadRecentToolIds())}),[])

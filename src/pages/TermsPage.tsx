@@ -1,5 +1,5 @@
 import { FileCheck2, Scale, TriangleAlert } from 'lucide-react'
-import { APP_NAME, APP_VERSION } from '../lib/appMeta'
+import { APP_CONTACT_EMAIL, APP_NAME, APP_OWNER, APP_VERSION } from '../lib/appMeta'
 
 export default function TermsPage(){
   return <div className="info-page public-info-page">
@@ -9,6 +9,6 @@ export default function TermsPage(){
       <article><TriangleAlert/><h2>Revise o resultado</h2><p>Conversão, OCR, compressão, comparação, redação e PDF/A podem variar conforme o documento. Resultados profissionais devem ser conferidos antes de protocolo, assinatura ou entrega.</p></article>
       <article><Scale/><h2>Não substitui validação profissional</h2><p>Presets, Trust Report, Redline e recursos jurídicos são ferramentas de apoio. Eles não constituem parecer jurídico, perícia, certificação, assinatura digital ou garantia de aceitação por terceiros.</p></article>
     </section>
-    <section className="public-copy-block"><h2>Disponibilidade</h2><p>O serviço pode evoluir, mudar ou interromper recursos durante a fase pública. Funcionalidades marcadas como Beta podem apresentar limitações adicionais.</p><h2>Responsabilidade do usuário</h2><p>Antes de depender de um resultado para finalidade regulatória, judicial, contratual ou de arquivamento, valide o arquivo e as regras aplicáveis ao destino.</p><h2>Planos comerciais</h2><p>Os recursos profissionais apresentados na Home representam a direção comercial do produto. Enquanto a contratação não estiver oficialmente disponível, eles não constituem oferta de assinatura ou compromisso de preço.</p></section>
+    <section className="public-copy-block"><h2>Disponibilidade</h2><p>O serviço pode evoluir, mudar ou interromper recursos durante a fase pública. Funcionalidades marcadas como Beta podem apresentar limitações adicionais.</p><h2>Responsabilidade do usuário</h2><p>Antes de depender de um resultado para finalidade regulatória, judicial, contratual ou de arquivamento, valide o arquivo e as regras aplicáveis ao destino.</p><h2>Responsável pelo serviço</h2><p>O {APP_NAME} é oferecido por <strong>{APP_OWNER}</strong>. Dúvidas, sugestões ou reclamações podem ser enviadas para <a href={`mailto:${APP_CONTACT_EMAIL}`}>{APP_CONTACT_EMAIL}</a>.</p><h2>Legislação aplicável</h2><p>Estes termos são regidos pelas leis da República Federativa do Brasil, incluindo o Código de Defesa do Consumidor quando aplicável.</p><h2>Planos comerciais</h2><p>Os recursos profissionais apresentados na Home representam a direção comercial do produto. Enquanto a contratação não estiver oficialmente disponível, eles não constituem oferta de assinatura ou compromisso de preço.</p></section>
   </div>
 }
