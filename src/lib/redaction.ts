@@ -168,8 +168,8 @@ export async function permanentlyRedactPdf(
 
     // Um novo catálogo é criado de propósito. Isso evita carregar metadados,
     // anexos e outras estruturas documentais antigas para o arquivo redigido.
-    output.setProducer('PDF Studio — Redação Permanente')
-    output.setCreator('PDF Studio')
+    output.setProducer('Lauda — Redação Permanente')
+    output.setCreator('Lauda')
     output.setCreationDate(new Date())
     output.setModificationDate(new Date())
 

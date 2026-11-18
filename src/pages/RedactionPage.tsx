@@ -221,7 +221,7 @@ export default function RedactionPage() {
             <option value="300">Alta — 300 DPI</option>
           </select>
           <div className="redaction-rule"><CheckCircle2 size={18}/><div><strong>O conteúdo original é descartado</strong><span>Somente as páginas com redação são rasterizadas e reconstruídas. As demais páginas são preservadas.</span></div></div>
-          <div className="redaction-rule"><CheckCircle2 size={18}/><div><strong>Verificação automática</strong><span>Antes do download, o PDF Studio confirma que páginas redigidas não possuem camada de texto extraível.</span></div></div>
+          <div className="redaction-rule"><CheckCircle2 size={18}/><div><strong>Verificação automática</strong><span>Antes do download, a Lauda confirma que páginas redigidas não possuem camada de texto extraível.</span></div></div>
           <div className="redaction-warning"><ShieldAlert size={18}/><div><strong>Atenção</strong><span>Páginas redigidas perdem texto selecionável, links, campos de formulário e anotações. Isso é intencional para impedir recuperação do conteúdo removido.</span></div></div>
           <button className="primary-btn wide run-btn" onClick={run} disabled={!redactionCount || working}>{working ? 'Aplicando redação permanente…' : 'Aplicar redações permanentemente'}</button>
           <button className="secondary-btn wide" type="button" onClick={() => inputRef.current?.click()} disabled={working}><RotateCcw size={16}/> Trocar PDF</button>

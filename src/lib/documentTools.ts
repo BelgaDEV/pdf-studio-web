@@ -413,7 +413,7 @@ export async function extractEmbeddedImages(
   }
 
   if (!count) throw new Error('Nenhuma imagem incorporada compatível foi encontrada. Elementos vetoriais e textos não são tratados como imagens.')
-  zip.file('LEIA-ME.txt', `PDF Studio - Extração de imagens\nArquivo: ${file.name}\nImagens extraídas: ${count}\n\nAs imagens são decodificadas pelo PDF.js e exportadas como PNG. Elementos vetoriais, textos e máscaras isoladas podem não aparecer como arquivos separados.`)
+  zip.file('LEIA-ME.txt', `Lauda - Extração de imagens\nArquivo: ${file.name}\nImagens extraídas: ${count}\n\nAs imagens são decodificadas pelo PDF.js e exportadas como PNG. Elementos vetoriais, textos e máscaras isoladas podem não aparecer como arquivos separados.`)
   onProgress(92, 'Criando arquivo ZIP…')
   const blob = await zip.generateAsync({ type: 'blob' }, meta => onProgress(92 + Math.round(meta.percent * 0.08), 'Compactando imagens…'))
   onProgress(100, `${count} imagem(ns) extraída(s).`)

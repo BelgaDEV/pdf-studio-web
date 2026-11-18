@@ -25,7 +25,7 @@ export default function RoadmapPage(){
   return <div className="info-page roadmap-page roadmap-page-clean">
     <section className="info-hero roadmap-hero">
       <div className="info-hero-icon"><Map size={28}/></div>
-      <div><p className="kicker">MAPA DO PRODUTO</p><h1>Roadmap do PDF Studio</h1><p>Uma visão limpa da evolução do produto e das principais entregas incorporadas até a versão atual v{APP_VERSION}.</p></div>
+      <div><p className="kicker">MAPA DO PRODUTO</p><h1>Roadmap da Lauda</h1><p>Uma visão limpa da evolução do produto e das principais entregas incorporadas até a versão atual v{APP_VERSION}.</p></div>
     </section>
 
     <section className="roadmap-kpis">
@@ -36,7 +36,7 @@ export default function RoadmapPage(){
     </section>
 
     <section className="roadmap-block">
-      <div className="section-head compact"><div><p className="kicker">POSICIONAMENTO</p><h2>Os quatro pilares do PDF Studio</h2></div></div>
+      <div className="section-head compact"><div><p className="kicker">POSICIONAMENTO</p><h2>Os quatro pilares da Lauda</h2></div></div>
       <div className="pillar-grid">{productPillars.map(item=><div className="pillar-card" key={item.title}><strong>{item.title}</strong><p>{item.desc}</p></div>)}</div>
       <div className="roadmap-callout"><ShieldCheck size={20}/><div><strong>Proposta central</strong><span>Automação documental privada para profissionais, jurídico e empresas — não apenas mais um conversor de PDF.</span></div></div>
     </section>

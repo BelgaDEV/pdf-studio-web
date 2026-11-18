@@ -24,8 +24,8 @@ export default class ErrorBoundary extends Component<Props, State> {
         <span className="fatal-error-icon"><TriangleAlert size={30}/></span>
         <p className="kicker">RECUPERAÇÃO SEGURA</p>
         <h1>Algo saiu do esperado.</h1>
-        <p>O PDF Studio interrompeu esta tela para evitar continuar em um estado inconsistente. Seus documentos não são enviados automaticamente por causa deste erro.</p>
-        <div className="fatal-error-diagnostic"><strong>Diagnóstico local</strong><code>{this.state.message}</code><span>PDF Studio v{APP_VERSION}</span></div>
+        <p>A Lauda interrompeu esta tela para evitar continuar em um estado inconsistente. Seus documentos não são enviados automaticamente por causa deste erro.</p>
+        <div className="fatal-error-diagnostic"><strong>Diagnóstico local</strong><code>{this.state.message}</code><span>Lauda v{APP_VERSION}</span></div>
         <div className="fatal-error-actions">
           <button type="button" className="primary-btn" onClick={() => window.location.reload()}><RefreshCw size={17}/> Recarregar</button>
           <a className="secondary-btn" href="/"><Home size={17}/> Voltar ao início</a>

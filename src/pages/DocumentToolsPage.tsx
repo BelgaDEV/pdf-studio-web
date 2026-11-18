@@ -173,7 +173,7 @@ export default function DocumentToolsPage({ toolId }: { toolId: DocumentToolId }
         {toolId === 'protect' && <div className="doc-fields">
           <label><span>Senha para abrir o PDF</span><div className="password-input"><input type={showPassword?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/><button type="button" onClick={()=>setShowPassword(v=>!v)} title={showPassword?'Ocultar senha':'Mostrar senha'}>{showPassword?<EyeOff size={17}/>:<Eye size={17}/>}</button></div></label>
           <label><span>Confirmar senha</span><input className="text-input" type={showPassword?'text':'password'} value={passwordConfirm} onChange={e=>setPasswordConfirm(e.target.value)} autoComplete="new-password"/></label>
-          <div className="doc-info-box security"><LockKeyhole size={17}/><span>A senha é usada apenas localmente para criar o arquivo criptografado e não é enviada nem armazenada pelo PDF Studio.</span></div>
+          <div className="doc-info-box security"><LockKeyhole size={17}/><span>A senha é usada apenas localmente para criar o arquivo criptografado e não é enviada nem armazenada pela Lauda.</span></div>
         </div>}
 
         {toolId === 'extract-images' && <div className="doc-fields">
@@ -183,7 +183,7 @@ export default function DocumentToolsPage({ toolId }: { toolId: DocumentToolId }
 
         {toolId === 'pdfa' && <div className="doc-fields">
           <label><span>Versão de arquivamento</span><select value={pdfaVersion} onChange={e=>setPdfaVersion(Number(e.target.value) as PdfaVersion)}><option value="1">PDF/A-1b — maior compatibilidade</option><option value="2">PDF/A-2b — recomendado</option><option value="3">PDF/A-3b — permite recursos mais modernos</option></select></label>
-          <div className="doc-info-box warning"><Info size={17}/><span>O PDF Studio aplica a estrutura de conformidade nível b (perfil sRGB, XMP, sem JavaScript). Fontes não incorporadas no original não são incorporadas automaticamente. Para protocolo, preservação permanente ou exigência normativa, valide o arquivo final com um validador PDF/A dedicado antes do uso oficial.</span></div>
+          <div className="doc-info-box warning"><Info size={17}/><span>A Lauda aplica a estrutura de conformidade nível b (perfil sRGB, XMP, sem JavaScript). Fontes não incorporadas no original não são incorporadas automaticamente. Para protocolo, preservação permanente ou exigência normativa, valide o arquivo final com um validador PDF/A dedicado antes do uso oficial.</span></div>
         </div>}
 
         <button type="button" className="primary-btn wide run-btn" onClick={run} disabled={working||!file}>{working?'Processando…':'Executar agora'}</button>
