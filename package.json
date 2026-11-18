@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && node scripts/generate-sitemap.mjs && vite build",
     "preview": "vite preview",
     "check": "tsc -b",
     "test": "vitest run --exclude tests/pdf-regression.test.ts",

@@ -1,6 +1,9 @@
 export const APP_NAME = 'Lauda'
 export const APP_VERSION = '2.1.2'
 export const APP_TAGLINE = 'Automação documental privada'
+export const APP_SITE_URL = 'https://www.laudapdf.com.br'
+export const APP_OWNER = 'Carlos Magno Bernardo Alves'
+export const APP_CONTACT_EMAIL = 'contato@laudapdf.com.br'
 
 export const APP_META = {
   home: {
