@@ -1,7 +1,7 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 
-type QualityCaseName = 'merge'|'split'|'compress'|'redaction'|'compare'|'protect'|'pdfa'|'word-to-pdf'|'prepare'|'ocr'
+type QualityCaseName = 'merge'|'split'|'compress'|'redaction'|'compare'|'protect'|'pdfa'|'word-to-pdf'|'pdf-to-word'|'prepare'|'ocr'
 type QualityResult = { case: QualityCaseName; durationMs: number; details: Record<string, string|number|boolean> }
 
 async function runCase(page: Page, name: QualityCaseName): Promise<QualityResult> {
@@ -27,12 +27,13 @@ const coreCases: Array<{ name: QualityCaseName; label: string }> = [
   { name: 'protect', label: 'Proteger PDF / AES-256' },
   { name: 'pdfa', label: 'PDF/A / pdf-lib' },
   { name: 'word-to-pdf', label: 'Word → PDF' },
+  { name: 'pdf-to-word', label: 'PDF → Word (layout)' },
   { name: 'prepare', label: 'Preparar Documento' },
 ]
 
 test.describe.configure({ mode: 'serial' })
 
-test('[core] 9 fluxos críticos produzem saídas válidas e reabertas', async ({ page }, testInfo) => {
+test('[core] 10 fluxos críticos produzem saídas válidas e reabertas', async ({ page }, testInfo) => {
   test.setTimeout(8 * 60 * 1000)
   await page.goto('/')
   const results: QualityResult[] = []
