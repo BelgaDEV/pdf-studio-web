@@ -58,6 +58,7 @@ function ClassicToolPage(){
   const [errorMessage,setErrorMessage] = useState('')
   const [mode,setMode] = useState<CompressionMode>('smart')
   const [splitMb,setSplitMb] = useState(10)
+  const [wordMode,setWordMode] = useState<'layout'|'text'>('layout')
   const [targetMb,setTargetMb] = useState(10)
   const [dpi,setDpi] = useState(150)
   const [analysis,setAnalysis] = useState<{pages:number,recommended:CompressionMode}|null>(null)
@@ -345,10 +346,17 @@ function ClassicToolPage(){
         downloadBlob(new Blob([pages.join('\n\n--- PÁGINA ---\n\n')],{type:'text/plain;charset=utf-8'}),`${stem(files[0].name)}.txt`)
         setSuccess('Texto extraído com sucesso.')
       } else if(toolId==='pdf-word'){
-        const { pdfToWord } = await import('../lib/word')
-        const blob=await pdfToWord(files[0],update)
-        downloadBlob(blob,`${stem(files[0].name)}.docx`)
-        setSuccess('DOCX criado. Conversão Beta: prioriza texto e pode simplificar layouts complexos.')
+        if(wordMode==='layout'){
+          const { pdfToWordLayout } = await import('../lib/pdfToWordLayout')
+          const blob=await pdfToWordLayout(files[0],update)
+          downloadBlob(blob,`${stem(files[0].name)}.docx`)
+          setSuccess('DOCX criado mantendo o layout: caixas, cores e imagens ficam como no PDF, e o texto continua editável no Word.')
+        } else {
+          const { pdfToWord } = await import('../lib/word')
+          const blob=await pdfToWord(files[0],update)
+          downloadBlob(blob,`${stem(files[0].name)}.docx`)
+          setSuccess('DOCX criado só com o texto, em parágrafos corridos, para editar com facilidade.')
+        }
       } else if(toolId==='word-pdf'){
         const { wordToPdf } = await import('../lib/word')
         const blob=await wordToPdf(files[0],update)
@@ -442,7 +450,8 @@ function ClassicToolPage(){
         </>}
         {toolId==='split' && <><label className="field-label">Tamanho máximo por parte</label><div className="number-field"><input type="number" min="0.5" max="500" step="0.5" value={splitMb} onChange={e=>setSplitMb(Number(e.target.value))}/><span>MB</span></div></>}
         {(toolId==='pdf-jpg'||toolId==='pdf-png') && <><label className="field-label">Resolução</label><select value={dpi} onChange={e=>setDpi(Number(e.target.value))}><option value="96">96 DPI</option><option value="150">150 DPI</option><option value="200">200 DPI</option><option value="300">300 DPI</option></select></>}
-        {(toolId==='pdf-word'||toolId==='word-pdf') && <div className="beta-note"><strong>Conversão Beta</strong><span>Funciona 100% no navegador. Layouts complexos podem sofrer alterações.</span></div>}
+        {toolId==='pdf-word' && <><label className="field-label" htmlFor="word-mode">Formato do Word</label><select id="word-mode" value={wordMode} onChange={e=>setWordMode(e.target.value as 'layout'|'text')}><option value="layout">Manter layout (recomendado)</option><option value="text">Só texto (parágrafos corridos)</option></select><p className="warning-text">{wordMode==='layout'?'Mantém caixas, tabelas, cores, logotipos e QR codes. Cada linha de texto fica editável na posição original.':'Extrai apenas o texto, sem formatação, para reaproveitar em outro documento.'}</p></>}
+        {toolId==='word-pdf' && <div className="beta-note"><strong>Conversão Beta</strong><span>Funciona 100% no navegador. Layouts complexos podem sofrer alterações.</span></div>}
         {toolId==='merge' && <>
           <div className="merge-summary"><strong>Ordem final</strong><span>{files.length<2?'Adicione pelo menos 2 PDFs.':`${files.length.toLocaleString('pt-BR')} PDFs serão unidos de cima para baixo • ${humanSize(mergeTotalBytes)} no total.`}</span>{files.length>=100 && <span className="massive-merge-note">Modo seguro por lotes será ativado automaticamente. Os arquivos não serão enviados todos de uma vez para a memória.</span>}</div>
           <label className="toggle-row merge-bookmark-toggle">

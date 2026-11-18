@@ -1,0 +1,263 @@
+import { nextFrame } from './files'
+
+/**
+ * PDF → Word preservando o layout.
+ *
+ * Para cada página:
+ * 1. Renderiza a página (PDF.js) e lê a posição, o tamanho e a fonte de cada
+ *    trecho de texto.
+ * 2. "Apaga" o texto da imagem renderizada, pintando cada área com a cor do
+ *    fundo ao redor. Sobram caixas, linhas, cores, logotipos e QR codes.
+ * 3. Monta uma seção do Word do mesmo tamanho da página: essa imagem vai atrás
+ *    do texto, e cada linha de texto vira um quadro editável na posição
+ *    original, com tamanho, cor, negrito e itálico próximos do original.
+ *
+ * Resultado: visual muito próximo do PDF e texto editável no Word.
+ */
+
+type ProgressFn = (value: number, message: string) => void
+
+const RENDER_SCALE = 2 // 144 DPI: nítido e com tamanho de arquivo razoável
+const PT_TO_TWIP = 20
+const PT_TO_PX = 96 / 72
+
+type TextLine = {
+  text: string
+  x: number // pt, a partir da esquerda
+  top: number // pt, topo da linha
+  width: number // pt
+  size: number // pt
+  font: string
+  bold: boolean
+  italic: boolean
+  color: string // hex sem #
+}
+
+type RawItem = {
+  str: string
+  x: number
+  baseline: number
+  width: number
+  size: number
+  fontName: string
+}
+
+function fontInfo(page: any, fontName: string, styles: Record<string, { fontFamily?: string }>) {
+  let name = ''
+  try { name = String(page.commonObjs.get(fontName)?.name ?? '') } catch { /* fonte ainda não carregada */ }
+  const lower = `${name} ${styles[fontName]?.fontFamily ?? ''}`.toLowerCase()
+  const bold = /bold|black|heavy|semibold|demi/.test(lower)
+  const italic = /italic|oblique/.test(lower)
+  let font = 'Arial'
+  if (/times|serif(?!-)|georgia|garamond|cambria|roman/.test(lower) && !/sans/.test(lower)) font = 'Times New Roman'
+  if (/courier|mono/.test(lower)) font = 'Courier New'
+  if (/calibri/.test(lower)) font = 'Calibri'
+  if (/verdana/.test(lower)) font = 'Verdana'
+  if (/tahoma/.test(lower)) font = 'Tahoma'
+  return { font, bold, italic }
+}
+
+function toHex(r: number, g: number, b: number) {
+  return [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('')
+}
+
+/** Cor de fundo mais frequente na borda externa de um retângulo. */
+function sampleBackground(data: Uint8ClampedArray, w: number, h: number, x0: number, y0: number, x1: number, y1: number): [number, number, number] {
+  const counts = new Map<string, { n: number; rgb: [number, number, number] }>()
+  const take = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return
+    const i = (y * w + x) * 4
+    const rgb: [number, number, number] = [data[i], data[i + 1], data[i + 2]]
+    const key = rgb.map(v => v >> 3).join(',')
+    const entry = counts.get(key)
+    if (entry) entry.n++
+    else counts.set(key, { n: 1, rgb })
+  }
+  const steps = 12
+  for (let s = 0; s <= steps; s++) {
+    const x = Math.round(x0 + ((x1 - x0) * s) / steps)
+    const y = Math.round(y0 + ((y1 - y0) * s) / steps)
+    take(x, y0 - 2); take(x, y1 + 2); take(x0 - 2, y); take(x1 + 2, y)
+  }
+  let best: { n: number; rgb: [number, number, number] } = { n: 0, rgb: [255, 255, 255] }
+  for (const entry of counts.values()) if (entry.n > best.n) best = entry
+  return best.rgb
+}
+
+/** Cor do texto: o pixel dentro da caixa mais distante da cor de fundo. */
+function sampleTextColor(data: Uint8ClampedArray, w: number, h: number, x0: number, y0: number, x1: number, y1: number, bg: [number, number, number]): string {
+  let bestDist = -1
+  let best: [number, number, number] = [0, 0, 0]
+  const stepX = Math.max(1, Math.floor((x1 - x0) / 60))
+  const stepY = Math.max(1, Math.floor((y1 - y0) / 12))
+  for (let y = Math.max(0, y0); y < Math.min(h, y1); y += stepY) {
+    for (let x = Math.max(0, x0); x < Math.min(w, x1); x += stepX) {
+      const i = (y * w + x) * 4
+      const d = Math.abs(data[i] - bg[0]) + Math.abs(data[i + 1] - bg[1]) + Math.abs(data[i + 2] - bg[2])
+      if (d > bestDist) { bestDist = d; best = [data[i], data[i + 1], data[i + 2]] }
+    }
+  }
+  return bestDist < 60 ? '000000' : toHex(...best)
+}
+
+/** Junta trechos vizinhos na mesma linha com a mesma fonte. */
+function mergeItems(items: RawItem[]): RawItem[] {
+  const sorted = [...items].sort((a, b) => (Math.abs(a.baseline - b.baseline) < Math.max(a.size, b.size) * 0.35 ? a.x - b.x : a.baseline - b.baseline))
+  const out: RawItem[] = []
+  for (const item of sorted) {
+    const last = out[out.length - 1]
+    if (last
+      && last.fontName === item.fontName
+      && Math.abs(last.size - item.size) < 0.5
+      && Math.abs(last.baseline - item.baseline) < item.size * 0.35) {
+      const gap = item.x - (last.x + last.width)
+      if (gap > -item.size * 0.3 && gap < item.size * 0.9) {
+        const needsSpace = gap > item.size * 0.12 && !last.str.endsWith(' ') && !item.str.startsWith(' ')
+        last.str += (needsSpace ? ' ' : '') + item.str
+        last.width = item.x + item.width - last.x
+        continue
+      }
+    }
+    out.push({ ...item })
+  }
+  return out
+}
+
+function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => canvas.toBlob(async blob => {
+    if (!blob) return reject(new Error('Falha ao gerar a imagem da página.'))
+    resolve(new Uint8Array(await blob.arrayBuffer()))
+  }, 'image/jpeg', 0.9))
+}
+
+export async function pdfToWordLayout(file: File, onProgress: ProgressFn): Promise<Blob> {
+  onProgress(3, 'Carregando conversor Word…')
+  const [docx, { loadPdfJsDocument, destroyPdfJsDocument, pdfjsLib }] = await Promise.all([
+    import('docx'),
+    import('./pdfjsSecure'),
+  ])
+  const {
+    Document, Packer, Paragraph, TextRun, ImageRun, FrameAnchorType,
+    HorizontalPositionRelativeFrom, VerticalPositionRelativeFrom, LineRuleType,
+  } = docx
+
+  const pdf = await loadPdfJsDocument(file)
+  const sections: any[] = []
+  let textChars = 0
+  try {
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      onProgress(5 + Math.round(((pageNumber - 1) / pdf.numPages) * 85), `Analisando página ${pageNumber}/${pdf.numPages}…`)
+      const page = await pdf.getPage(pageNumber)
+      const base = page.getViewport({ scale: 1 })
+      const viewport = page.getViewport({ scale: RENDER_SCALE })
+
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.ceil(viewport.width)
+      canvas.height = Math.ceil(viewport.height)
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise
+
+      const content = await page.getTextContent()
+      const raw: RawItem[] = []
+      for (const item of content.items as any[]) {
+        if (!item.str || !item.str.trim()) continue
+        const t = pdfjsLib.Util.transform(base.transform, item.transform)
+        // Texto girado fica só na imagem de fundo.
+        if (Math.abs(t[1]) > 0.01 || Math.abs(t[2]) > 0.01) continue
+        const size = Math.hypot(t[2], t[3]) || Math.abs(t[0])
+        if (size < 2) continue
+        raw.push({ str: item.str, x: t[4], baseline: t[5], width: item.width, size, fontName: item.fontName })
+      }
+
+      const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const lines: TextLine[] = []
+      for (const item of mergeItems(raw)) {
+        const s = RENDER_SCALE
+        const x0 = Math.floor(item.x * s) - 1
+        const y0 = Math.floor((item.baseline - item.size * 0.9) * s) - 1
+        const x1 = Math.ceil((item.x + item.width) * s) + 1
+        const y1 = Math.ceil((item.baseline + item.size * 0.25) * s) + 1
+        const bg = sampleBackground(image.data, canvas.width, canvas.height, x0, y0, x1, y1)
+        const color = sampleTextColor(image.data, canvas.width, canvas.height, x0, y0, x1, y1, bg)
+        ctx.fillStyle = `rgb(${bg[0]},${bg[1]},${bg[2]})`
+        ctx.fillRect(x0, y0, x1 - x0, y1 - y0)
+        const info = fontInfo(page, item.fontName, content.styles as any)
+        lines.push({
+          text: item.str.replace(/\s+/g, ' '),
+          x: item.x,
+          top: item.baseline - item.size * 0.9,
+          width: item.width,
+          size: item.size,
+          color,
+          ...info,
+        })
+        textChars += item.str.length
+      }
+
+      const background = await canvasToJpeg(canvas)
+      canvas.width = 1
+      canvas.height = 1
+
+      const children: any[] = [
+        new Paragraph({
+          spacing: { before: 0, after: 0, line: 20, lineRule: LineRuleType.EXACT },
+          children: [new ImageRun({
+            type: 'jpg',
+            data: background,
+            transformation: { width: Math.round(base.width * PT_TO_PX), height: Math.round(base.height * PT_TO_PX) },
+            floating: {
+              horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: 0 },
+              verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, offset: 0 },
+              behindDocument: true,
+              allowOverlap: true,
+            },
+          })],
+        }),
+      ]
+
+      for (const line of lines) {
+        const lineHeight = Math.round(line.size * 1.2 * PT_TO_TWIP)
+        children.push(new Paragraph({
+          frame: {
+            type: 'absolute',
+            position: { x: Math.round(line.x * PT_TO_TWIP), y: Math.round(line.top * PT_TO_TWIP) },
+            // Folga para diferenças de métrica entre a fonte do PDF e a do Word.
+            width: Math.round((line.width * 1.12 + line.size) * PT_TO_TWIP),
+            height: lineHeight,
+            anchor: { horizontal: FrameAnchorType.PAGE, vertical: FrameAnchorType.PAGE },
+          },
+          spacing: { before: 0, after: 0, line: lineHeight, lineRule: LineRuleType.EXACT },
+          children: [new TextRun({
+            text: line.text,
+            size: Math.max(2, Math.round(line.size * 2)),
+            font: line.font,
+            bold: line.bold,
+            italics: line.italic,
+            color: line.color,
+          })],
+        }))
+      }
+
+      sections.push({
+        properties: {
+          page: {
+            size: { width: Math.round(base.width * PT_TO_TWIP), height: Math.round(base.height * PT_TO_TWIP) },
+            margin: { top: 0, right: 0, bottom: 0, left: 0, header: 0, footer: 0, gutter: 0 },
+          },
+        },
+        children,
+      })
+      await nextFrame()
+    }
+  } finally {
+    await destroyPdfJsDocument(pdf)
+  }
+
+  onProgress(92, 'Montando documento Word…')
+  const doc = new Document({ sections })
+  const blob = await Packer.toBlob(doc)
+  onProgress(100, textChars > 0 ? 'DOCX criado preservando o layout.' : 'DOCX criado. O PDF não tem texto selecionável; use o OCR antes para poder editar o texto.')
+  return blob
+}

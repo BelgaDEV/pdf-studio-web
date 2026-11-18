@@ -16,8 +16,8 @@ describe('v2.1 Quality Gate wiring', () => {
     expect(pkg.version).toBe('2.1.2')
   })
 
-  it('registra os 10 fluxos críticos no harness real de navegador', () => {
-    for (const name of ['merge','split','compress','ocr','redaction','compare','protect','pdfa','word-to-pdf','prepare']) {
+  it('registra os 11 fluxos críticos no harness real de navegador', () => {
+    for (const name of ['merge','split','compress','ocr','redaction','compare','protect','pdfa','word-to-pdf','prepare','pdf-to-word']) {
       expect(harness).toContain(`'${name}'`)
     }
   })
