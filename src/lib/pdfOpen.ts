@@ -28,7 +28,7 @@ export async function decryptPdfBytes(input: Uint8Array): Promise<Uint8Array> {
     if (!file?.data) {
       const details = `${result.stderr ?? ''} ${result.stdout ?? ''}`
       if (/password/i.test(details)) {
-        throw new Error('Este PDF exige senha para ser aberto. Abra-o com a senha e salve uma cópia sem proteção antes de usar no PDF Studio.')
+        throw new Error('Este PDF exige senha para ser aberto. Abra-o com a senha e salve uma cópia sem proteção antes de usar na Lauda.')
       }
       throw new Error('Não foi possível remover a proteção deste PDF.')
     }

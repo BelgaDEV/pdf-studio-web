@@ -47,7 +47,7 @@ export default function TrustReportPage(){
       <div className="local-pill"><LockKeyhole size={15}/> Hashes calculados localmente</div>
     </div>
 
-    <div className="trust-intro-card"><ShieldCheck size={23}/><div><strong>Verifique a integridade sem enviar o documento.</strong><span>O PDF Studio recalcula SHA-256, tamanho e páginas e compara com o Trust Report JSON gerado no processamento.</span></div></div>
+    <div className="trust-intro-card"><ShieldCheck size={23}/><div><strong>Verifique a integridade sem enviar o documento.</strong><span>A Lauda recalcula SHA-256, tamanho e páginas e compara com o Trust Report JSON gerado no processamento.</span></div></div>
 
     <div className="trust-verify-grid">
       <div className="workspace-card trust-upload-card">

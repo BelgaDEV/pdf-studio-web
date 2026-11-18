@@ -50,7 +50,7 @@ export default function BatchToolPage() {
     setFileStatuses(files.map(file => ({ name: file.name, state: 'waiting', message: 'Aguardando' })))
     const { default: JSZip } = await import('jszip')
     const zip = new JSZip()
-    const report: string[] = [`PDF Studio — Processamento em lote`, `Arquivos: ${files.length}`, `Modo: ${mode}`, '']
+    const report: string[] = [`Lauda — Processamento em lote`, `Arquivos: ${files.length}`, `Modo: ${mode}`, '']
     let completed = 0
     let errors = 0
 

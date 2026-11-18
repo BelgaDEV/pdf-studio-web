@@ -269,8 +269,8 @@ export async function convertToPdfAWithReport(
 
   onProgress(72, 'Gravando metadados XMP de identificação PDF/A…')
   const now = new Date()
-  const producer = 'PDF Studio'
-  const creator = doc.getCreator() || 'PDF Studio'
+  const producer = 'Lauda'
+  const creator = doc.getCreator() || 'Lauda'
   const created = doc.getCreationDate() || now
   doc.setProducer(producer)
   doc.setCreator(creator)

@@ -535,8 +535,8 @@ export async function buildComparisonRedlinePdf(
 
   out.setTitle(`Comparação marcada - ${result.revised.fileName}`)
   out.setSubject(`Redline entre ${result.original.fileName} e ${result.revised.fileName}`)
-  out.setProducer('PDF Studio Web')
-  out.setCreator('PDF Studio Web')
+  out.setProducer('Lauda')
+  out.setCreator('Lauda')
   onProgress?.(98,'Finalizando PDF marcado…')
   const bytes=await out.save({useObjectStreams:true})
   onProgress?.(100,'PDF marcado pronto para download.')
@@ -587,7 +587,7 @@ export async function buildComparisonReportPdf(result:PdfComparisonResult):Promi
     const lines=wrapText(text,Math.max(36,94-Math.floor(indent/5)))
     for(const item of lines){ensure(size+6);page.drawText(item,{x:margin+indent,y:y-size,size,font,color:rgb(.10,.13,.18)});y-=size+5}
   }
-  page.drawText('PDF Studio - Relatorio de Comparacao',{x:margin,y:y-22,size:20,font:bold,color:rgb(.08,.22,.16)});y-=42
+  page.drawText('Lauda - Relatorio de Comparacao',{x:margin,y:y-22,size:20,font:bold,color:rgb(.08,.22,.16)});y-=42
   line(`Original: ${result.original.fileName}`,10,bold)
   line(`Revisado: ${result.revised.fileName}`,10,bold)
   line(`Paginas: ${result.original.pageCount} -> ${result.revised.pageCount}`)

@@ -1,4 +1,4 @@
-export const APP_NAME = 'PDF Studio'
+export const APP_NAME = 'Lauda'
 export const APP_VERSION = '2.1.2'
 export const APP_TAGLINE = 'Automação documental privada'
 
@@ -9,7 +9,7 @@ export const APP_META = {
   },
   faq: {
     title: `FAQ e Ajuda — ${APP_NAME}`,
-    description: 'Respostas sobre privacidade, OCR, compressão, comparação, PDF/A e ferramentas do PDF Studio.',
+    description: 'Respostas sobre privacidade, OCR, compressão, comparação, PDF/A e ferramentas da Lauda.',
   },
   roadmap: {
     title: `Roadmap — ${APP_NAME}`,
@@ -21,19 +21,19 @@ export const APP_META = {
   },
   privacy: {
     title: `Privacidade — ${APP_NAME}`,
-    description: 'Como o PDF Studio trata documentos, preferências locais e recursos externos.',
+    description: 'Como a Lauda trata documentos, preferências locais e recursos externos.',
   },
   terms: {
     title: `Termos de uso — ${APP_NAME}`,
-    description: 'Condições de uso e limitações das ferramentas do PDF Studio.',
+    description: 'Condições de uso e limitações das ferramentas da Lauda.',
   },
   licenses: {
     title: `Licenças — ${APP_NAME}`,
-    description: 'Informações sobre a licença do PDF Studio e componentes de terceiros.',
+    description: 'Informações sobre a licença da Lauda e componentes de terceiros.',
   },
   contact: {
     title: `Contato e suporte — ${APP_NAME}`,
-    description: 'Orientações de suporte, diagnóstico e contato do PDF Studio.',
+    description: 'Orientações de suporte, diagnóstico e contato da Lauda.',
   },
   notFound: {
     title: `Página não encontrada — ${APP_NAME}`,

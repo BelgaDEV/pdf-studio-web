@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react'
 import { APP_VERSION } from '../lib/appMeta'
 
 const faq = [
-  {cat:'Privacidade',q:'Meus PDFs são enviados para algum servidor?',a:'Nas ferramentas locais do PDF Studio, o arquivo é processado no próprio navegador. O objetivo do projeto é manter o documento no dispositivo do usuário. Recursos futuros que eventualmente precisem de nuvem devem ser identificados de forma explícita antes do processamento.'},
-  {cat:'Privacidade',q:'O PDF Studio armazena meus documentos?',a:'Não há banco ou bucket de documentos no fluxo atual. Arquivos e resultados ficam na memória ou no armazenamento temporário do navegador durante a operação e o resultado é baixado para o dispositivo.'},
+  {cat:'Privacidade',q:'Meus PDFs são enviados para algum servidor?',a:'Nas ferramentas locais da Lauda, o arquivo é processado no próprio navegador. O objetivo do projeto é manter o documento no dispositivo do usuário. Recursos futuros que eventualmente precisem de nuvem devem ser identificados de forma explícita antes do processamento.'},
+  {cat:'Privacidade',q:'A Lauda armazena meus documentos?',a:'Não há banco ou bucket de documentos no fluxo atual. Arquivos e resultados ficam na memória ou no armazenamento temporário do navegador durante a operação e o resultado é baixado para o dispositivo.'},
   {cat:'Automação',q:'O que são Workflows salvos?',a:'São configurações reutilizáveis do Preparar documento. Você escolhe etapas como OCR, compressão, limpeza, numeração, PDF/A e Trust Report, salva com um nome e reaplica o mesmo padrão em novos PDFs.'},
   {cat:'Automação',q:'Workflows, favoritos e recentes são enviados para um servidor?',a:'Não. Na versão atual eles ficam no localStorage do próprio navegador. O histórico recente registra somente o identificador da ferramenta usada; não guarda nome nem conteúdo dos PDFs.'},
   {cat:'Ajuda',q:'Como adiciono uma ferramenta aos Favoritos?',a:'No menu lateral do desktop, clique na estrela ao lado da ferramenta. Os favoritos aparecem no topo do menu e também na área de acesso rápido da Home.'},
@@ -12,7 +12,7 @@ const faq = [
   {cat:'Compressão',q:'“Comprimir para X MB” garante exatamente o tamanho escolhido?',a:'Não. O app busca chegar abaixo ou o mais próximo possível da meta sem produzir um PDF inválido. Alguns documentos já estão muito otimizados e podem não atingir um alvo agressivo sem perda grande de qualidade.'},
   {cat:'Mesclagem',q:'Posso escolher a ordem dos PDFs antes de mesclar?',a:'Sim. Use arrastar e soltar no desktop ou os controles de movimento. O PDF final, o índice e os bookmarks seguem a ordem definida na lista.'},
   {cat:'Mesclagem',q:'O que são bookmarks e índice clicável?',a:'Bookmarks aparecem no painel lateral do leitor PDF e levam ao início de cada documento. O índice clicável cria páginas no começo do PDF com nome do arquivo e página inicial; cada item funciona como link interno.'},
-  {cat:'Mesclagem',q:'Por que milhares de PDFs podem falhar no navegador?',a:'Operações extremas podem atingir limites de RAM/WebAssembly do navegador, especialmente quando o resultado final tem centenas de megabytes. O projeto possui estratégias por lotes e armazenamento temporário, mas volumes muito grandes são um candidato natural ao futuro PDF Studio Desktop.'},
+  {cat:'Mesclagem',q:'Por que milhares de PDFs podem falhar no navegador?',a:'Operações extremas podem atingir limites de RAM/WebAssembly do navegador, especialmente quando o resultado final tem centenas de megabytes. O projeto possui estratégias por lotes e armazenamento temporário, mas volumes muito grandes são um candidato natural ao futura Lauda Desktop.'},
   {cat:'OCR',q:'O que faz o OCR pesquisável?',a:'Ele reconhece texto em páginas escaneadas e adiciona uma camada pesquisável. Isso permite Ctrl+F e melhora extração de texto. O modelo de idioma pode precisar ser carregado no primeiro uso.'},
   {cat:'OCR',q:'Devo aplicar OCR em PDFs que já têm texto?',a:'Normalmente não. A opção de pular páginas que já têm texto reduz tempo e evita processamento desnecessário. OCR é mais útil em scans ou PDFs mistos.'},
   {cat:'Legal / Business',q:'A redação permanente é apenas uma tarja preta?',a:'Não. Nas páginas redigidas, a versão atual renderiza a página já com a área ocultada e reconstrói a página sem carregar por baixo a camada original de texto. Isso é mais seguro do que desenhar um retângulo sobre conteúdo existente.'},
@@ -43,7 +43,7 @@ export default function FaqPage(){
   return <div className="info-page faq-page">
     <section className="info-hero">
       <div className="info-hero-icon"><HelpCircle size={28}/></div>
-      <div><p className="kicker">CENTRAL DE AJUDA</p><h1>FAQ do PDF Studio</h1><p>Respostas rápidas sobre privacidade, compressão, OCR, ferramentas jurídicas, limites e boas práticas.</p></div>
+      <div><p className="kicker">CENTRAL DE AJUDA</p><h1>FAQ da Lauda</h1><p>Respostas rápidas sobre privacidade, compressão, OCR, ferramentas jurídicas, limites e boas práticas.</p></div>
     </section>
     <div className="info-search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar: OCR, mesclar, PDF/A, Trust Report..."/></div>
     <div className="faq-chips">{categories.map(value=><button key={value} className={cat===value?'active':''} onClick={()=>setCat(value)}>{value}</button>)}</div>

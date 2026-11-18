@@ -10,6 +10,6 @@ export default function ContactPage(){
       <article><Bug/><h2>Ao reportar um problema</h2><p>Informe versão do app, navegador, ferramenta utilizada, etapa em que falhou e mensagem de erro. Não envie conteúdo confidencial apenas para reproduzir um problema.</p></article>
       <article><Info/><h2>Canal comercial</h2><p>O canal oficial de contato e contratação será publicado aqui antes da abertura dos planos pagos. Nenhuma cobrança está ativa nesta versão.</p></article>
     </section>
-    <section className="public-copy-block"><h2>Diagnóstico recomendado</h2><p>Para um relato técnico útil, informe: <strong>PDF Studio v{APP_VERSION}</strong>, navegador e versão, sistema operacional, tamanho aproximado do arquivo, número de páginas e texto exato do erro. Prefira um arquivo fictício para reproduções.</p></section>
+    <section className="public-copy-block"><h2>Diagnóstico recomendado</h2><p>Para um relato técnico útil, informe: <strong>Lauda v{APP_VERSION}</strong>, navegador e versão, sistema operacional, tamanho aproximado do arquivo, número de páginas e texto exato do erro. Prefira um arquivo fictício para reproduções.</p></section>
   </div>
 }

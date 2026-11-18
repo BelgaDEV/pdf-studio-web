@@ -1,6 +1,6 @@
 {
-  "name": "PDF Studio",
-  "short_name": "PDF Studio",
+  "name": "Lauda",
+  "short_name": "Lauda",
   "description": "Ferramentas PDF privadas com processamento local no navegador.",
   "start_url": "/",
   "display": "standalone",

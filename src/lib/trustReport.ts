@@ -53,7 +53,7 @@ export type DocumentTrustReport = {
   reportSha256: string
   createdAt: string
   application: {
-    name: 'PDF Studio Web'
+    name: 'Lauda'
     version: string
     processingMode: 'local-browser'
   }
@@ -260,7 +260,7 @@ export async function createDocumentTrustReport(
     reportId: `PS-${reportDateCode(createdAt)}-${outputHash.slice(0, 12).toUpperCase()}`,
     createdAt,
     application: {
-      name: 'PDF Studio Web',
+      name: 'Lauda',
       version: PDF_STUDIO_VERSION,
       processingMode: 'local-browser',
     },
@@ -277,7 +277,7 @@ export async function createDocumentTrustReport(
     settings: settingsSummary(options, presetName),
     processing: {
       filesUploaded: false,
-      statement: 'Gerado por um fluxo local-first do PDF Studio Web. Os documentos são processados no navegador; o relatório registra somente dados técnicos, hashes e etapas.',
+      statement: 'Gerado por um fluxo local-first da Lauda. Os documentos são processados no navegador; o relatório registra somente dados técnicos, hashes e etapas.',
     },
     disclaimer: 'Este relatório é um registro técnico de processamento e integridade. Não é assinatura digital, carimbo do tempo, certificação jurídica, laudo pericial nem atestado de conformidade emitido por terceiro. O arquivo JSON desta versão não é assinado criptograficamente por uma autoridade externa.',
   }
@@ -361,7 +361,7 @@ export function trustReportPdfBlob(report: DocumentTrustReport): Blob {
   }
 
   doc.setFillColor(10, 26, 39); doc.rect(0, 0, width, 38, 'F')
-  doc.setTextColor(57, 239, 136); doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.text('PDF STUDIO', margin, 16)
+  doc.setTextColor(57, 239, 136); doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.text('LAUDA', margin, 16)
   doc.setTextColor(235, 244, 252); doc.setFontSize(15); doc.text('Document Trust Report', margin, 25)
   doc.setTextColor(160, 179, 197); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text(report.reportId, margin, 32)
   doc.setTextColor(30, 43, 55)
