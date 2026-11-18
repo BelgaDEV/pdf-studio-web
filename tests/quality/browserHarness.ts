@@ -341,7 +341,9 @@ async function runWordToPdf(): Promise<Record<string, string | number | boolean>
   assert(bytes.byteLength > 100, 'Word → PDF gerou saída vazia.')
   const pages = await pageCount(bytes)
   assert(pages >= 1, 'Word → PDF não produziu nenhuma página.')
-  return { pages, docxBytes: docxBlob.size, pdfBytes: bytes.byteLength }
+  const text = (await extractText(bytes, 'word.pdf')).toUpperCase().replace(/\s+/g, ' ')
+  assert(text.includes('QUALITY GATE WORD'), `Word → PDF não gerou texto selecionável: ${text.slice(0, 120)}`)
+  return { pages, docxBytes: docxBlob.size, pdfBytes: bytes.byteLength, selectableText: true }
 }
 
 async function runPrepare(): Promise<Record<string, string | number | boolean>> {
