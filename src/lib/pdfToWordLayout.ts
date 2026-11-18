@@ -6,11 +6,14 @@ import { nextFrame } from './files'
  * Para cada página:
  * 1. Renderiza a página (PDF.js) e lê a posição, o tamanho e a fonte de cada
  *    trecho de texto.
- * 2. "Apaga" o texto da imagem renderizada, pintando cada área com a cor do
- *    fundo ao redor. Sobram caixas, linhas, cores, logotipos e QR codes.
+ * 2. Renderiza a página de novo SEM o texto. Sobram caixas, linhas,
+ *    sublinhados, cores, logotipos e QR codes. Se algum texto for desenhado
+ *    como forma (fontes especiais), aquela área é apagada com a cor do fundo.
  * 3. Monta uma seção do Word do mesmo tamanho da página: essa imagem vai atrás
  *    do texto, e cada linha de texto vira um quadro editável na posição
- *    original, com tamanho, cor, negrito e itálico próximos do original.
+ *    original, com tamanho, cor, negrito e itálico próximos do original. O
+ *    espaçamento entre letras é ajustado para cada trecho ocupar a mesma
+ *    largura do PDF, o que mantém o alinhamento de textos justificados.
  *
  * Resultado: visual muito próximo do PDF e texto editável no Word.
  */
@@ -31,6 +34,7 @@ type TextLine = {
   bold: boolean
   italic: boolean
   color: string // hex sem #
+  spacing: number // twips entre letras, para igualar a largura do PDF
 }
 
 type RawItem = {
@@ -104,7 +108,10 @@ function sampleTextColor(data: Uint8ClampedArray, w: number, h: number, x0: numb
 function mergeItems(items: RawItem[]): RawItem[] {
   const sorted = [...items].sort((a, b) => (Math.abs(a.baseline - b.baseline) < Math.max(a.size, b.size) * 0.35 ? a.x - b.x : a.baseline - b.baseline))
   const out: RawItem[] = []
-  for (const item of sorted) {
+  for (const original of sorted) {
+    // Texto com letras espaçadas ("E S C R I T Ó R I O"): o PDF.js insere espaços
+    // entre as letras; removemos, e o espaçamento volta pelo ajuste de largura.
+    const item = /^(\S ){2,}\S$/.test(original.str) ? { ...original, str: original.str.replace(/ /g, '') } : original
     const last = out[out.length - 1]
     if (last
       && last.fontName === item.fontName
@@ -121,6 +128,63 @@ function mergeItems(items: RawItem[]): RawItem[] {
     out.push({ ...item })
   }
   return out
+}
+
+const fontAvailability = new Map<string, boolean>()
+let measureCtx: CanvasRenderingContext2D | null = null
+
+function measurer(): CanvasRenderingContext2D {
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d')!
+  return measureCtx
+}
+
+/** A fonte existe neste computador? (Compara com a largura da fonte genérica.) */
+function fontInstalled(font: string): boolean {
+  const cached = fontAvailability.get(font)
+  if (cached !== undefined) return cached
+  const ctx = measurer()
+  const sample = 'mmmmmmmmmmlliWWW 0123456789'
+  let installed = false
+  for (const generic of ['monospace', 'serif']) {
+    ctx.font = `40px ${generic}`
+    const base = ctx.measureText(sample).width
+    ctx.font = `40px "${font}", ${generic}`
+    if (Math.abs(ctx.measureText(sample).width - base) > 0.5) { installed = true; break }
+  }
+  fontAvailability.set(font, installed)
+  return installed
+}
+
+/** Espaçamento (twips) para o texto ocupar `targetWidth` pt na fonte do Word. */
+function fitSpacing(text: string, font: string, size: number, bold: boolean, italic: boolean, targetWidth: number): number {
+  if (text.length < 2 || !fontInstalled(font)) return 0
+  // Sem fonte equivalente no computador, não dá para medir com segurança.
+  const ctx = measurer()
+  ctx.font = `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${size}px "${font}"`
+  const measured = ctx.measureText(text).width
+  const twips = Math.round(((targetWidth - measured) / text.length) * 20)
+  return Math.max(Math.round(-size * 3), Math.min(Math.round(size * 12), twips))
+}
+
+/** Faz o contexto ignorar desenho de texto (para obter só o fundo da página). */
+function suppressText(ctx: CanvasRenderingContext2D) {
+  const noop = () => {}
+  Object.defineProperty(ctx, 'fillText', { value: noop, configurable: true, writable: true })
+  Object.defineProperty(ctx, 'strokeText', { value: noop, configurable: true, writable: true })
+}
+
+/** Fração da caixa que ainda parece texto (pixels diferentes do fundo). */
+function inkRatio(data: Uint8ClampedArray, w: number, h: number, x0: number, y0: number, x1: number, y1: number, bg: [number, number, number]): number {
+  let ink = 0
+  let total = 0
+  for (let y = Math.max(0, y0); y < Math.min(h, y1); y += 2) {
+    for (let x = Math.max(0, x0); x < Math.min(w, x1); x += 2) {
+      const i = (y * w + x) * 4
+      total++
+      if (Math.abs(data[i] - bg[0]) + Math.abs(data[i + 1] - bg[1]) + Math.abs(data[i + 2] - bg[2]) > 90) ink++
+    }
+  }
+  return total ? ink / total : 0
 }
 
 function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Uint8Array> {
@@ -151,12 +215,21 @@ export async function pdfToWordLayout(file: File, onProgress: ProgressFn): Promi
       const base = page.getViewport({ scale: 1 })
       const viewport = page.getViewport({ scale: RENDER_SCALE })
 
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.ceil(viewport.width)
-      canvas.height = Math.ceil(viewport.height)
-      const ctx = canvas.getContext('2d', { willReadFrequently: true })!
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      const newCanvas = () => {
+        const c = document.createElement('canvas')
+        c.width = Math.ceil(viewport.width)
+        c.height = Math.ceil(viewport.height)
+        const context = c.getContext('2d', { willReadFrequently: true })!
+        context.fillStyle = '#ffffff'
+        context.fillRect(0, 0, c.width, c.height)
+        return { c, context }
+      }
+      // Página completa: usada para descobrir a cor de cada texto.
+      const full = newCanvas()
+      await page.render({ canvasContext: full.context, viewport, canvas: full.c } as any).promise
+      // Página sem texto: vira o fundo do Word (preserva sublinhados e linhas).
+      const { c: canvas, context: ctx } = newCanvas()
+      suppressText(ctx)
       await page.render({ canvasContext: ctx, viewport, canvas } as any).promise
 
       const content = await page.getTextContent()
@@ -171,26 +244,36 @@ export async function pdfToWordLayout(file: File, onProgress: ProgressFn): Promi
         raw.push({ str: item.str, x: t[4], baseline: t[5], width: item.width, size, fontName: item.fontName })
       }
 
-      const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const fullImage = full.context.getImageData(0, 0, canvas.width, canvas.height)
+      const bareImage = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      full.c.width = 1
+      full.c.height = 1
       const lines: TextLine[] = []
       for (const item of mergeItems(raw)) {
         const s = RENDER_SCALE
         const x0 = Math.floor(item.x * s) - 1
         const y0 = Math.floor((item.baseline - item.size * 0.9) * s) - 1
         const x1 = Math.ceil((item.x + item.width) * s) + 1
-        const y1 = Math.ceil((item.baseline + item.size * 0.25) * s) + 1
-        const bg = sampleBackground(image.data, canvas.width, canvas.height, x0, y0, x1, y1)
-        const color = sampleTextColor(image.data, canvas.width, canvas.height, x0, y0, x1, y1, bg)
-        ctx.fillStyle = `rgb(${bg[0]},${bg[1]},${bg[2]})`
-        ctx.fillRect(x0, y0, x1 - x0, y1 - y0)
+        // Vai só um pouco abaixo da linha de base: não alcança sublinhados.
+        const yGlyph = Math.ceil((item.baseline + item.size * 0.08) * s)
+        const bg = sampleBackground(bareImage.data, canvas.width, canvas.height, x0, y0, x1, yGlyph)
+        const color = sampleTextColor(fullImage.data, canvas.width, canvas.height, x0, y0, x1, yGlyph, bg)
+        // Texto desenhado como forma (não foi suprimido): apaga só a área dos glifos.
+        if (inkRatio(bareImage.data, canvas.width, canvas.height, x0, y0, x1, yGlyph, bg) > 0.08) {
+          ctx.fillStyle = `rgb(${bg[0]},${bg[1]},${bg[2]})`
+          ctx.fillRect(x0, y0, x1 - x0, yGlyph - y0)
+        }
         const info = fontInfo(page, item.fontName, content.styles as any)
+        const text = item.str.replace(/\s+/g, ' ')
         lines.push({
-          text: item.str.replace(/\s+/g, ' '),
+          text,
           x: item.x,
           top: item.baseline - item.size * 0.9,
           width: item.width,
           size: item.size,
           color,
+          // Pequena folga: a fonte do Word costuma sair um pouco mais larga.
+          spacing: fitSpacing(text, info.font, item.size, info.bold, info.italic, item.width - item.size * 0.1),
           ...info,
         })
         textChars += item.str.length
@@ -224,7 +307,7 @@ export async function pdfToWordLayout(file: File, onProgress: ProgressFn): Promi
             type: 'absolute',
             position: { x: Math.round(line.x * PT_TO_TWIP), y: Math.round(line.top * PT_TO_TWIP) },
             // Folga para diferenças de métrica entre a fonte do PDF e a do Word.
-            width: Math.round((line.width * 1.12 + line.size) * PT_TO_TWIP),
+            width: Math.round((line.width + line.size * 0.6 + (line.spacing === 0 ? line.width * 0.12 : 0)) * PT_TO_TWIP),
             height: lineHeight,
             anchor: { horizontal: FrameAnchorType.PAGE, vertical: FrameAnchorType.PAGE },
           },
@@ -236,6 +319,7 @@ export async function pdfToWordLayout(file: File, onProgress: ProgressFn): Promi
             bold: line.bold,
             italics: line.italic,
             color: line.color,
+            characterSpacing: line.spacing || undefined,
           })],
         }))
       }
