@@ -7,7 +7,6 @@ import { renderFirstPage } from '../lib/pdfPreview'
 import {
   addPageNumbers,
   addWatermark,
-  convertToPdfA,
   extractEmbeddedImages,
   protectPdfWithPassword,
   removeBlankPages,
@@ -118,9 +117,12 @@ export default function DocumentToolsPage({ toolId }: { toolId: DocumentToolId }
         downloadBlob(result.zip, `${stem(file.name)}_imagens.zip`)
         setSuccess(`${result.count} imagem(ns) incorporada(s) extraída(s) e empacotada(s) em ZIP.`)
       } else if (toolId === 'pdfa') {
-        const bytes = await convertToPdfA(file, pdfaVersion, update)
+        const { convertToPdfAWithReport } = await import('../lib/pdfa')
+        const { bytes, warnings } = await convertToPdfAWithReport(file, pdfaVersion, update)
         downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `${stem(file.name)}_PDFA-${pdfaVersion}b.pdf`)
-        setSuccess(`PDF/A-${pdfaVersion}b criado com Ghostscript WebAssembly. Para uso regulatório, faça validação formal de conformidade antes de arquivar.`)
+        setSuccess(warnings.length
+          ? `PDF/A-${pdfaVersion}b gerado com ressalvas: ${warnings.join(' ')} Valide o arquivo antes do uso oficial.`
+          : `PDF/A-${pdfaVersion}b criado. Para uso regulatório, faça validação formal de conformidade antes de arquivar.`)
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Erro inesperado.'
@@ -181,7 +183,7 @@ export default function DocumentToolsPage({ toolId }: { toolId: DocumentToolId }
 
         {toolId === 'pdfa' && <div className="doc-fields">
           <label><span>Versão de arquivamento</span><select value={pdfaVersion} onChange={e=>setPdfaVersion(Number(e.target.value) as PdfaVersion)}><option value="1">PDF/A-1b — maior compatibilidade</option><option value="2">PDF/A-2b — recomendado</option><option value="3">PDF/A-3b — permite recursos mais modernos</option></select></label>
-          <div className="doc-info-box warning"><Info size={17}/><span>O Ghostscript cria conformidade nível b. Para protocolo, preservação permanente ou exigência normativa, valide o arquivo final com um validador PDF/A dedicado antes do uso oficial.</span></div>
+          <div className="doc-info-box warning"><Info size={17}/><span>O PDF Studio aplica a estrutura de conformidade nível b (perfil sRGB, XMP, sem JavaScript). Fontes não incorporadas no original não são incorporadas automaticamente. Para protocolo, preservação permanente ou exigência normativa, valide o arquivo final com um validador PDF/A dedicado antes do uso oficial.</span></div>
         </div>}
 
         <button type="button" className="primary-btn wide run-btn" onClick={run} disabled={working||!file}>{working?'Processando…':'Executar agora'}</button>

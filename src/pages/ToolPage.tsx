@@ -237,8 +237,8 @@ function ClassicToolPage(){
             ? 'ajuste adaptativo por página'
             : result.engine==='qpdf-wasm'
               ? 'qpdf WebAssembly'
-              : result.engine.includes('ghostscript')
-                ? 'Ghostscript + qpdf WebAssembly'
+              : result.engine.includes('image-recompress')
+                ? 'Recompressão de imagens + qpdf WebAssembly'
                 : result.engine
           const rasterNote=result.rasterized?' • páginas rasterizadas para alcançar a meta':''
 
@@ -280,8 +280,8 @@ function ClassicToolPage(){
               ? 'redução visual extrema'
               : result.engine === 'adaptive-raster-fallback'
                 ? 'fallback adaptativo local'
-                : result.engine === 'ghostscript-wasm + qpdf-wasm'
-                  ? 'Ghostscript + qpdf WebAssembly'
+                : result.engine === 'image-recompress + qpdf-wasm'
+                  ? 'Recompressão de imagens + qpdf WebAssembly'
                   : 'motor de compatibilidade'
           const rasterNote = result.rasterized ? ' • páginas rasterizadas para priorizar tamanho' : ''
 
@@ -438,7 +438,7 @@ function ClassicToolPage(){
             {analysis && <p className="target-hint">Para {analysis.pages} páginas, o mínimo recomendado é ~{estimatedMinTargetMb.toFixed(1)} MB. Metas muito agressivas podem rasterizar páginas e afetar texto selecionável.</p>}
           </div>}
           {analysis && <div className="analysis-box"><Info size={17}/><span>{analysis.pages} página(s). Recomendado: <strong>{analysis.recommended}</strong>.</span></div>}
-          <p className="warning-text">Médio e Alto usam Ghostscript WebAssembly para recomprimir imagens preservando texto/vetores. Máximo e Por tamanho só rasterizam como último recurso quando necessário para reduzir mais.</p>
+          <p className="warning-text">Médio e Alto recomprimem as imagens do PDF preservando texto, vetores e fontes. Máximo e Por tamanho só rasterizam como último recurso quando necessário para reduzir mais.</p>
         </>}
         {toolId==='split' && <><label className="field-label">Tamanho máximo por parte</label><div className="number-field"><input type="number" min="0.5" max="500" step="0.5" value={splitMb} onChange={e=>setSplitMb(Number(e.target.value))}/><span>MB</span></div></>}
         {(toolId==='pdf-jpg'||toolId==='pdf-png') && <><label className="field-label">Resolução</label><select value={dpi} onChange={e=>setDpi(Number(e.target.value))}><option value="96">96 DPI</option><option value="150">150 DPI</option><option value="200">200 DPI</option><option value="300">300 DPI</option></select></>}

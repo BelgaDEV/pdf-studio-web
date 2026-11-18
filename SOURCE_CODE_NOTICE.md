@@ -1,7 +1,9 @@
 # Aviso de código-fonte e licenciamento
 
-A versão atual do PDF Studio utiliza `@wasm-zoo/ghostscript`, que inclui Ghostscript sob AGPL-3.0-or-later. O `package.json` do projeto também declara `AGPL-3.0-or-later`.
+A partir das versões posteriores à 2.1.2, o PDF Studio **não utiliza mais o Ghostscript** (AGPL). A compressão de imagens e a conversão PDF/A foram reimplementadas com pdf-lib (MIT) e APIs nativas do navegador.
 
-A pasta comercial gerada neste projeto é um pacote de implantação, não uma conclusão de análise jurídica de licenciamento. Antes de vender ou operar o produto como software proprietário/fechado, confirme as obrigações aplicáveis de disponibilização do código-fonte ou obtenha licenciamento comercial compatível para os componentes que exigirem isso.
+Todas as dependências de produção atuais usam licenças permissivas (MIT, Apache-2.0, BSD), que permitem distribuição comercial e código fechado, desde que os avisos de terceiros (`THIRD_PARTY_NOTICES.md`) sejam mantidos.
 
-Mantenha os avisos de terceiros da release e não remova atribuições obrigatórias.
+Observação: versões anteriores (até 2.1.2) incluíam Ghostscript e continuam sujeitas à AGPL-3.0 para quem as recebeu. A escolha da licença do código próprio do PDF Studio cabe ao autor; o campo `license` do `package.json` deve refletir essa decisão.
+
+Este aviso não substitui análise jurídica.

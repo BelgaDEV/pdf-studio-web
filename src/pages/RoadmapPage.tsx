@@ -4,13 +4,13 @@ import { APP_VERSION } from '../lib/appMeta'
 import { tools } from '../lib/tools'
 
 const releases = [
-  {version:'v1.0–1.4',title:'Base web e ferramentas essenciais',status:'done',items:['React + Vite + processamento local-first','Compressão, mesclagem, divisão, conversões e OCR','Ghostscript/qpdf WebAssembly e organização visual de páginas']},
+  {version:'v1.0–1.4',title:'Base web e ferramentas essenciais',status:'done',items:['React + Vite + processamento local-first','Compressão, mesclagem, divisão, conversões e OCR','qpdf WebAssembly e organização visual de páginas']},
   {version:'v1.5–1.9.1',title:'Produtividade e Legal / Business',status:'done',items:['Bookmarks, índice e Document Tools','Redação permanente, Comparar PDFs e Presets Tribunal','Trust Report, workflows, favoritos, recentes e Redline']},
   {version:'v2.0–2.0.4',title:'Experiência comercial',status:'done',items:['Landing premium com ferramentas primeiro','Mega menu e navegação simplificada','Pacote interno/comercial separado e correções de navegação']},
   {version:'v2.0.5–2.0.7',title:'Security Hardening e qualidade',status:'done',items:['Atualização do PDF.js e jsPDF','CSP, sanitização HTML e loaders seguros','TypeScript, testes de segurança e regressão PDF verdes']},
   {version:'v2.0.8',title:'Performance / Lazy Loading',status:'done',items:['Code splitting de rotas e ferramentas','Motores pesados carregados somente sob demanda','Payload inicial validado em aproximadamente 0,39 MB sem gzip']},
   {version:'v2.0.9',title:'Public Polish',status:'done',items:['404 real e tratamento global de falhas','Páginas públicas de Privacidade, Termos, Licenças e Contato','Versão centralizada, textos públicos coerentes e cache de assets versionados']},
-  {version:`v${APP_VERSION}`,title:'Quality Gate',status:'current',items:['Fixtures fictícias determinísticas e reabertura dos arquivos gerados','9 fluxos críticos validados no navegador + OCR real em gate completo','Relatórios Playwright, CI e validação de Ghostscript/qpdf/PDF.js/Word']},
+  {version:`v${APP_VERSION}`,title:'Quality Gate',status:'current',items:['Fixtures fictícias determinísticas e reabertura dos arquivos gerados','9 fluxos críticos validados no navegador + OCR real em gate completo','Relatórios Playwright, CI e validação de qpdf/PDF.js/Word']},
 ]
 
 const productPillars = [

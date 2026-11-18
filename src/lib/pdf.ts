@@ -63,7 +63,7 @@ export async function compressPdf(file: File, mode: CompressionMode, onProgress:
   if (mode === 'target') {
     throw new Error('Use compressPdfToTarget() para o modo Por tamanho.')
   }
-  const { ghostscriptCompressWasm, qpdfOptimizeWasm } = await import('./wasmCompression')
+  const { recompressPdfImages, qpdfOptimizeWasm } = await import('./wasmCompression')
   let selected: PresetCompressionMode = mode
   let analysis: { pages:number; textChars:number; avgBytesPerPage:number; recommended: PresetCompressionMode } | null = null
   if (mode === 'smart') {
@@ -101,12 +101,12 @@ export async function compressPdf(file: File, mode: CompressionMode, onProgress:
     }
   }
 
-  // Médio/Alto/Máximo passam pelo Ghostscript real em WebAssembly e, na
-  // sequência, por qpdf. É a mesma arquitetura do aplicativo desktop:
-  // recompressão de imagens/fontes + otimização estrutural.
+  // Médio/Alto/Máximo recomprimem as imagens incorporadas (pdf-lib + canvas,
+  // licenças permissivas) e, na sequência, passam por qpdf para otimização
+  // estrutural. Texto, vetores e fontes permanecem intactos.
   try {
     const gsProfile = selected as 'medium' | 'high' | 'maximum'
-    let best = await ghostscriptCompressWasm(original, gsProfile, onProgress, 12, 76)
+    let best = await recompressPdfImages(original, gsProfile, onProgress, 12, 76)
     ensureValidPdfBytes(best, 'PDF recompresso')
 
     try {
@@ -117,15 +117,15 @@ export async function compressPdf(file: File, mode: CompressionMode, onProgress:
       })
       if (looksLikePdf(optimized) && optimized.byteLength < best.byteLength) best = optimized
     } catch (error) {
-      console.warn('qpdf pós-processamento indisponível; mantendo saída Ghostscript.', error)
+      console.warn('qpdf pós-processamento indisponível; mantendo saída recomprimida.', error)
     }
 
     // No Máximo, se a primeira passada ainda economizar muito pouco,
     // executamos uma segunda passada extrema. Ela continua preservando
-    // texto/vetores pelo pdfwrite, mas baixa imagens para 72 DPI/JPEG 35.
+    // texto/vetores, mas baixa imagens para 72 DPI/JPEG 35.
     if (selected === 'maximum' && best.byteLength > originalSize * 0.94) {
       onProgress(50, 'Máximo: tentando uma segunda passagem mais agressiva…')
-      const extreme = await ghostscriptCompressWasm(original, 'extreme', onProgress, 52, 86)
+      const extreme = await recompressPdfImages(original, 'extreme', onProgress, 52, 86)
       if (looksLikePdf(extreme) && extreme.byteLength < best.byteLength) {
         best = extreme
         try {
@@ -138,7 +138,7 @@ export async function compressPdf(file: File, mode: CompressionMode, onProgress:
       }
     }
 
-    // Último recurso do modo Máximo: se até Ghostscript não conseguir
+    // Último recurso do modo Máximo: se a recompressão de imagens não conseguir
     // reduzir pelo menos alguns pontos percentuais (comum em PDFs já muito
     // otimizados), usamos rasterização adaptativa para priorizar TAMANHO.
     // Esse fallback é deliberadamente exclusivo do Máximo, pois remove a
@@ -159,12 +159,12 @@ export async function compressPdf(file: File, mode: CompressionMode, onProgress:
     const candidate = best.byteLength >= 100 && best.byteLength < originalSize ? best : original
     ensureValidPdfBytes(candidate)
     onProgress(100, 'Concluído.')
-    return { bytes: candidate, mode: selected, engine: 'ghostscript-wasm + qpdf-wasm', rasterized: false }
+    return { bytes: candidate, mode: selected, engine: 'image-recompress + qpdf-wasm', rasterized: false }
   } catch (error) {
     // Nunca escondemos a falha do WASM. Registramos o motivo e partimos para
     // um compressor visual adaptativo que TEM meta de tamanho por página.
-    // Isso mantém o site funcional mesmo quando o browser/CDN não consegue
-    // inicializar o Ghostscript. O trade-off é rasterizar as páginas.
+    // Isso mantém o site funcional mesmo quando o navegador não consegue
+    // recomprimir as imagens. O trade-off é rasterizar as páginas.
     const diagnostic = error instanceof Error ? error.message : String(error)
     console.warn('Motor WASM avançado falhou; ativando fallback adaptativo.', error)
     onProgress(5, 'Motor avançado indisponível. Ativando compressão adaptativa local…')
@@ -218,7 +218,7 @@ function targetProfileOrder(ratio: number): Array<'medium' | 'high' | 'maximum' 
  *
  * Estratégia:
  * 1) qpdf estrutural, sem perda visual;
- * 2) Ghostscript em perfis progressivamente mais fortes, preservando texto/vetores;
+ * 2) recompressão de imagens em perfis progressivamente mais fortes, preservando texto/vetores;
  * 3) apenas se necessário, rasterização adaptativa com orçamento de bytes/página.
  *
  * O resultado só é marcado como "Meta atingida" quando fica realmente menor
@@ -229,7 +229,7 @@ export async function compressPdfToTarget(
   targetMb: number,
   onProgress: ProgressFn,
 ) {
-  const { ghostscriptCompressWasm, qpdfOptimizeWasm } = await import('./wasmCompression')
+  const { recompressPdfImages, qpdfOptimizeWasm } = await import('./wasmCompression')
   if (!Number.isFinite(targetMb) || targetMb <= 0) {
     throw new Error('Informe um tamanho alvo válido em MB.')
   }
@@ -300,10 +300,10 @@ export async function compressPdfToTarget(
     const end = index === order.length - 1 ? nativeEnd : Math.min(nativeEnd, start + slot - 1)
     try {
       onProgress(start, `Buscando a meta com perfil ${profile}…`)
-      const candidate = await ghostscriptCompressWasm(original, profile, onProgress, start, end)
+      const candidate = await recompressPdfImages(original, profile, onProgress, start, end)
       if (looksLikePdf(candidate) && candidate.byteLength < best.byteLength) {
         best = candidate
-        engine = `ghostscript-${profile}`
+        engine = `image-recompress-${profile}`
         attempts.push(`${profile} ${(best.byteLength / MIB).toFixed(1)} MB`)
       }
       onProgress(end, `Melhor resultado até agora: ${(best.byteLength / MIB).toFixed(1)} MB • meta ${targetMb.toFixed(1)} MB`)
@@ -314,7 +314,7 @@ export async function compressPdfToTarget(
     }
   }
 
-  // qpdf pode retirar alguns pontos percentuais depois do pdfwrite.
+  // qpdf pode retirar alguns pontos percentuais depois da recompressão.
   if (best !== original) {
     try {
       const optimized = await qpdfOptimizeWasm(best, rangedProgress(59, 67, onProgress, 'Finalização estrutural'))
@@ -461,7 +461,7 @@ const COMPATIBILITY_PROFILES: Record<CompatibilityMode, {
   minLinearScale: number
 }> = {
   // A meta é deliberadamente menor que o original para absorver o overhead
-  // da estrutura PDF. Só entra quando o Ghostscript WASM falha.
+  // da estrutura PDF. Só entra quando a recompressão de imagens falha.
   medium: {
     dpi: 144,
     targetRatio: 0.70,

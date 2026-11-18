@@ -419,55 +419,21 @@ export async function extractEmbeddedImages(
   return { zip: blob, count }
 }
 
-const PDFA_DEF = `%!\n/ICCProfile (%rom%iccprofiles/default_rgb.icc) def\n[/_objdef {icc_PDFA} /type /stream /OBJ pdfmark\n[{icc_PDFA} << /N 3 >> /PUT pdfmark\n[{icc_PDFA} ICCProfile (r) file /PUTFILE pdfmark\n[/_objdef {OutputIntent_PDFA} /type /dict /OBJ pdfmark\n[{OutputIntent_PDFA} << /Type /OutputIntent /S /GTS_PDFA1 /DestOutputProfile {icc_PDFA} /OutputConditionIdentifier (sRGB) /Info (sRGB) >> /PUT pdfmark\n[{Catalog} << /OutputIntents [{OutputIntent_PDFA}] >> /PUT pdfmark\n`
-
 export async function convertToPdfA(
   file: File,
   version: PdfaVersion,
   onProgress: DocumentProgressFn,
 ): Promise<Uint8Array> {
-  const input = new Uint8Array(await file.arrayBuffer())
-  onProgress(7, 'Carregando Ghostscript WebAssembly…')
-  await nextFrame()
-  const { load } = await import('@wasm-zoo/ghostscript')
-  const gs = await load()
+  const { convertToPdfAWithReport } = await import('./pdfa')
+  const { bytes, warnings } = await convertToPdfAWithReport(file, version, onProgress)
+  for (const warning of warnings) console.warn(`PDF/A: ${warning}`)
+  const out = validatePdf(bytes, `PDF/A-${version}b`)
+  const check = await loadPdfJs(out)
   try {
-    const definition = new TextEncoder().encode(PDFA_DEF)
-    const args = [
-      '-dSAFER',
-      '-dBATCH',
-      '-dNOPAUSE',
-      '-sDEVICE=pdfwrite',
-      `-dPDFA=${version}`,
-      '-dPDFACompatibilityPolicy=1',
-      '-sColorConversionStrategy=RGB',
-      '-dEmbedAllFonts=true',
-      '-dSubsetFonts=true',
-      '-dDetectDuplicateImages=true',
-      '-dPreserveAnnots=true',
-      '-sOutputFile=/output.pdf',
-      '/pdfa_def.ps',
-      '/input.pdf',
-    ]
-    if (version > 1) args.splice(7, 0, '-sBlendConversionStrategy=Simple')
-    onProgress(24, `Convertendo para PDF/A-${version}b…`)
-    const result = await gs.exec(args, {
-      files: [
-        { name: '/input.pdf', data: input },
-        { name: '/pdfa_def.ps', data: definition },
-      ],
-      outputs: ['/output.pdf'],
-    }) as WasmExecResult
-    onProgress(94, 'Validando estrutura do PDF gerado…')
-    const out = resultBytes(result, `PDF/A-${version}b`)
-    const check = await loadPdfJs(out)
-    try {
-      if (check.numPages < 1) throw new Error('O PDF/A gerado não possui páginas.')
-    } finally {
-      const { destroyPdfJsDocument } = await import('./pdfjsSecure')
-      await destroyPdfJsDocument(check)
-    }
-    onProgress(100, `PDF/A-${version}b criado.`)
-    return out
-  } finally { gs.dispose() }
+    if (check.numPages < 1) throw new Error('O PDF/A gerado não possui páginas.')
+  } finally {
+    const { destroyPdfJsDocument } = await import('./pdfjsSecure')
+    await destroyPdfJsDocument(check)
+  }
+  return out
 }
