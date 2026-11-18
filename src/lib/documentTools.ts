@@ -1,5 +1,6 @@
 import { PDFDocument, PDFName, StandardFonts, degrees, rgb } from 'pdf-lib'
 import { nextFrame } from './files'
+import { loadPdfDocument } from './pdfOpen'
 
 export type DocumentProgressFn = (value: number, message: string) => void
 export type WatermarkPosition = 'center' | 'top' | 'bottom'
@@ -37,7 +38,7 @@ export async function addWatermark(
   if (!text) throw new Error('Digite o texto da marca d’água.')
   onProgress(5, 'Abrindo PDF…')
   const bytes = new Uint8Array(await file.arrayBuffer())
-  const doc = await PDFDocument.load(bytes, { updateMetadata: false })
+  const doc = await loadPdfDocument(bytes, { updateMetadata: false })
   const font = await doc.embedFont(StandardFonts.HelveticaBold)
   const pages = doc.getPages()
   for (let i = 0; i < pages.length; i++) {
@@ -74,7 +75,7 @@ export async function addPageNumbers(
 ): Promise<Uint8Array> {
   onProgress(5, 'Abrindo PDF…')
   const bytes = new Uint8Array(await file.arrayBuffer())
-  const doc = await PDFDocument.load(bytes, { updateMetadata: false })
+  const doc = await loadPdfDocument(bytes, { updateMetadata: false })
   const font = await doc.embedFont(StandardFonts.Helvetica)
   const pages = doc.getPages()
   const startAt = Math.max(1, Math.floor(options.startAt || 1))
@@ -171,7 +172,7 @@ export async function removeBlankPages(
   if (removed.length >= pdf.numPages) throw new Error('Todas as páginas foram identificadas como vazias. Ajuste a sensibilidade para evitar remover o documento inteiro.')
 
   onProgress(82, `Removendo ${removed.length} página(s) em branco…`)
-  const doc = await PDFDocument.load(sourceBytes, { updateMetadata: false })
+  const doc = await loadPdfDocument(sourceBytes, { updateMetadata: false })
   for (const pageNumber of [...removed].sort((a, b) => b - a)) doc.removePage(pageNumber - 1)
   const out = await doc.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 30 })
   onProgress(100, 'Páginas em branco removidas.')
@@ -195,7 +196,7 @@ async function removePdfMetadataWithPdfLib(
   onProgress: DocumentProgressFn,
 ): Promise<{ bytes: Uint8Array; engine: 'pdf-lib' }> {
   onProgress(35, 'Usando removedor de compatibilidade…')
-  const doc = await PDFDocument.load(input, { updateMetadata: false })
+  const doc = await loadPdfDocument(input, { updateMetadata: false })
   doc.catalog.delete(PDFName.of('Metadata'))
   ;(doc.context.trailerInfo as any).Info = undefined
   const out = await doc.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 30 })

@@ -2,6 +2,7 @@ import { PDFDocument } from 'pdf-lib'
 import type { PdfBookmarkSpec } from './bookmarks'
 import type { LargeMergeResult } from './largeMerge'
 import { nextFrame } from './files'
+import { loadPdfDocument } from './pdfOpen'
 
 export type CompressionMode = 'smart'|'basic'|'medium'|'high'|'maximum'|'target'
 export type PresetCompressionMode = Exclude<CompressionMode, 'target'>
@@ -91,7 +92,7 @@ export async function compressPdf(file: File, mode: CompressionMode, onProgress:
     } catch (error) {
       // Fallback seguro: nunca bloqueamos o usuário se o WASM não carregar.
       console.warn('qpdf WASM indisponível; usando fallback estrutural.', error)
-      const doc = await PDFDocument.load(original, { updateMetadata: false })
+      const doc = await loadPdfDocument(original, { updateMetadata: false })
       onProgress(60, 'Aplicando otimização estrutural de compatibilidade…')
       const bytes = await doc.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 30 })
       const candidate = bytes.byteLength >= 100 && bytes.byteLength < originalSize ? bytes : original
@@ -718,7 +719,7 @@ async function addNavigationToMergedBlob(
   await nextFrame()
 
   const bytes = new Uint8Array(await blob.arrayBuffer())
-  const doc = await PDFDocument.load(bytes, { updateMetadata: false })
+  const doc = await loadPdfDocument(bytes, { updateMetadata: false })
   const expectedPages = specs.length === 0 ? 0 : Math.max(...specs.map(spec => spec.pageIndex)) + 1
   if (expectedPages > doc.getPageCount()) {
     throw new Error('A estrutura de páginas mudou durante a mesclagem e a navegação não pôde ser aplicada com segurança.')
@@ -840,7 +841,7 @@ export async function mergePdfs(files: File[], onProgress: ProgressFn, options: 
   for (let index = 0; index < files.length; index++) {
     const file = files[index]
     try {
-      const src = await PDFDocument.load(await file.arrayBuffer(), { updateMetadata: false })
+      const src = await loadPdfDocument(await file.arrayBuffer(), { updateMetadata: false })
       const firstPageIndex = out.getPageCount()
       const pages = await out.copyPages(src, src.getPageIndices())
       pages.forEach(p => out.addPage(p))
@@ -913,7 +914,7 @@ export async function mergePdfs(files: File[], onProgress: ProgressFn, options: 
 }
 
 export async function splitPdfBySize(file: File, maxMb: number, onProgress: ProgressFn) {
-  const source = await PDFDocument.load(await file.arrayBuffer())
+  const source = await loadPdfDocument(await file.arrayBuffer())
   const target = Math.max(100_000, Math.floor(maxMb * 1024 * 1024))
   const parts: Uint8Array[] = []
   let start = 0

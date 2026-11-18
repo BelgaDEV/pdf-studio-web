@@ -134,7 +134,19 @@ async function extractText(bytes: Uint8Array, name = 'quality.pdf'): Promise<str
 async function runMerge(): Promise<Record<string, string | number | boolean>> {
   const { mergePdfs } = await import('/src/lib/pdf.ts')
   const a = toFile(await textPdf(['DOCUMENTO ALFA. Conteúdo jurídico fictício para teste de mesclagem.']), 'alfa.pdf')
-  const b = toFile(await textPdf(['DOCUMENTO BETA. Segunda peça fictícia para validar ordem e integridade.']), 'beta.pdf')
+  // Beta vem "protegido" só com senha de proprietário (abre sem senha, mas
+  // com restrições), como muitas apostilas. A mesclagem deve aceitar.
+  const { load } = await import('@wasm-zoo/qpdf')
+  const qpdf = await load()
+  const plainBeta = await textPdf(['DOCUMENTO BETA. Segunda peça fictícia para validar ordem e integridade.'])
+  const encrypted = await qpdf.exec(['--encrypt', '', 'dono-quality', '256', '--modify=none', '--extract=n', '--', '/in.pdf', '/out.pdf'], {
+    files: [{ name: '/in.pdf', data: plainBeta }],
+    outputs: ['/out.pdf'],
+  })
+  qpdf.dispose()
+  const encryptedBeta = encrypted.files?.[0]?.data
+  assert(encryptedBeta, 'Não foi possível criar o PDF protegido de teste.')
+  const b = toFile(encryptedBeta, 'beta-protegido.pdf')
   const result = await mergePdfs([a, b], noopProgress, { createBookmarks: false, createTableOfContents: false })
   const bytes = new Uint8Array(await result.blob.arrayBuffer())
   assert(await pageCount(bytes) === 2, 'Juntar PDF alterou a quantidade esperada de páginas.')

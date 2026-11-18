@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
 import { nextFrame } from './files'
+import { loadPdfDocument } from './pdfOpen'
 
 export type OcrLanguage = 'por' | 'eng' | 'por+eng'
 export type OcrProgress = (value: number, message: string) => void
@@ -55,7 +56,7 @@ export async function ocrPdfToSearchable(
 ): Promise<OcrResult> {
   const sourceBytes = new Uint8Array(await file.arrayBuffer())
   const pdfjs = await loadPdfJsDocument(sourceBytes)
-  const output = await PDFDocument.load(sourceBytes)
+  const output = await loadPdfDocument(sourceBytes)
   const outputPages = output.getPages()
   const font = await output.embedFont(StandardFonts.Helvetica)
   let currentPage = 1

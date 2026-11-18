@@ -8,6 +8,7 @@ import {
   PDFRef,
 } from 'pdf-lib'
 import { nextFrame } from './files'
+import { loadPdfDocument } from './pdfOpen'
 
 /**
  * Motor de recompressão de imagens 100% com licenças permissivas
@@ -208,7 +209,7 @@ export async function recompressPdfImagesWithStats(
   onProgress(progressStart, 'Analisando imagens do PDF…')
   await nextFrame()
 
-  const doc = await PDFDocument.load(input, { updateMetadata: false })
+  const doc = await loadPdfDocument(input, { updateMetadata: false })
   const context = doc.context
   const maxPixels = Math.ceil(maxPageInches(doc) * profile.dpi)
 

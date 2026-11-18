@@ -1,5 +1,6 @@
 import { destroyPdfJsDocument, loadPdfJsDocument } from './pdfjsSecure'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { loadPdfDocument } from './pdfOpen'
 
 export type CompareProgress = (value:number, message:string)=>void
 export type CompareStatus = 'unchanged'|'modified'|'added'|'removed'
@@ -439,8 +440,8 @@ export async function buildComparisonRedlinePdf(
 ):Promise<Uint8Array>{
   onProgress?.(2,'Abrindo as versões para criar o PDF marcado…')
   const [originalDoc,revisedDoc]=await Promise.all([
-    PDFDocument.load(await originalFile.arrayBuffer()),
-    PDFDocument.load(await revisedFile.arrayBuffer()),
+    loadPdfDocument(await originalFile.arrayBuffer()),
+    loadPdfDocument(await revisedFile.arrayBuffer()),
   ])
   const out=await PDFDocument.create()
   const regular=await out.embedFont(StandardFonts.Helvetica)

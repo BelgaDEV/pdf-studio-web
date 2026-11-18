@@ -9,6 +9,7 @@ import {
   PDFString,
 } from 'pdf-lib'
 import { nextFrame } from './files'
+import { loadPdfDocument } from './pdfOpen'
 
 /**
  * Conversão PDF/A nível b sem Ghostscript (somente pdf-lib, MIT).
@@ -228,7 +229,7 @@ export async function convertToPdfAWithReport(
   onProgress(7, 'Abrindo PDF…')
   await nextFrame()
   const input = new Uint8Array(await file.arrayBuffer())
-  const doc = await PDFDocument.load(input, { updateMetadata: false }).catch((error) => {
+  const doc = await loadPdfDocument(input, { updateMetadata: false }).catch((error) => {
     throw new Error(`Não foi possível abrir o PDF para PDF/A. Se ele tiver senha, remova a proteção antes. (${error instanceof Error ? error.message : error})`)
   })
 
