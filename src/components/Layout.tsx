@@ -122,7 +122,7 @@ export default function Layout(){
   return <div className={isLanding?'app-shell landing-shell':`app-shell app-shell-with-sidebar ${collapsed?'sidebar-collapsed':''}`}>
     {!isLanding&&<aside className="quick-sidebar" aria-label="Acesso rápido às ferramentas">
       <div className="quick-sidebar-head">
-        <Link to="/" className="brand sidebar-brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#12284A"/><path fill="#E9C27A" d="M41 0h8c8.3 0 15 6.7 15 15v8z"/><path fill="#F7F6F2" d="M17 14h17v4.2h-4.6V45h12.4l1.6-6.2h4.4L46.6 50H17v-4.2h4.6V18.2H17z"/></svg></span><span className="sidebar-label">Lauda</span></Link>
+        <Link to="/" className="brand sidebar-brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#39ef88"/><path fill="#07111d" fillOpacity=".22" d="M41 0h8c8.3 0 15 6.7 15 15v8z"/><path fill="#07111d" d="M17 14h17v4.2h-4.6V45h12.4l1.6-6.2h4.4L46.6 50H17v-4.2h4.6V18.2H17z"/></svg></span><span className="sidebar-label">Lauda</span></Link>
         <button className="sidebar-collapse" onClick={()=>setCollapsed(v=>!v)} aria-label={collapsed?'Expandir menu':'Recolher menu'}>{collapsed?<ChevronRight size={17}/>:<ChevronLeft size={17}/>}</button>
       </div>
       <div className="sidebar-label sidebar-search"><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar ferramenta..." aria-label="Buscar ferramenta"/></div>
@@ -141,7 +141,7 @@ export default function Layout(){
     </aside>}
 
     <header className="topbar">
-      <Link to="/" className="brand mobile-brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#12284A"/><path fill="#E9C27A" d="M41 0h8c8.3 0 15 6.7 15 15v8z"/><path fill="#F7F6F2" d="M17 14h17v4.2h-4.6V45h12.4l1.6-6.2h4.4L46.6 50H17v-4.2h4.6V18.2H17z"/></svg></span><span>Lauda</span></Link>
+      <Link to="/" className="brand mobile-brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#39ef88"/><path fill="#07111d" fillOpacity=".22" d="M41 0h8c8.3 0 15 6.7 15 15v8z"/><path fill="#07111d" d="M17 14h17v4.2h-4.6V45h12.4l1.6-6.2h4.4L46.6 50H17v-4.2h4.6V18.2H17z"/></svg></span><span>Lauda</span></Link>
       <nav className="desktop-nav">
         {isLanding?<>
           <Link to="/tool/merge">Juntar PDF</Link>
@@ -220,7 +220,7 @@ export default function Layout(){
     </div>}
     <main className="app-main"><Outlet/></main>
     <footer className="footer">
-      <div className="footer-identity"><div className="brand footer-brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#12284A"/><path fill="#E9C27A" d="M41 0h8c8.3 0 15 6.7 15 15v8z"/><path fill="#F7F6F2" d="M17 14h17v4.2h-4.6V45h12.4l1.6-6.2h4.4L46.6 50H17v-4.2h4.6V18.2H17z"/></svg></span><span>Lauda</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p><nav className="footer-links" aria-label="Informações públicas"><Link to="/privacy">Privacidade</Link><Link to="/terms">Termos</Link><Link to="/licenses">Licenças</Link><Link to="/contact">Contato</Link><Link to="/faq">Ajuda</Link></nav></div>
+      <div className="footer-identity"><div className="brand footer-brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#39ef88"/><path fill="#07111d" fillOpacity=".22" d="M41 0h8c8.3 0 15 6.7 15 15v8z"/><path fill="#07111d" d="M17 14h17v4.2h-4.6V45h12.4l1.6-6.2h4.4L46.6 50H17v-4.2h4.6V18.2H17z"/></svg></span><span>Lauda</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p><nav className="footer-links" aria-label="Informações públicas"><Link to="/privacy">Privacidade</Link><Link to="/terms">Termos</Link><Link to="/licenses">Licenças</Link><Link to="/contact">Contato</Link><Link to="/faq">Ajuda</Link></nav></div>
       <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span><span>v{APP_VERSION}</span></div>
     </footer>
   </div>
