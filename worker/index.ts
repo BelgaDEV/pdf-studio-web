@@ -94,10 +94,12 @@ async function mercadoPago<T>(token: string, path: string, init: RequestInit & {
     ...init,
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(init.headers ?? {}) },
   })
-  const body = await res.json().catch(() => ({})) as T & { message?: string }
+  const body = await res.json().catch(() => ({})) as T & { message?: string; cause?: { description?: string; code?: unknown }[] }
   if (!res.ok) {
     console.warn('Mercado Pago', path, res.status, JSON.stringify(body).slice(0, 500))
-    throw new HttpError(502, 'O Mercado Pago não respondeu como esperado. Tente novamente em instantes.')
+    const cause = body.cause?.[0]
+    const detail = [cause?.code, cause?.description ?? body.message].filter(Boolean).join(' ').slice(0, 200)
+    throw new HttpError(502, `O Mercado Pago não respondeu como esperado. Tente novamente em instantes.${detail ? ` (detalhe: ${detail})` : ''}`)
   }
   return body
 }
