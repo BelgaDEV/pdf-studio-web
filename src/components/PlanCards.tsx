@@ -27,6 +27,7 @@ export default function PlanCards() {
       <span className="plan-label"><Crown size={11}/> PARA ADVOGADOS E ESCRITÓRIOS</span>
       <h3>Premium</h3>
       <div className="plan-price"><strong>R$ 19,90</strong><span>por mês</span></div>
+      <p className="plan-price-alt">ou <strong>R$ 199 por 12 meses</strong> no Pix</p>
       <p>Tudo do Básico, sem limites, e as ferramentas jurídicas da Lauda.</p>
       <ul>
         <li><Check/> Tarjar dados sensíveis</li>
@@ -36,6 +37,7 @@ export default function PlanCards() {
         <li><Check/> Processamento em lote</li>
         <li><Check/> Compressão máxima e para X MB</li>
         <li><Check/> Juntar e OCR sem limite</li>
+        <li><Check/> Cartão (mensal) ou Pix (1 ou 12 meses)</li>
       </ul>
       <Link to="/conta">Assinar o Premium <ArrowRight size={15}/></Link>
     </article>

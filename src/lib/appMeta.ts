@@ -40,7 +40,7 @@ export const APP_META = {
   },
   plans: {
     title: `Planos — ${APP_NAME}`,
-    description: 'Básico grátis e sem cadastro, Premium por R$ 19,90 por mês para advogados e escritórios, e plano para empresas.',
+    description: 'Básico grátis e sem cadastro, Premium por R$ 19,90 por mês (ou R$ 199 por ano no Pix) para advogados e escritórios, e plano para empresas.',
   },
   login: {
     title: `Entrar — ${APP_NAME}`,

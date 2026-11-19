@@ -378,3 +378,19 @@ radial-gradient(circle at 85% 10%,rgba(36,224,122,.12),transparent 26rem),linear
 .cancel-confirm-actions .secondary-btn{margin-top:0}
 .danger-btn{border-radius:12px;padding:11px 15px;font-weight:800;border:1px solid #e44f62;background:#e44f62;color:#fff;cursor:pointer}
 .danger-btn:disabled{opacity:.5;cursor:not-allowed}
+/* Pagamento com Pix */
+.pix-box h3{margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:8px;color:#bff9d4}
+.pix-help{margin:4px 0 10px!important;font-size:13px!important}
+.pix-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pix-option{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px;border:1px solid #2c5a45;background:#0c1d22;border-radius:11px;color:#dbe8f8;text-align:left}
+.pix-option:hover:not(:disabled){border-color:#39ef88;background:#0f2a26}
+.pix-option:disabled{opacity:.6;cursor:wait}
+.pix-option span{font-size:12px;color:#9fb5c9;font-weight:700}
+.pix-option strong{font-size:18px;color:#fff}
+.pix-option small{font-size:11px;color:#8fe6b4}
+.pix-qr{display:block;margin:6px auto 4px;background:#fff;padding:8px;border-radius:10px;width:200px;height:200px;box-sizing:content-box;image-rendering:pixelated}
+.pix-code{width:100%;box-sizing:border-box;resize:none;font-family:ui-monospace,monospace;font-size:11px;word-break:break-all;background:#0b1724;color:#dbe8f8;border:1px solid #29445f;border-radius:10px;padding:9px}
+.pix-status{display:flex!important;align-items:center;gap:8px;color:#c9f9dc!important}
+.link-btn{margin-top:10px;background:transparent;border:0;padding:0;color:#aaf4c8;font-size:13px;font-weight:700;text-decoration:underline}
+@media(max-width:420px){.pix-options{grid-template-columns:1fr}}
+.plan-price-alt{margin:-4px 0 8px!important;font-size:13px!important;color:#8fe6b4!important}.plan-price-alt strong{color:#bff9d4}

@@ -132,3 +132,75 @@ export async function verifyWebhookSignature(input: {
   const mac = toHex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(manifest)))
   return safeEqual(mac, parsed.v1.toLowerCase())
 }
+
+/* ---------- Pix avulso (1 mês ou 12 meses, sem renovação automática) ---------- */
+
+export type PixPeriod = 'month' | 'year'
+
+export const PIX_PLANS: Record<PixPeriod, { amount: number; days: number; description: string }> = {
+  month: { amount: 19.9, days: 30, description: 'Lauda Premium - 1 mês (Pix)' },
+  year: { amount: 199, days: 365, description: 'Lauda Premium - 12 meses (Pix)' },
+}
+
+/** Tempo para pagar o QR Code antes de ele expirar. */
+export const PIX_EXPIRES_MINUTES = 30
+
+const PIX_REF_RE = /^lauda-pix:(month|year):([0-9a-f-]{36})$/i
+
+export type PixPayment = {
+  id: number | string
+  status?: string
+  status_detail?: string
+  transaction_amount?: number
+  currency_id?: string
+  payment_method_id?: string
+  external_reference?: string | null
+  date_of_expiration?: string | null
+  point_of_interaction?: { transaction_data?: { qr_code?: string; qr_code_base64?: string; ticket_url?: string } } | null
+}
+
+export function isPixPeriod(value: unknown): value is PixPeriod {
+  return value === 'month' || value === 'year'
+}
+
+export function pixExternalReference(userId: string, period: PixPeriod): string {
+  return `lauda-pix:${period}:${userId}`
+}
+
+export function parsePixExternalReference(ref: unknown): { period: PixPeriod; userId: string } | null {
+  if (typeof ref !== 'string') return null
+  const match = PIX_REF_RE.exec(ref)
+  if (!match || !isUuid(match[2])) return null
+  return { period: match[1].toLowerCase() as PixPeriod, userId: match[2].toLowerCase() }
+}
+
+/** Corpo para gerar o Pix (POST /v1/payments). */
+export function buildPixPaymentBody(input: { userId: string; payerEmail: string; period: PixPeriod; now?: Date }) {
+  const plan = PIX_PLANS[input.period]
+  const expires = new Date((input.now ?? new Date()).getTime() + PIX_EXPIRES_MINUTES * 60 * 1000)
+  return {
+    transaction_amount: plan.amount,
+    description: plan.description,
+    payment_method_id: 'pix',
+    external_reference: pixExternalReference(input.userId, input.period),
+    date_of_expiration: expires.toISOString().replace('Z', '+00:00'),
+    payer: { email: input.payerEmail },
+  }
+}
+
+/** O pagamento é um Pix da Lauda, aprovado, no valor certo? Devolve dono e período. */
+export function approvedPixPurchase(payment: PixPayment): { period: PixPeriod; userId: string } | null {
+  if (payment.status !== 'approved') return null
+  const ref = parsePixExternalReference(payment.external_reference)
+  if (!ref) return null
+  if (payment.currency_id && payment.currency_id !== PREMIUM_CURRENCY) return null
+  if (typeof payment.transaction_amount !== 'number' || payment.transaction_amount < PIX_PLANS[ref.period].amount - 0.001) return null
+  return ref
+}
+
+/** Novo fim do Premium: soma os dias a partir do que for maior, hoje ou o fim atual. */
+export function premiumUntilAfterPix(currentUntil: string | null | undefined, period: PixPeriod, now = new Date()): string {
+  const current = currentUntil ? Date.parse(currentUntil) : NaN
+  const base = Number.isFinite(current) ? Math.max(current, now.getTime()) : now.getTime()
+  return new Date(base + PIX_PLANS[period].days * DAY_MS).toISOString()
+}

@@ -9,11 +9,19 @@
  * Variáveis públicas (wrangler.jsonc): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY.
  */
 import {
+  approvedPixPurchase,
+  buildPixPaymentBody,
   buildPreapprovalBody,
+  isPixPeriod,
   isUuid,
   isValidEmail,
+  parsePixExternalReference,
+  PIX_PLANS,
+  premiumUntilAfterPix,
   profileUpdateFromPreapproval,
   verifyWebhookSignature,
+  type PixPayment,
+  type PixPeriod,
   type Preapproval,
 } from './subscription'
 
@@ -81,7 +89,7 @@ async function updateProfile(env: Env, supabaseKey: string, userId: string, upda
   if (!res.ok) throw new HttpError(502, 'Não foi possível atualizar sua conta agora.')
 }
 
-async function mercadoPago<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
+async function mercadoPago<T>(token: string, path: string, init: RequestInit & { headers?: Record<string, string> } = {}): Promise<T> {
   const res = await fetch(`${MP_API}${path}`, {
     ...init,
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(init.headers ?? {}) },
@@ -101,8 +109,133 @@ async function syncPreapproval(env: Env, mpToken: string, supabaseKey: string, p
   if (!isUuid(userId)) return { synced: false as const, reason: 'sem usuário' }
   if (expectedUserId && userId !== expectedUserId) throw new HttpError(403, 'Esta assinatura não pertence à sua conta.')
   const update = profileUpdateFromPreapproval(preapproval)
+  if (update.premium_until) {
+    // Se já havia Premium pago com Pix até mais tarde, não encurta.
+    const profile = await getProfile(env, supabaseKey, userId)
+    if (profile?.premium_until && Date.parse(profile.premium_until) > Date.parse(update.premium_until)) update.premium_until = profile.premium_until
+  }
   await updateProfile(env, supabaseKey, userId, update)
   return { synced: true as const, status: update.mp_status, premium: update.plan === 'premium' }
+}
+
+/* ---------- Pix avulso ---------- */
+
+const PIX_LOOKBACK_MS = 2 * 24 * 60 * 60 * 1000
+
+async function supabaseRest<T>(env: Env, supabaseKey: string, path: string, init: { method?: string; body?: unknown; prefer?: string } = {}): Promise<T> {
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
+    method: init.method ?? 'GET',
+    headers: {
+      apikey: supabaseKey,
+      accept: 'application/json',
+      'content-type': 'application/json',
+      ...(init.prefer ? { prefer: init.prefer } : {}),
+    },
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  })
+  if (!res.ok) {
+    console.warn('Supabase', path.split('?')[0], res.status, (await res.text()).slice(0, 300))
+    throw new HttpError(502, 'Não foi possível atualizar sua conta agora.')
+  }
+  const text = await res.text()
+  return (text ? JSON.parse(text) : null) as T
+}
+
+function insertPixRow(env: Env, supabaseKey: string, row: { id: string; user_id: string; period: PixPeriod; status: string }) {
+  return supabaseRest(env, supabaseKey, 'pix_payments?on_conflict=id', {
+    method: 'POST',
+    prefer: 'resolution=ignore-duplicates,return=minimal',
+    body: { ...row, amount: PIX_PLANS[row.period].amount },
+  })
+}
+
+/**
+ * Busca o Pix no Mercado Pago e, se estiver aprovado, soma os dias ao Premium
+ * uma única vez (a linha em pix_payments só é marcada por quem chegar primeiro).
+ */
+async function applyPixPayment(env: Env, mpToken: string, supabaseKey: string, paymentId: string, expectedUserId?: string) {
+  const payment = await mercadoPago<PixPayment>(mpToken, `/v1/payments/${encodeURIComponent(paymentId)}`)
+  const ref = parsePixExternalReference(payment.external_reference)
+  if (!ref) return { status: payment.status ?? 'unknown', premium: false, ours: false }
+  if (expectedUserId && ref.userId !== expectedUserId) throw new HttpError(403, 'Este pagamento não pertence à sua conta.')
+  const id = String(payment.id)
+  const status = payment.status ?? 'pending'
+  const where = `pix_payments?id=eq.${encodeURIComponent(id)}&applied_at=is.null`
+
+  // Garante a linha (caso o aviso chegue antes de ela ser gravada).
+  await insertPixRow(env, supabaseKey, { id, user_id: ref.userId, period: ref.period, status })
+
+  const purchase = approvedPixPurchase(payment)
+  if (!purchase) {
+    await supabaseRest(env, supabaseKey, where, { method: 'PATCH', prefer: 'return=minimal', body: { status } })
+    return { status, premium: false, ours: true }
+  }
+
+  const claimed = await supabaseRest<unknown[]>(env, supabaseKey, where, {
+    method: 'PATCH',
+    prefer: 'return=representation',
+    body: { status, applied_at: new Date().toISOString() },
+  })
+  if (claimed?.length === 1) {
+    const profile = await getProfile(env, supabaseKey, purchase.userId)
+    const currentUntil = profile?.plan === 'premium' ? profile.premium_until : null
+    await updateProfile(env, supabaseKey, purchase.userId, { plan: 'premium', premium_until: premiumUntilAfterPix(currentUntil, purchase.period) })
+  }
+  return { status, premium: true, ours: true }
+}
+
+/** Confere os Pix ainda não confirmados dos últimos 2 dias. Devolve true se algum liberou Premium. */
+async function syncPendingPix(env: Env, mpToken: string, supabaseKey: string, userId: string): Promise<boolean> {
+  const since = new Date(Date.now() - PIX_LOOKBACK_MS).toISOString()
+  const rows = await supabaseRest<{ id: string }[]>(env, supabaseKey,
+    `pix_payments?user_id=eq.${userId}&applied_at=is.null&status=in.(pending,in_process)&created_at=gte.${encodeURIComponent(since)}&select=id&order=created_at.desc&limit=3`)
+  let premium = false
+  for (const row of rows ?? []) {
+    try { if ((await applyPixPayment(env, mpToken, supabaseKey, row.id, userId)).premium) premium = true } catch (error) { console.warn('Pix pendente', error) }
+  }
+  return premium
+}
+
+/** POST /api/pix — gera o QR Code do Pix (1 mês ou 12 meses). */
+async function startPix(request: Request, env: Env): Promise<Response> {
+  const { mpToken, supabaseKey } = requireConfig(env)
+  const user = await currentUser(request, env)
+  const body = await readJson(request)
+  const period = body.period
+  if (!isPixPeriod(period)) throw new HttpError(400, 'Escolha 1 mês ou 12 meses.')
+  const email = user.email?.toLowerCase() ?? ''
+  if (!isValidEmail(email)) throw new HttpError(400, 'Sua conta precisa de um e-mail válido para gerar o Pix.')
+  const profile = await getProfile(env, supabaseKey, user.id)
+  if (profile?.mp_status === 'authorized') throw new HttpError(409, 'Sua assinatura no cartão já está ativa. Cancele a renovação antes de pagar com Pix.')
+
+  const payment = await mercadoPago<PixPayment>(mpToken, '/v1/payments', {
+    method: 'POST',
+    headers: { 'x-idempotency-key': crypto.randomUUID() },
+    body: JSON.stringify(buildPixPaymentBody({ userId: user.id, payerEmail: email, period })),
+  })
+  const data = payment.point_of_interaction?.transaction_data
+  if (!data?.qr_code) throw new HttpError(502, 'O Mercado Pago não devolveu o código do Pix.')
+  await insertPixRow(env, supabaseKey, { id: String(payment.id), user_id: user.id, period, status: payment.status ?? 'pending' })
+  return json({
+    id: String(payment.id),
+    period,
+    amount: PIX_PLANS[period].amount,
+    qrCode: data.qr_code,
+    qrCodeBase64: data.qr_code_base64 ?? null,
+    expiresAt: payment.date_of_expiration ?? null,
+  })
+}
+
+/** POST /api/pix/status — o site pergunta se o Pix já foi pago. */
+async function pixStatus(request: Request, env: Env): Promise<Response> {
+  const { mpToken, supabaseKey } = requireConfig(env)
+  const user = await currentUser(request, env)
+  const body = await readJson(request)
+  const id = String(body.id ?? '')
+  if (!/^\d{1,20}$/.test(id)) throw new HttpError(400, 'Pagamento inválido.')
+  const result = await applyPixPayment(env, mpToken, supabaseKey, id, user.id)
+  if (!result.ours) throw new HttpError(404, 'Pagamento não encontrado.')
+  return json({ status: result.status, premium: result.premium })
 }
 
 async function readJson(request: Request): Promise<Record<string, unknown>> {
@@ -135,8 +268,10 @@ async function syncMine(request: Request, env: Env): Promise<Response> {
   const { mpToken, supabaseKey } = requireConfig(env)
   const user = await currentUser(request, env)
   const profile = await getProfile(env, supabaseKey, user.id)
-  if (!profile?.mp_preapproval_id) return json({ synced: false, reason: 'sem assinatura' })
-  return json(await syncPreapproval(env, mpToken, supabaseKey, profile.mp_preapproval_id, user.id))
+  const pix = await syncPendingPix(env, mpToken, supabaseKey, user.id)
+  if (!profile?.mp_preapproval_id) return json(pix ? { synced: true, premium: true } : { synced: false, reason: 'sem assinatura' })
+  const result = await syncPreapproval(env, mpToken, supabaseKey, profile.mp_preapproval_id, user.id)
+  return json(pix ? { ...result, premium: true } : result)
 }
 
 /** POST /api/assinatura/cancelar — cancela a renovação no Mercado Pago. */
@@ -171,6 +306,11 @@ async function webhook(request: Request, env: Env): Promise<Response> {
   })
   if (!valid) return json({ error: 'assinatura inválida' }, 401)
 
+  if (type === 'payment') {
+    const result = await applyPixPayment(env, mpToken, supabaseKey, dataId)
+    return json({ ok: true, ...(result.ours ? { pix: result.status, premium: result.premium } : { ignored: 'pagamento sem Pix da Lauda' }) })
+  }
+
   let preapprovalId: string | null = null
   if (type === 'subscription_preapproval' || type === 'preapproval') preapprovalId = dataId
   else if (type === 'subscription_authorized_payment' || type === 'authorized_payment') {
@@ -187,6 +327,8 @@ async function handleApi(request: Request, env: Env, path: string): Promise<Resp
     case '/api/assinatura': return startSubscription(request, env)
     case '/api/assinatura/sincronizar': return syncMine(request, env)
     case '/api/assinatura/cancelar': return cancelSubscription(request, env)
+    case '/api/pix': return startPix(request, env)
+    case '/api/pix/status': return pixStatus(request, env)
     case '/api/mercadopago/webhook': return webhook(request, env)
     default: return json({ error: 'Não encontrado.' }, 404)
   }

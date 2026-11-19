@@ -3,8 +3,13 @@ import { createHmac } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import {
   GRACE_DAYS,
+  PIX_PLANS,
   PREMIUM_PRICE,
+  approvedPixPurchase,
+  buildPixPaymentBody,
   buildPreapprovalBody,
+  parsePixExternalReference,
+  premiumUntilAfterPix,
   isValidEmail,
   parseSignatureHeader,
   profileUpdateFromPreapproval,
@@ -64,5 +69,32 @@ describe('assinatura Premium (Mercado Pago)', () => {
     expect(await verifyWebhookSignature({ secret: 'outra', signatureHeader: header, requestId, dataId })).toBe(false)
     expect(await verifyWebhookSignature({ secret, signatureHeader: header, requestId, dataId: 'outro' })).toBe(false)
     expect(await verifyWebhookSignature({ secret, signatureHeader: null, requestId, dataId })).toBe(false)
+  })
+
+  describe('Pix avulso', () => {
+    it('gera o Pix de 1 mês (R$ 19,90) e de 12 meses (R$ 199) ligado ao usuário', () => {
+      const month = buildPixPaymentBody({ userId: USER, payerEmail: 'a@b.com', period: 'month', now: NOW })
+      expect(month.transaction_amount).toBe(19.9)
+      expect(month.payment_method_id).toBe('pix')
+      expect(parsePixExternalReference(month.external_reference)).toEqual({ period: 'month', userId: USER })
+      expect(month.date_of_expiration).toBe('2026-11-19T12:30:00.000+00:00')
+      expect(buildPixPaymentBody({ userId: USER, payerEmail: 'a@b.com', period: 'year' }).transaction_amount).toBe(199)
+    })
+
+    it('só aceita Pix aprovado, da Lauda e no valor certo', () => {
+      const ref = `lauda-pix:year:${USER}`
+      expect(approvedPixPurchase({ id: 1, status: 'approved', transaction_amount: 199, currency_id: 'BRL', external_reference: ref })).toEqual({ period: 'year', userId: USER })
+      expect(approvedPixPurchase({ id: 1, status: 'pending', transaction_amount: 199, external_reference: ref })).toBeNull()
+      expect(approvedPixPurchase({ id: 1, status: 'approved', transaction_amount: 19.9, external_reference: ref })).toBeNull()
+      expect(approvedPixPurchase({ id: 1, status: 'approved', transaction_amount: 199, external_reference: 'outra-coisa' })).toBeNull()
+      expect(parsePixExternalReference(`lauda-pix:week:${USER}`)).toBeNull()
+    })
+
+    it('soma os dias a partir de hoje ou do fim do Premium atual', () => {
+      expect(premiumUntilAfterPix(null, 'month', NOW)).toBe(new Date(NOW.getTime() + PIX_PLANS.month.days * 864e5).toISOString())
+      expect(premiumUntilAfterPix('2026-01-01T00:00:00Z', 'month', NOW)).toBe(new Date(NOW.getTime() + 30 * 864e5).toISOString())
+      const later = '2026-12-01T00:00:00.000Z'
+      expect(premiumUntilAfterPix(later, 'year', NOW)).toBe(new Date(Date.parse(later) + 365 * 864e5).toISOString())
+    })
   })
 })

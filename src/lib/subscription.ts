@@ -32,3 +32,24 @@ export function syncPremium(): Promise<{ synced: boolean; status?: string; premi
 export function cancelPremium(): Promise<{ synced: boolean; status?: string }> {
   return callApi('/api/assinatura/cancelar')
 }
+
+export type PixPeriod = 'month' | 'year'
+
+export type PixCharge = {
+  id: string
+  period: PixPeriod
+  amount: number
+  qrCode: string
+  qrCodeBase64: string | null
+  expiresAt: string | null
+}
+
+/** Gera o QR Code do Pix para 1 mês ou 12 meses de Premium. */
+export function startPixPayment(period: PixPeriod): Promise<PixCharge> {
+  return callApi('/api/pix', { period })
+}
+
+/** Pergunta se o Pix já foi pago (e libera o Premium se foi). */
+export function checkPixPayment(id: string): Promise<{ status: string; premium: boolean }> {
+  return callApi('/api/pix/status', { id })
+}
