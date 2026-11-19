@@ -50,6 +50,6 @@ export function startPixPayment(period: PixPeriod): Promise<PixCharge> {
 }
 
 /** Pergunta se o Pix já foi pago (e libera o Premium se foi). */
-export function checkPixPayment(id: string): Promise<{ status: string; premium: boolean }> {
+export function checkPixPayment(id: string): Promise<{ status: string; detail?: string | null; premium: boolean }> {
   return callApi('/api/pix/status', { id })
 }

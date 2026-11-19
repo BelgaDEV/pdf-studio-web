@@ -143,7 +143,7 @@ export const PIX_PLANS: Record<PixPeriod, { amount: number; days: number; descri
 }
 
 /** Tempo para pagar o QR Code antes de ele expirar. */
-export const PIX_EXPIRES_MINUTES = 30
+export const PIX_EXPIRES_MINUTES = 60
 
 const PIX_REF_RE = /^lauda-pix:(month|year):([0-9a-f-]{36})$/i
 

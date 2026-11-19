@@ -160,7 +160,8 @@ function insertPixRow(env: Env, supabaseKey: string, row: { id: string; user_id:
 async function applyPixPayment(env: Env, mpToken: string, supabaseKey: string, paymentId: string, expectedUserId?: string) {
   const payment = await mercadoPago<PixPayment>(mpToken, `/v1/payments/${encodeURIComponent(paymentId)}`)
   const ref = parsePixExternalReference(payment.external_reference)
-  if (!ref) return { status: payment.status ?? 'unknown', premium: false, ours: false }
+  const detail = payment.status_detail ?? null
+  if (!ref) return { status: payment.status ?? 'unknown', detail, premium: false, ours: false }
   if (expectedUserId && ref.userId !== expectedUserId) throw new HttpError(403, 'Este pagamento não pertence à sua conta.')
   const id = String(payment.id)
   const status = payment.status ?? 'pending'
@@ -172,7 +173,7 @@ async function applyPixPayment(env: Env, mpToken: string, supabaseKey: string, p
   const purchase = approvedPixPurchase(payment)
   if (!purchase) {
     await supabaseRest(env, supabaseKey, where, { method: 'PATCH', prefer: 'return=minimal', body: { status } })
-    return { status, premium: false, ours: true }
+    return { status, detail, premium: false, ours: true }
   }
 
   const claimed = await supabaseRest<unknown[]>(env, supabaseKey, where, {
@@ -185,7 +186,7 @@ async function applyPixPayment(env: Env, mpToken: string, supabaseKey: string, p
     const currentUntil = profile?.plan === 'premium' ? profile.premium_until : null
     await updateProfile(env, supabaseKey, purchase.userId, { plan: 'premium', premium_until: premiumUntilAfterPix(currentUntil, purchase.period) })
   }
-  return { status, premium: true, ours: true }
+  return { status, detail, premium: true, ours: true }
 }
 
 /** Confere os Pix ainda não confirmados dos últimos 2 dias. Devolve true se algum liberou Premium. */
@@ -239,7 +240,8 @@ async function pixStatus(request: Request, env: Env): Promise<Response> {
   if (!/^\d{1,20}$/.test(id)) throw new HttpError(400, 'Pagamento inválido.')
   const result = await applyPixPayment(env, mpToken, supabaseKey, id, user.id)
   if (!result.ours) throw new HttpError(404, 'Pagamento não encontrado.')
-  return json({ status: result.status, premium: result.premium })
+  if (result.status !== 'pending') console.warn('Pix', id, result.status, result.detail)
+  return json({ status: result.status, detail: result.detail, premium: result.premium })
 }
 
 async function readJson(request: Request): Promise<Record<string, unknown>> {

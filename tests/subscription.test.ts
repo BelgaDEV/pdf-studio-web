@@ -77,7 +77,7 @@ describe('assinatura Premium (Mercado Pago)', () => {
       expect(month.transaction_amount).toBe(19.9)
       expect(month.payment_method_id).toBe('pix')
       expect(parsePixExternalReference(month.external_reference)).toEqual({ period: 'month', userId: USER })
-      expect(month.date_of_expiration).toBe('2026-11-19T12:30:00.000+00:00')
+      expect(month.date_of_expiration).toBe('2026-11-19T13:00:00.000+00:00')
       expect(buildPixPaymentBody({ userId: USER, payerEmail: 'a@b.com', period: 'year' }).transaction_amount).toBe(199)
     })
 
