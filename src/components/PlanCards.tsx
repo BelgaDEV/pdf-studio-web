@@ -12,6 +12,7 @@ export default function PlanCards() {
     <article>
       <span className="plan-label"><Sparkles size={11}/> GRÁTIS · SEM CADASTRO</span>
       <h3>Básico</h3>
+      <div className="plan-price"><strong>R$ 0</strong><span>para sempre</span></div>
       <p>Para o dia a dia: tudo o que você precisa para resolver um PDF rápido.</p>
       <ul>
         <li><Check/> Comprimir (níveis até Alto)</li>
@@ -26,6 +27,7 @@ export default function PlanCards() {
     <article className="highlight">
       <span className="plan-label"><Crown size={11}/> PARA ADVOGADOS E ESCRITÓRIOS</span>
       <h3>Premium</h3>
+      <div className="plan-price"><strong>R$ 19,90</strong><span>por mês</span></div>
       <p>Tudo do Básico, sem limites, e as ferramentas jurídicas da Lauda.</p>
       <ul>
         <li><Check/> Tarjar dados sensíveis</li>
@@ -41,6 +43,7 @@ export default function PlanCards() {
     <article>
       <span className="plan-label"><Building2 size={11}/> SOB CONSULTA</span>
       <h3>Empresas</h3>
+      <div className="plan-price"><strong>Sob consulta</strong></div>
       <p>Para equipes e escritórios com vários usuários e necessidades próprias.</p>
       <ul>
         <li><Check/> Premium para toda a equipe</li>
