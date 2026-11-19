@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
+import { AuthProvider } from './lib/auth'
 import Home from './pages/Home'
 import './styles.css'
 
@@ -15,6 +16,10 @@ const TermsPage = lazy(() => import('./pages/TermsPage'))
 const LicensesPage = lazy(() => import('./pages/LicensesPage'))
 const ContactPage = lazy(() => import('./pages/ContactPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const AccountPage = lazy(() => import('./pages/AccountPage'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
+const PlansPage = lazy(() => import('./pages/PlansPage'))
 
 function RouteFallback() {
   return <div className="route-loading" role="status" aria-live="polite">Carregando…</div>
@@ -23,6 +28,7 @@ function RouteFallback() {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
+      <AuthProvider>
       <ErrorBoundary>
         <Suspense fallback={<RouteFallback/>}>
           <Routes>
@@ -35,12 +41,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/terms" element={<TermsPage/>}/>
               <Route path="/licenses" element={<LicensesPage/>}/>
               <Route path="/contact" element={<ContactPage/>}/>
+              <Route path="/entrar" element={<LoginPage/>}/>
+              <Route path="/conta" element={<AccountPage/>}/>
+              <Route path="/planos" element={<PlansPage/>}/>
+              <Route path="/nova-senha" element={<ResetPasswordPage/>}/>
               <Route path="/tool/:id" element={<ToolPage/>}/>
               <Route path="*" element={<NotFoundPage/>}/>
             </Route>
           </Routes>
         </Suspense>
       </ErrorBoundary>
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 )

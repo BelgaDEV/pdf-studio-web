@@ -49,7 +49,7 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality = 0.94): Promise<Uint8A
   return new Promise((resolve, reject) => {
     canvas.toBlob(async blob => {
       if (!blob) {
-        reject(new Error('Não foi possível rasterizar a página redigida.'))
+        reject(new Error('Não foi possível rasterizar a página com tarja.'))
         return
       }
       resolve(new Uint8Array(await blob.arrayBuffer()))
@@ -105,7 +105,7 @@ export async function permanentlyRedactPdf(
     .filter(pageNumber => (redactions[pageNumber] || []).some(validRect))
     .sort((a, b) => a - b)
 
-  if (!redactedPageNumbers.length) throw new Error('Marque pelo menos uma área sensível antes de aplicar a redação permanente.')
+  if (!redactedPageNumbers.length) throw new Error('Marque pelo menos uma área sensível antes de aplicar as tarjas.')
 
   onProgress(3, 'Abrindo documento para redação segura…')
   const pdfJs = await loadPdfJsDocument(input)
@@ -168,17 +168,17 @@ export async function permanentlyRedactPdf(
 
     // Um novo catálogo é criado de propósito. Isso evita carregar metadados,
     // anexos e outras estruturas documentais antigas para o arquivo redigido.
-    output.setProducer('Lauda — Redação Permanente')
+    output.setProducer('Lauda — Tarjar dados sensíveis')
     output.setCreator('Lauda')
     output.setCreationDate(new Date())
     output.setModificationDate(new Date())
 
-    onProgress(88, 'Finalizando PDF sem conteúdo oculto das páginas redigidas…')
+    onProgress(88, 'Finalizando PDF sem o conteúdo coberto pelas tarjas…')
     const bytes = await output.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 20 })
-    if (!looksLikePdf(bytes)) throw new Error('O PDF redigido ficou inválido. O download foi bloqueado.')
+    if (!looksLikePdf(bytes)) throw new Error('O PDF com tarjas ficou inválido. O download foi bloqueado.')
 
     await verifyPermanentRedaction(bytes, redactedPageNumbers, pageCount, onProgress)
-    onProgress(100, 'Redação permanente verificada com sucesso.')
+    onProgress(100, 'Tarjas aplicadas e verificadas com sucesso.')
     return {
       bytes,
       pageCount,

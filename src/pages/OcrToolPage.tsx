@@ -1,9 +1,12 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Download, Info, LockKeyhole, ScanText, UploadCloud } from 'lucide-react'
 import { tools } from '../lib/tools'
 import { downloadBlob, humanSize, stem } from '../lib/files'
 import { ocrPdfToSearchable, type OcrLanguage } from '../lib/ocr'
+import PremiumNote from '../components/PremiumNote'
+import { useAuth } from '../lib/auth'
+import { FREE_LIMITS } from '../lib/plans'
 
 export default function OcrToolPage() {
   const tool = tools.find(item => item.id === 'ocr')!
@@ -16,9 +19,20 @@ export default function OcrToolPage() {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState('Pronto.')
   const [success, setSuccess] = useState('')
+  const [pages, setPages] = useState<number | null>(null)
+  const { access } = useAuth()
+  const overLimit = access !== 'premium' && pages !== null && pages > FREE_LIMITS.ocrPages
+
+  useEffect(() => {
+    setPages(null)
+    if (!file) return
+    let active = true
+    import('../lib/pdfPreview').then(({ inspectPdf }) => inspectPdf(file)).then(info => { if (active) setPages(info.pages) }).catch(() => {})
+    return () => { active = false }
+  }, [file])
 
   async function run() {
-    if (!file) return
+    if (!file || overLimit) return
     setWorking(true)
     setSuccess('')
     setProgress(0)
@@ -70,7 +84,8 @@ export default function OcrToolPage() {
         </select>
         <label className="toggle-row"><input type="checkbox" checked={skipTextPages} onChange={event => setSkipTextPages(event.target.checked)}/><span><strong>Pular páginas que já têm texto</strong><small>Evita OCR desnecessário em PDFs mistos.</small></span></label>
         <div className="beta-note"><strong>Primeiro uso</strong><span>O navegador baixa o modelo de idioma do Tesseract. O PDF não é enviado para o serviço de OCR; o reconhecimento ocorre localmente.</span></div>
-        <button className="primary-btn wide run-btn" onClick={run} disabled={!file || working}>{working ? 'Reconhecendo texto…' : 'Criar PDF pesquisável'}</button>
+        {overLimit && <PremiumNote>No plano Básico o OCR vai até {FREE_LIMITS.ocrPages} páginas por documento. Este PDF tem {pages} páginas. Assine o Premium para fazer OCR sem limite.</PremiumNote>}
+        <button className="primary-btn wide run-btn" onClick={run} disabled={!file || working || overLimit}>{working ? 'Reconhecendo texto…' : 'Criar PDF pesquisável'}</button>
       </aside>
     </div>
 

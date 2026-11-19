@@ -13,7 +13,7 @@ const toolsSource = readFileSync(join(root, 'src/lib/tools.ts'), 'utf8')
 const toolIds = [...toolsSource.matchAll(/\{\s*id:\s*'([a-z0-9-]+)'/g)].map(m => m[1])
 if (toolIds.length === 0) throw new Error('Nenhuma ferramenta encontrada em src/lib/tools.ts')
 
-const pages = ['/', '/faq', '/privacy', '/terms', '/licenses', '/contact', ...toolIds.map(id => `/tool/${id}`)]
+const pages = ['/', '/faq', '/privacy', '/terms', '/licenses', '/contact', '/planos', ...toolIds.map(id => `/tool/${id}`)]
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(path => `  <url><loc>${siteUrl}${path === '/' ? '/' : path}</loc></url>`).join('\n')}

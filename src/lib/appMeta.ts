@@ -38,6 +38,22 @@ export const APP_META = {
     title: `Contato e suporte — ${APP_NAME}`,
     description: 'Orientações de suporte, diagnóstico e contato da Lauda.',
   },
+  plans: {
+    title: `Planos — ${APP_NAME}`,
+    description: 'Básico grátis e sem cadastro, Premium por R$ 19,90 por mês para advogados e escritórios, e plano para empresas.',
+  },
+  login: {
+    title: `Entrar — ${APP_NAME}`,
+    description: 'Entre ou crie sua conta grátis na Lauda.',
+  },
+  account: {
+    title: `Minha conta — ${APP_NAME}`,
+    description: 'Seu plano e dados da conta na Lauda.',
+  },
+  resetPassword: {
+    title: `Nova senha — ${APP_NAME}`,
+    description: 'Crie uma nova senha para sua conta na Lauda.',
+  },
   notFound: {
     title: `Página não encontrada — ${APP_NAME}`,
     description: 'A página solicitada não foi encontrada.',

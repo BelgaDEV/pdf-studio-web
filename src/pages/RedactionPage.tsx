@@ -75,7 +75,7 @@ export default function RedactionPage() {
       pdfRef.current = pdf
       setFile(next)
       setPageCount(pdf.numPages)
-      setStatus(`${pdf.numPages} página(s) pronta(s). Arraste sobre o conteúdo sensível para marcar a redação.`)
+      setStatus(`${pdf.numPages} página(s) pronta(s). Arraste sobre o conteúdo sensível para marcar a tarja.`)
       requestAnimationFrame(async () => {
         if (!canvasRef.current) return
         try {
@@ -154,10 +154,10 @@ export default function RedactionPage() {
         setProgress(value)
         setStatus(message)
       })
-      downloadBlob(new Blob([result.bytes], { type: 'application/pdf' }), `${stem(file.name)}_redigido.pdf`)
+      downloadBlob(new Blob([result.bytes], { type: 'application/pdf' }), `${stem(file.name)}_tarjado.pdf`)
       setSuccess(`${result.redactionCount} área(s) removida(s) permanentemente em ${result.redactedPages} página(s). ${result.verifiedPages} página(s) foram verificadas sem camada de texto extraível.`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao aplicar a redação permanente.')
+      setError(err instanceof Error ? err.message : 'Falha ao aplicar as tarjas.')
       setProgress(0)
     } finally {
       setWorking(false)
@@ -168,7 +168,7 @@ export default function RedactionPage() {
     <div className="tool-page-head">
       <Link to="/" className="back-link"><ArrowLeft size={17}/> Voltar</Link>
       <div className="tool-heading"><div className="tool-icon large" style={{ background: tool.color }}><EyeOff size={28}/></div><div><h1>{tool.title}</h1><p>{tool.desc}</p></div></div>
-      <div className="local-pill"><LockKeyhole size={15}/> Redação processada somente no seu dispositivo</div>
+      <div className="local-pill"><LockKeyhole size={15}/> Tarjas aplicadas somente no seu dispositivo</div>
     </div>
 
     {!file ? <div className="redaction-empty workspace-card">
@@ -176,7 +176,7 @@ export default function RedactionPage() {
         <UploadCloud size={48}/><strong>Arraste o PDF que contém dados sensíveis</strong><span>ou clique para selecionar</span><button className="primary-btn small" type="button">Selecionar PDF</button>
         <input ref={inputRef} hidden type="file" accept=".pdf,application/pdf" onChange={event => selectFile(event.target.files?.[0] || null)}/>
       </div>
-      <div className="redaction-security-box"><ShieldAlert size={20}/><div><strong>Redação permanente, não apenas uma tarja visual</strong><span>As páginas que recebem redações são reconstruídas sem o conteúdo original. O texto escondido atrás da área preta não é carregado para a página final.</span></div></div>
+      <div className="redaction-security-box"><ShieldAlert size={20}/><div><strong>Tarja de verdade, não só um retângulo por cima</strong><span>As páginas que recebem tarjas são reconstruídas sem o conteúdo original. O texto escondido atrás da área preta não é carregado para a página final.</span></div></div>
     </div> : <>
       <div className="redaction-toolbar workspace-card">
         <div className="redaction-file-meta"><EyeOff size={20}/><div><strong>{file.name}</strong><span>{humanSize(file.size)} • {pageCount} página(s) • {redactionCount} área(s) marcada(s)</span></div></div>
@@ -196,14 +196,14 @@ export default function RedactionPage() {
 
       <div className="redaction-layout">
         <div className="redaction-preview-card workspace-card">
-          <div className="redaction-instruction"><Info size={17}/><span><strong>Arraste sobre qualquer informação sensível.</strong> As áreas pretas são apenas a prévia; a remoção real acontece ao gerar o PDF redigido.</span></div>
+          <div className="redaction-instruction"><Info size={17}/><span><strong>Arraste sobre qualquer informação sensível.</strong> As áreas pretas são apenas a prévia; a remoção real acontece ao gerar o PDF com tarjas.</span></div>
           <div className="redaction-stage-shell">
             <div className={`redaction-stage ${loading ? 'loading' : ''}`} style={{ width: canvasSize.width || undefined, maxWidth: '100%' }}>
               <canvas ref={canvasRef}/>
               <div className="redaction-overlay" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={finishSelection} onPointerCancel={() => { startRef.current = null; setDraft(null) }}>
                 {currentRects.map((rect, index) => <div key={rect.id} className="redaction-box" style={{ left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.width * 100}%`, height: `${rect.height * 100}%` }}>
                   <span>{index + 1}</span>
-                  <button type="button" aria-label="Remover esta redação" title="Remover esta redação" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); removeRect(rect.id) }}>×</button>
+                  <button type="button" aria-label="Remover esta tarja" title="Remover esta tarja" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); removeRect(rect.id) }}>×</button>
                 </div>)}
                 {draft && <div className="redaction-box draft" style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%`, width: `${draft.width * 100}%`, height: `${draft.height * 100}%` }}/>} 
               </div>
@@ -212,18 +212,18 @@ export default function RedactionPage() {
         </div>
 
         <aside className="workspace-card redaction-options-card">
-          <h3>Redação segura</h3>
+          <h3>Tarja segura</h3>
           <div className="redaction-summary"><div><strong>{redactionCount}</strong><span>áreas</span></div><div><strong>{redactedPages}</strong><span>páginas</span></div><div><strong>{pageCount}</strong><span>total</span></div></div>
-          <label className="field-label">Qualidade das páginas redigidas</label>
+          <label className="field-label">Qualidade das páginas com tarja</label>
           <select value={dpi} onChange={event => setDpi(Number(event.target.value))} disabled={working}>
             <option value="150">Compacta — 150 DPI</option>
             <option value="200">Recomendada — 200 DPI</option>
             <option value="300">Alta — 300 DPI</option>
           </select>
-          <div className="redaction-rule"><CheckCircle2 size={18}/><div><strong>O conteúdo original é descartado</strong><span>Somente as páginas com redação são rasterizadas e reconstruídas. As demais páginas são preservadas.</span></div></div>
-          <div className="redaction-rule"><CheckCircle2 size={18}/><div><strong>Verificação automática</strong><span>Antes do download, a Lauda confirma que páginas redigidas não possuem camada de texto extraível.</span></div></div>
-          <div className="redaction-warning"><ShieldAlert size={18}/><div><strong>Atenção</strong><span>Páginas redigidas perdem texto selecionável, links, campos de formulário e anotações. Isso é intencional para impedir recuperação do conteúdo removido.</span></div></div>
-          <button className="primary-btn wide run-btn" onClick={run} disabled={!redactionCount || working}>{working ? 'Aplicando redação permanente…' : 'Aplicar redações permanentemente'}</button>
+          <div className="redaction-rule"><CheckCircle2 size={18}/><div><strong>O conteúdo original é descartado</strong><span>Somente as páginas com tarja são rasterizadas e reconstruídas. As demais páginas são preservadas.</span></div></div>
+          <div className="redaction-rule"><CheckCircle2 size={18}/><div><strong>Verificação automática</strong><span>Antes do download, a Lauda confirma que páginas com tarja não possuem camada de texto extraível.</span></div></div>
+          <div className="redaction-warning"><ShieldAlert size={18}/><div><strong>Atenção</strong><span>Páginas com tarja perdem texto selecionável, links, campos de formulário e anotações. Isso é intencional para impedir recuperação do conteúdo removido.</span></div></div>
+          <button className="primary-btn wide run-btn" onClick={run} disabled={!redactionCount || working}>{working ? 'Aplicando tarjas…' : 'Aplicar tarjas'}</button>
           <button className="secondary-btn wide" type="button" onClick={() => inputRef.current?.click()} disabled={working}><RotateCcw size={16}/> Trocar PDF</button>
           <input ref={inputRef} hidden type="file" accept=".pdf,application/pdf" onChange={event => selectFile(event.target.files?.[0] || null)}/>
         </aside>
@@ -231,7 +231,7 @@ export default function RedactionPage() {
     </>}
 
     {(working || progress > 0 || success || error) && <div className="progress-card redaction-progress-card">
-      <div className="progress-top"><div><strong>{success ? 'Redação concluída' : error ? 'Não foi possível concluir' : 'Aplicando redação permanente'}</strong><span>{error || status}</span></div><b>{progress}%</b></div>
+      <div className="progress-top"><div><strong>{success ? 'Tarjas aplicadas' : error ? 'Não foi possível concluir' : 'Aplicando tarjas'}</strong><span>{error || status}</span></div><b>{progress}%</b></div>
       <div className="progress-track"><div style={{ width: `${progress}%` }}/></div>
       {success && <div className="success-box"><Download size={20}/><span>{success}</span></div>}
       {error && <div className="error-box"><ShieldAlert size={20}/><span>{error}</span></div>}

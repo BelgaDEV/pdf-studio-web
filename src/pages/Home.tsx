@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
+import PlanCards from '../components/PlanCards'
 import { tools, type ToolId } from '../lib/tools'
 
 type HomeFilterId = 'all' | 'popular' | 'organize' | 'optimize' | 'convert' | 'edit' | 'security' | 'legal'
@@ -135,12 +136,8 @@ export default function Home(){
     </section>
 
     <section className="landing-section plans-section" id="planos">
-      <div className="landing-section-intro"><p className="kicker">DO USO RÁPIDO AO FLUXO PROFISSIONAL</p><h2>Use agora. Evolua com o produto.</h2><p>As ferramentas atuais já podem ser usadas no navegador. A estrutura de planos profissionais está em preparação e será publicada com preços e condições antes de qualquer cobrança.</p></div>
-      <div className="commercial-plan-grid">
-        <article><span className="plan-label">DISPONÍVEL AGORA</span><h3>PDF Essentials</h3><p>Para tarefas rápidas e documentos do dia a dia.</p><ul><li><Check/> Compressão e organização</li><li><Check/> Mesclar e dividir</li><li><Check/> Conversores essenciais</li></ul><Link to="/tool/compress">Começar agora <ArrowRight size={15}/></Link></article>
-        <article className="highlight"><span className="plan-label">PROFISSIONAL · EM PREPARAÇÃO</span><h3>Document Workflow</h3><p>Recursos avançados já disponíveis para experimentar, com modelo comercial ainda em definição.</p><ul><li><Check/> OCR e preparação documental</li><li><Check/> Redline e redação permanente</li><li><Check/> Presets, PDF/A e Trust Report</li></ul><Link to="/tool/prepare-document">Explorar recursos profissionais <ArrowRight size={15}/></Link></article>
-        <article><span className="plan-label">BUSINESS · EM PREPARAÇÃO</span><h3>Teams & Governance</h3><p>Direção futura para equipes que precisam de padrão, controle e distribuição corporativa.</p><ul><li><Check/> Presets organizacionais</li><li><Check/> Gestão e licenciamento</li><li><Check/> Distribuição corporativa</li></ul><Link to="/contact" className="plan-soon">Acompanhar evolução</Link></article>
-      </div>
+      <div className="landing-section-intro"><p className="kicker">PLANOS</p><h2>Comece grátis. Assine quando precisar de mais.</h2><p>O plano Básico não pede cadastro. O Premium libera as ferramentas jurídicas e tira os limites.</p></div>
+      <PlanCards/>
     </section>
 
     <section className="landing-cta">

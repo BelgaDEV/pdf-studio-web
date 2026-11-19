@@ -318,3 +318,49 @@ radial-gradient(circle at 85% 10%,rgba(36,224,122,.12),transparent 26rem),linear
 @media(max-width:850px){.public-info-grid{grid-template-columns:1fr}.footer-links{gap:9px 13px}.public-status-card h1{font-size:29px}}
 /* Marca Lauda: o logo é um SVG dentro de .brand-mark */
 .brand-mark{background:linear-gradient(135deg,var(--green),#8dffbf)!important;padding:0;overflow:hidden}.brand-mark svg rect{fill:transparent}.brand-mark svg{width:100%;height:100%;display:block}
+/* Conta e planos */
+.auth-page{display:flex;justify-content:center;padding:48px 20px 80px}
+.auth-card{width:100%;max-width:440px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:32px;display:flex;flex-direction:column;gap:18px}
+.auth-card-head{display:flex;align-items:center;gap:12px}.auth-card-head h1{margin:0;font-size:26px}
+.auth-icon{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(57,239,136,.12);color:var(--green)}
+.auth-lead{margin:0;color:#b3c2d5;line-height:1.6}
+.auth-form{display:flex;flex-direction:column;gap:14px}.auth-form label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:650;color:#c2d0e2}
+.auth-form input{background:#0b1724;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px 14px;color:#eef6ff;font-size:15px;min-height:44px}
+.auth-form input:focus{outline:2px solid var(--green);outline-offset:1px}
+.auth-form .primary-btn{min-height:46px}.auth-form .primary-btn:disabled{opacity:.6;cursor:wait}
+.auth-error{margin:0;color:#ffb4b4;background:rgba(255,80,80,.08);border:1px solid rgba(255,80,80,.25);border-radius:10px;padding:10px 12px;font-size:14px}
+.auth-notice{margin:0;display:flex;gap:8px;align-items:flex-start;color:#aaf4c8;background:rgba(57,239,136,.08);border:1px solid rgba(57,239,136,.22);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5}
+.auth-switch{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.auth-switch button,.auth-switch a{background:none;border:0;color:#aaf4c8;font-weight:650;font-size:14px;padding:8px 0;display:inline-flex;align-items:center;gap:6px}
+.auth-foot{margin:0;font-size:13px;color:#8fa1b8;line-height:1.5}.auth-foot a{color:#aaf4c8}
+.account-details{margin:0;display:flex;flex-direction:column;gap:12px}.account-details div{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.account-details dt{color:#8fa1b8;font-size:14px}.account-details dd{margin:0;font-weight:650;overflow-wrap:anywhere}
+.plan-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:13px;background:rgba(255,255,255,.08)}
+.plan-badge.plan-premium{background:rgba(226,176,74,.16);color:#f3cf86}
+.account-upgrade{border:1px solid rgba(226,176,74,.25);background:rgba(226,176,74,.06);border-radius:12px;padding:16px}
+.account-upgrade h2{margin:0 0 8px;font-size:17px;display:flex;align-items:center;gap:8px;color:#f3cf86}.account-upgrade p{margin:6px 0 0;color:#c2d0e2;font-size:14px;line-height:1.6}.account-upgrade a{color:#aaf4c8}
+.plan-gate{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:48px 24px}.plan-gate h1{margin:0;font-size:26px}.plan-gate p{margin:0;color:#b3c2d5;max-width:480px;line-height:1.6}
+.plan-gate-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+
+
+/* Planos: avisos e etiquetas do Premium */
+.premium-note{display:flex;align-items:flex-start;gap:9px;margin:12px 0;padding:11px 12px;border:1px solid rgba(226,176,74,.38);background:rgba(226,176,74,.08);border-radius:12px;color:#f3dcae;font-size:12.5px;line-height:1.45}
+.premium-note svg{flex:none;color:#e2b04a;margin-top:1px}
+.premium-note span{flex:1}
+.premium-note a{flex:none;color:#ffe3a3;font-weight:800;white-space:nowrap;text-decoration:underline;text-underline-offset:3px}
+.premium-badge{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:2px 6px;border-radius:999px;background:rgba(226,176,74,.16);color:#e2b04a;font-size:9.5px;font-weight:850;letter-spacing:.02em;vertical-align:middle}
+.mode-btn.locked{opacity:.78}
+.mode-btn.locked:hover{opacity:1}
+.plan-label{display:inline-flex;align-items:center;gap:5px}
+.plan-label svg{width:11px;height:11px}
+.plans-page-grid{max-width:1100px;margin:0 auto;padding:12px 0 56px}
+.plans-page-grid .commercial-plan-grid h3{font-size:22px}
+.plans-page-grid .commercial-plan-grid article>p{font-size:13px}
+.plans-page-grid .commercial-plan-grid li{font-size:12.5px}
+.plans-page-grid .commercial-plan-grid a{font-size:13px}
+.plans-page-grid .plan-label{font-size:9.5px}
+@media(max-width:700px){.premium-note{flex-wrap:wrap}.plans-page-grid{padding:8px 16px 40px}}
+.plan-price{display:flex;align-items:baseline;gap:6px;margin:2px 0 6px}
+.plan-price strong{font-size:24px;letter-spacing:-.02em;color:#eef6ff}
+.plan-price span{font-size:12px;color:#8298ad}
+.commercial-plan-grid article.highlight .plan-price strong{color:#8dffbf}
