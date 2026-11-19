@@ -13,3 +13,7 @@ The project also uses React, Vite, PDF.js, pdf-lib, JSZip, Mammoth, docx, Pillow
 ## Tesseract.js
 
 A v1.4 adiciona `tesseract.js` para OCR no navegador. Tesseract.js é distribuído sob licença Apache-2.0. Os modelos de idioma carregados pelo mecanismo podem ter seus próprios avisos/licenças; revise os artefatos efetivamente distribuídos antes de uma oferta comercial.
+
+## docx-preview
+
+Word → PDF uses `docx-preview` (https://github.com/VolodymyrBaydalka/docxjs), Copyright Volodymyr Baydalka, licensed under the Apache License 2.0. Shape and text-box rendering for DOCX files is implemented in-house (`src/lib/docxShapes.ts`).

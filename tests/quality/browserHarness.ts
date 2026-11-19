@@ -9,6 +9,7 @@ export type QualityCaseName =
   | 'protect'
   | 'pdfa'
   | 'word-to-pdf'
+  | 'pdf-to-word'
   | 'prepare'
   | 'ocr'
 
@@ -276,6 +277,50 @@ async function runPdfA(): Promise<Record<string, string | number | boolean>> {
   return { pages: 1, bytes: output.byteLength, pdfaMarkerVisible: /pdfaid:part|GTS_PDFA|OutputIntent/i.test(raw), structuralValidation: true }
 }
 
+/** PDF fictício no estilo de uma fatura: faixas coloridas, texto branco, tabela e texto pequeno. */
+export async function invoiceLikePdf(): Promise<Uint8Array> {
+  const doc = await PDFDocument.create()
+  const regular = await doc.embedFont(StandardFonts.Helvetica)
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  const page = doc.addPage([595, 842])
+  page.drawRectangle({ x: 0, y: 772, width: 595, height: 70, color: rgb(0.95, 0.55, 0.2) })
+  page.drawText('FATURA FICTICIA DE ENERGIA', { x: 40, y: 800, size: 18, font: bold, color: rgb(1, 1, 1) })
+  page.drawText('Documento de teste do Quality Gate', { x: 40, y: 782, size: 9, font: regular, color: rgb(1, 1, 1) })
+  page.drawRectangle({ x: 40, y: 690, width: 160, height: 50, color: rgb(0.1, 0.55, 0.55) })
+  page.drawText('TOTAL A PAGAR', { x: 52, y: 720, size: 9, font: bold, color: rgb(1, 1, 1) })
+  page.drawText('R$ 27,19', { x: 52, y: 700, size: 16, font: bold, color: rgb(1, 1, 1) })
+  page.drawText('VENCIMENTO 18/11/2026', { x: 230, y: 712, size: 11, font: bold, color: rgb(0.1, 0.1, 0.1) })
+  const rows = [['Custo de Disponibilidade', 'kWh', '80', '0,00'], ['Contrib Ilum Publica Municipal', '', '', '14,33'], ['ICMS da subvencao', '', '', '12,86']]
+  let y = 630
+  page.drawRectangle({ x: 40, y: y - 6, width: 515, height: 22, color: rgb(0.9, 0.9, 0.9) })
+  ;['Itens de fatura', 'Unid.', 'Quant.', 'Valor (R$)'].forEach((h, i) => page.drawText(h, { x: [48, 300, 370, 460][i], y, size: 9, font: bold, color: rgb(0.2, 0.2, 0.2) }))
+  for (const row of rows) {
+    y -= 24
+    page.drawLine({ start: { x: 40, y: y - 8 }, end: { x: 555, y: y - 8 }, thickness: 0.6, color: rgb(0.6, 0.6, 0.6) })
+    row.forEach((cell, i) => cell && page.drawText(cell, { x: [48, 300, 370, 460][i], y, size: 9, font: regular, color: rgb(0.1, 0.1, 0.1) }))
+  }
+  page.drawText('Consulte pela Chave de Acesso em dfe-portal.exemplo.gov.br', { x: 40, y: 480, size: 7, font: regular, color: rgb(0.3, 0.3, 0.3) })
+  return doc.save()
+}
+
+async function runPdfToWord(): Promise<Record<string, string | number | boolean>> {
+  const [{ pdfToWordLayout }, JSZip] = await Promise.all([import('/src/lib/pdfToWordLayout.ts'), import('jszip').then(m => m.default)])
+  const source = await invoiceLikePdf()
+  const blob = await pdfToWordLayout(toFile(source, 'fatura.pdf'), noopProgress)
+  assert(blob.size > 1000, 'PDF → Word gerou DOCX vazio.')
+  const zip = await JSZip.loadAsync(await blob.arrayBuffer())
+  const xml = await zip.file('word/document.xml')!.async('string')
+  for (const text of ['FATURA FICTICIA DE ENERGIA', 'TOTAL A PAGAR', 'R$ 27,19', 'Custo de Disponibilidade']) {
+    assert(xml.includes(text), `PDF → Word perdeu o texto: ${text}`)
+  }
+  const frames = (xml.match(/<w:framePr/g) || []).length
+  assert(frames >= 10, `PDF → Word deveria posicionar o texto em quadros; encontrou ${frames}.`)
+  assert(/behindDoc="1"/.test(xml), 'PDF → Word não colocou o fundo da página atrás do texto.')
+  assert(/w:color w:val="(ffffff|fefefe|fdfdfd)"/i.test(xml), 'PDF → Word não preservou o texto branco sobre a faixa colorida.')
+  assert(/<w:b\/>/.test(xml), 'PDF → Word não preservou o negrito.')
+  return { docxBytes: blob.size, frames, images: Object.keys(zip.files).filter(n => n.startsWith('word/media/')).length }
+}
+
 async function runWordToPdf(): Promise<Record<string, string | number | boolean>> {
   const [{ Document, Packer, Paragraph, TextRun }, { wordToPdf }] = await Promise.all([
     import('docx'),
@@ -296,7 +341,9 @@ async function runWordToPdf(): Promise<Record<string, string | number | boolean>
   assert(bytes.byteLength > 100, 'Word → PDF gerou saída vazia.')
   const pages = await pageCount(bytes)
   assert(pages >= 1, 'Word → PDF não produziu nenhuma página.')
-  return { pages, docxBytes: docxBlob.size, pdfBytes: bytes.byteLength }
+  const text = (await extractText(bytes, 'word.pdf')).toUpperCase().replace(/\s+/g, ' ')
+  assert(text.includes('QUALITY GATE WORD'), `Word → PDF não gerou texto selecionável: ${text.slice(0, 120)}`)
+  return { pages, docxBytes: docxBlob.size, pdfBytes: bytes.byteLength, selectableText: true }
 }
 
 async function runPrepare(): Promise<Record<string, string | number | boolean>> {
@@ -363,6 +410,7 @@ export async function runQualityCase(name: QualityCaseName): Promise<QualityCase
   else if (name === 'compare') details = await runCompare()
   else if (name === 'protect') details = await runProtect()
   else if (name === 'pdfa') details = await runPdfA()
+  else if (name === 'pdf-to-word') details = await runPdfToWord()
   else if (name === 'word-to-pdf') details = await runWordToPdf()
   else if (name === 'prepare') details = await runPrepare()
   else if (name === 'ocr') details = await runOcr()
