@@ -1,5 +1,8 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import PlanGate from '../components/PlanGate'
+import PremiumNote, { PremiumBadge } from '../components/PremiumNote'
+import { useAuth } from '../lib/auth'
+import { FREE_LIMITS, isPremiumCompression } from '../lib/plans'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Download, File, GripVertical, Info, LockKeyhole, UploadCloud, X } from 'lucide-react'
 import { tools, type ToolId } from '../lib/tools'
@@ -58,6 +61,9 @@ function ClassicToolPage(){
   const [success,setSuccess] = useState('')
   const [errorMessage,setErrorMessage] = useState('')
   const [mode,setMode] = useState<CompressionMode>('smart')
+  const { access } = useAuth()
+  const premium = access==='premium'
+  const [lockedMode,setLockedMode] = useState(false)
   const [splitMb,setSplitMb] = useState(10)
   const [wordMode,setWordMode] = useState<'layout'|'text'>('layout')
   const [targetMb,setTargetMb] = useState(10)
@@ -216,6 +222,7 @@ function ClassicToolPage(){
 
   async function run(){
     if(files.length===0) return
+    if(blockedByPlan) return
     setWorking(true); setSuccess(''); setErrorMessage(''); setProgress(0)
     if(toolId==='merge') setActivityLog([`Clique recebido. Iniciando ${files.length.toLocaleString('pt-BR')} PDF(s)…`])
     setStatus(toolId==='merge' ? `Preparando ${files.length.toLocaleString('pt-BR')} PDF(s)…` : 'Preparando processamento…')
@@ -260,7 +267,7 @@ function ClassicToolPage(){
             setSuccess(`O original foi preservado: ${humanSize(files[0].size)}. Tente uma meta maior ou outro perfil.`)
           }
         }else{
-          const result=await compressPdf(files[0],mode,update)
+          const result=await compressPdf(files[0],mode,update,{allowMaximum:premium})
           if (!result.bytes || result.bytes.byteLength < 100) {
             throw new Error('A compressão gerou um resultado vazio ou inválido. O download foi bloqueado para proteger seu PDF.')
           }
@@ -374,6 +381,8 @@ function ClassicToolPage(){
   const estimatedMinTargetMb=analysis?Math.max(0.5,(analysis.pages*7000+120000)/(1024*1024)):0.5
   const targetReduction=originalMb>0?Math.max(0,(1-targetMb/originalMb)*100):0
   const targetPresets=[5,10,20,25,50].filter(value=>value<originalMb-0.05 && value>=estimatedMinTargetMb)
+  const mergeOverLimit=toolId==='merge' && !premium && files.length>FREE_LIMITS.mergeFiles
+  const blockedByPlan=mergeOverLimit || (toolId==='compress' && !premium && isPremiumCompression(mode))
   const mergeTotalBytes=toolId==='merge'?files.reduce((sum,file)=>sum+file.size,0):0
   const mergeListIsCollapsed=toolId==='merge' && files.length>300 && !showAllMergeFiles
   const visibleFiles=mergeListIsCollapsed?files.slice(0,200):files
@@ -437,7 +446,11 @@ function ClassicToolPage(){
         <h3>Configurações</h3>
         {toolId==='compress' && <>
           <label className="field-label">Nível de compressão</label>
-          <div className="mode-grid">{(['smart','basic','medium','high','maximum','target'] as CompressionMode[]).map(m=><button key={m} className={`mode-btn ${mode===m?'active':''}`} onClick={()=>setMode(m)}>{m==='smart'?'Inteligente':m==='basic'?'Básico':m==='medium'?'Médio':m==='high'?'Alto':m==='maximum'?'Máximo':'Por tamanho'}</button>)}</div>
+          <div className="mode-grid">{(['smart','basic','medium','high','maximum','target'] as CompressionMode[]).map(m=>{
+            const locked=!premium && isPremiumCompression(m)
+            return <button key={m} className={`mode-btn ${mode===m?'active':''} ${locked?'locked':''}`} onClick={()=>{ if(locked){ setLockedMode(true); return } setLockedMode(false); setMode(m) }}>{m==='smart'?'Inteligente':m==='basic'?'Básico':m==='medium'?'Médio':m==='high'?'Alto':m==='maximum'?'Máximo':'Por tamanho'}{locked && <PremiumBadge/>}</button>
+          })}</div>
+          {lockedMode && <PremiumNote>Compressão máxima e comprimir para um tamanho em MB fazem parte do plano Premium. No Básico, use os níveis até Alto.</PremiumNote>}
           {mode==='target' && <div className="target-size-card">
             <div className="target-size-head"><div><strong>Comprimir para um tamanho</strong><span>O app tenta chegar até a meta preservando qualidade primeiro.</span></div><span className="target-badge">ALVO</span></div>
             <label className="field-label">Quero o PDF com até</label>
@@ -454,6 +467,7 @@ function ClassicToolPage(){
         {toolId==='pdf-word' && <><label className="field-label" htmlFor="word-mode">Formato do Word</label><select id="word-mode" value={wordMode} onChange={e=>setWordMode(e.target.value as 'layout'|'text')}><option value="layout">Manter layout (recomendado)</option><option value="text">Só texto (parágrafos corridos)</option></select><p className="warning-text">{wordMode==='layout'?'Mantém caixas, tabelas, cores, logotipos e QR codes. Cada linha de texto fica editável na posição original.':'Extrai apenas o texto, sem formatação, para reaproveitar em outro documento.'}</p></>}
         {toolId==='word-pdf' && <div className="beta-note"><strong>Conversão Beta</strong><span>Funciona 100% no navegador. Layouts complexos podem sofrer alterações.</span></div>}
         {toolId==='merge' && <>
+          {mergeOverLimit && <PremiumNote>No plano Básico você junta até {FREE_LIMITS.mergeFiles} arquivos por vez. Remova {files.length-FREE_LIMITS.mergeFiles} arquivo(s) ou assine o Premium para juntar sem limite.</PremiumNote>}
           <div className="merge-summary"><strong>Ordem final</strong><span>{files.length<2?'Adicione pelo menos 2 PDFs.':`${files.length.toLocaleString('pt-BR')} PDFs serão unidos de cima para baixo • ${humanSize(mergeTotalBytes)} no total.`}</span>{files.length>=100 && <span className="massive-merge-note">Modo seguro por lotes será ativado automaticamente. Os arquivos não serão enviados todos de uma vez para a memória.</span>}</div>
           <label className="toggle-row merge-bookmark-toggle">
             <input type="checkbox" checked={mergeBookmarks} onChange={e=>setMergeBookmarks(e.target.checked)} disabled={working}/>
@@ -491,7 +505,7 @@ function ClassicToolPage(){
           </>}
           {(mergeBookmarks||mergeToc) && mergeTotalBytes>220*1024*1024 && <p className="warning-text">Em resultados acima de ~220 MB, a versão web pode concluir a mesclagem sem aplicar índice/marcadores para evitar estouro de memória. O PDF mesclado continua sendo entregue normalmente.</p>}
         </>}
-        <button type="button" className="primary-btn wide run-btn" onClick={run} disabled={working||files.length===0}>{working?'Processando…':'Executar agora'}</button>
+        <button type="button" className="primary-btn wide run-btn" onClick={run} disabled={working||files.length===0||blockedByPlan}>{working?'Processando…':'Executar agora'}</button>
       </aside>
     </div>
 

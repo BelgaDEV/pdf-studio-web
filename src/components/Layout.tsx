@@ -74,6 +74,7 @@ export default function Layout(){
     else if(path==='/terms') meta=APP_META.terms
     else if(path==='/licenses') meta=APP_META.licenses
     else if(path==='/contact') meta=APP_META.contact
+    else if(path==='/planos') meta=APP_META.plans
     else if(path==='/entrar') meta=APP_META.login
     else if(path==='/conta') meta=APP_META.account
     else if(path==='/nova-senha') meta=APP_META.resetPassword
@@ -203,11 +204,12 @@ export default function Layout(){
             </div>
           </div>
           <Link className="topbar-compare-link" to="/tool/compare">Comparar PDF</Link>
+          <Link to="/planos">Planos</Link>
           <Link to="/faq">Ajuda</Link>
           <Link to={accountLink.to}>{accountLink.label}</Link>
           <Link className="topbar-cta" to="/tool/prepare-document">Preparar documento <ArrowRight size={15}/></Link>
         </>:<>
-          <Link to="/">Início</Link><Link to="/workflows">Workflows</Link><Link to="/faq">FAQ</Link><Link to="/roadmap">Roadmap</Link><Link to="/#privacidade">Privacidade</Link><Link to={accountLink.to}>{accountLink.label}</Link>
+          <Link to="/">Início</Link><Link to="/workflows">Workflows</Link><Link to="/faq">FAQ</Link><Link to="/planos">Planos</Link><Link to="/#privacidade">Privacidade</Link><Link to={accountLink.to}>{accountLink.label}</Link>
         </>}
       </nav>
       <button className="menu-btn" onClick={()=>setOpen(!open)} aria-label="Menu">{open?<X/>:<Menu/>}</button>
@@ -222,7 +224,7 @@ export default function Layout(){
         <a href="#ferramentas" onClick={()=>setOpen(false)}>Todas as ferramentas</a>
         <NavLink to="/tool/compare" onClick={()=>setOpen(false)}>Comparar PDF</NavLink>
         <a href="#privacidade" onClick={()=>setOpen(false)}>Privacidade</a>
-        <a href="#planos" onClick={()=>setOpen(false)}>Planos</a>
+        <NavLink to="/planos" onClick={()=>setOpen(false)}>Planos</NavLink>
         <NavLink to="/faq" onClick={()=>setOpen(false)}>FAQ / Ajuda</NavLink>
         <NavLink to="/tool/prepare-document" onClick={()=>setOpen(false)}>Preparar documento</NavLink>
         <NavLink to={accountLink.to} onClick={()=>setOpen(false)}>{accountLink.label}</NavLink>
@@ -230,13 +232,14 @@ export default function Layout(){
         <NavLink to="/" onClick={()=>setOpen(false)}>Início</NavLink>
         <NavLink to="/workflows" onClick={()=>setOpen(false)}>Workflows salvos</NavLink>
         <NavLink to="/faq" onClick={()=>setOpen(false)}>FAQ / Ajuda</NavLink>
+        <NavLink to="/planos" onClick={()=>setOpen(false)}>Planos</NavLink>
         <NavLink to="/roadmap" onClick={()=>setOpen(false)}>Roadmap</NavLink>
         {tools.map(t=><NavLink key={t.id} to={`/tool/${t.id}`} onClick={()=>setOpen(false)}>{t.title}</NavLink>)}
       </>}
     </div>}
     <main className="app-main"><Outlet/></main>
     <footer className="footer">
-      <div className="footer-identity"><div className="brand footer-brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#39ef88"/><path fill="#07111d" fillOpacity=".22" d="M41 0h8c8.3 0 15 6.7 15 15v8z"/><path fill="#07111d" d="M17 14h17v4.2h-4.6V45h12.4l1.6-6.2h4.4L46.6 50H17v-4.2h4.6V18.2H17z"/></svg></span><span>Lauda</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p><nav className="footer-links" aria-label="Informações públicas"><Link to="/privacy">Privacidade</Link><Link to="/terms">Termos</Link><Link to="/licenses">Licenças</Link><Link to="/contact">Contato</Link><Link to="/faq">Ajuda</Link></nav></div>
+      <div className="footer-identity"><div className="brand footer-brand"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#39ef88"/><path fill="#07111d" fillOpacity=".22" d="M41 0h8c8.3 0 15 6.7 15 15v8z"/><path fill="#07111d" d="M17 14h17v4.2h-4.6V45h12.4l1.6-6.2h4.4L46.6 50H17v-4.2h4.6V18.2H17z"/></svg></span><span>Lauda</span></div><p>Ferramentas PDF privadas, processadas no seu navegador.</p><nav className="footer-links" aria-label="Informações públicas"><Link to="/privacy">Privacidade</Link><Link to="/terms">Termos</Link><Link to="/licenses">Licenças</Link><Link to="/planos">Planos</Link><Link to="/contact">Contato</Link><Link to="/faq">Ajuda</Link></nav></div>
       <div className="footer-badges"><span><ShieldCheck size={16}/> Sem upload</span><span><LockKeyhole size={16}/> Processamento local</span><span>v{APP_VERSION}</span></div>
     </footer>
   </div>

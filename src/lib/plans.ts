@@ -13,14 +13,33 @@ export type Profile = {
   premium_until: string | null
 }
 
-/** Ferramentas que exigem conta ou Premium. As demais são livres para todos. */
+/**
+ * Plano Básico: grátis e sem cadastro. Plano Premium: ferramentas abaixo e
+ * sem os limites de FREE_LIMITS. As demais ferramentas são livres para todos.
+ */
 export const TOOL_ACCESS: Partial<Record<ToolId, AccessLevel>> = {
-  'tribunal-presets': 'account',
-  'prepare-document': 'account',
   redact: 'premium',
   compare: 'premium',
   pdfa: 'premium',
   'trust-report': 'premium',
+  'prepare-document': 'premium',
+  'tribunal-presets': 'premium',
+  batch: 'premium',
+}
+
+/** Limites do plano Básico dentro das ferramentas livres. */
+export const FREE_LIMITS = {
+  /** Arquivos por vez em Juntar PDF. */
+  mergeFiles: 10,
+  /** Páginas por documento no OCR. */
+  ocrPages: 10,
+} as const
+
+/** Modos de compressão exclusivos do Premium. */
+export const PREMIUM_COMPRESSION_MODES = ['maximum', 'target'] as const
+
+export function isPremiumCompression(mode: string): boolean {
+  return (PREMIUM_COMPRESSION_MODES as readonly string[]).includes(mode)
 }
 
 export function requiredAccess(toolId: string): AccessLevel {

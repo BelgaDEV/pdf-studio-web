@@ -19,6 +19,7 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const AccountPage = lazy(() => import('./pages/AccountPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
+const PlansPage = lazy(() => import('./pages/PlansPage'))
 
 function RouteFallback() {
   return <div className="route-loading" role="status" aria-live="polite">Carregando…</div>
@@ -42,6 +43,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <Route path="/contact" element={<ContactPage/>}/>
               <Route path="/entrar" element={<LoginPage/>}/>
               <Route path="/conta" element={<AccountPage/>}/>
+              <Route path="/planos" element={<PlansPage/>}/>
               <Route path="/nova-senha" element={<ResetPasswordPage/>}/>
               <Route path="/tool/:id" element={<ToolPage/>}/>
               <Route path="*" element={<NotFoundPage/>}/>

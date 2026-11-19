@@ -59,7 +59,12 @@ function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob>
   return new Promise((resolve, reject) => canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Falha ao converter página em JPEG.')), 'image/jpeg', quality))
 }
 
-export async function compressPdf(file: File, mode: CompressionMode, onProgress: ProgressFn) {
+export type CompressOptions = {
+  /** Plano Básico: o modo Inteligente não passa do nível Alto. */
+  allowMaximum?: boolean
+}
+
+export async function compressPdf(file: File, mode: CompressionMode, onProgress: ProgressFn, options: CompressOptions = {}) {
   onProgress(2, 'Analisando o documento…')
   if (mode === 'target') {
     throw new Error('Use compressPdfToTarget() para o modo Por tamanho.')
@@ -71,6 +76,7 @@ export async function compressPdf(file: File, mode: CompressionMode, onProgress:
     const { inspectPdf } = await import('./pdfPreview')
     analysis = await inspectPdf(file)
     selected = analysis.recommended
+    if (selected === 'maximum' && options.allowMaximum === false) selected = 'high'
     const label = selected === 'basic' ? 'Básico' : selected === 'medium' ? 'Médio' : selected === 'high' ? 'Alto' : 'Máximo'
     onProgress(6, `Modo Inteligente escolheu: ${label}`)
   }

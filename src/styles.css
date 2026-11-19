@@ -342,3 +342,21 @@ radial-gradient(circle at 85% 10%,rgba(36,224,122,.12),transparent 26rem),linear
 .plan-gate{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:48px 24px}.plan-gate h1{margin:0;font-size:26px}.plan-gate p{margin:0;color:#b3c2d5;max-width:480px;line-height:1.6}
 .plan-gate-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 
+
+/* Planos: avisos e etiquetas do Premium */
+.premium-note{display:flex;align-items:flex-start;gap:9px;margin:12px 0;padding:11px 12px;border:1px solid rgba(226,176,74,.38);background:rgba(226,176,74,.08);border-radius:12px;color:#f3dcae;font-size:12.5px;line-height:1.45}
+.premium-note svg{flex:none;color:#e2b04a;margin-top:1px}
+.premium-note span{flex:1}
+.premium-note a{flex:none;color:#ffe3a3;font-weight:800;white-space:nowrap;text-decoration:underline;text-underline-offset:3px}
+.premium-badge{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:2px 6px;border-radius:999px;background:rgba(226,176,74,.16);color:#e2b04a;font-size:9.5px;font-weight:850;letter-spacing:.02em;vertical-align:middle}
+.mode-btn.locked{opacity:.78}
+.mode-btn.locked:hover{opacity:1}
+.plan-label{display:inline-flex;align-items:center;gap:5px}
+.plan-label svg{width:11px;height:11px}
+.plans-page-grid{max-width:1100px;margin:0 auto;padding:12px 0 56px}
+.plans-page-grid .commercial-plan-grid h3{font-size:22px}
+.plans-page-grid .commercial-plan-grid article>p{font-size:13px}
+.plans-page-grid .commercial-plan-grid li{font-size:12.5px}
+.plans-page-grid .commercial-plan-grid a{font-size:13px}
+.plans-page-grid .plan-label{font-size:9.5px}
+@media(max-width:700px){.premium-note{flex-wrap:wrap}.plans-page-grid{padding:8px 16px 40px}}

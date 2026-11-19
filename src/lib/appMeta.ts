@@ -38,6 +38,10 @@ export const APP_META = {
     title: `Contato e suporte — ${APP_NAME}`,
     description: 'Orientações de suporte, diagnóstico e contato da Lauda.',
   },
+  plans: {
+    title: `Planos — ${APP_NAME}`,
+    description: 'Básico grátis e sem cadastro, Premium para advogados e escritórios, e plano para empresas.',
+  },
   login: {
     title: `Entrar — ${APP_NAME}`,
     description: 'Entre ou crie sua conta grátis na Lauda.',

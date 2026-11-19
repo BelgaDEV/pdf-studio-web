@@ -33,7 +33,9 @@ test('landing preserves privacy, redline and commercial sections', async ({ page
 
   await expect(page.locator('#legal-redline')).toContainText('Veja o que mudou')
   await expect(page.locator('#privacidade')).toContainText('Seu documento não precisa viajar')
-  await expect(page.locator('#planos')).toContainText('PROFISSIONAL')
+  await expect(page.locator('#planos')).toContainText('Básico')
+  await expect(page.locator('#planos')).toContainText('Premium')
+  await expect(page.locator('#planos')).toContainText('Empresas')
 })
 
 
