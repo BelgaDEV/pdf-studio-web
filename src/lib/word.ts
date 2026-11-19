@@ -3,7 +3,23 @@ import { nextFrame } from './files'
 
 export type ProgressFn = (value: number, message: string) => void
 
+/**
+ * Word → PDF. Usa o motor que preserva o layout (páginas, caixas de texto,
+ * tabelas, cabeçalho/rodapé e texto selecionável). Se ele falhar com algum
+ * documento, cai para a conversão simples baseada só no conteúdo.
+ */
 export async function wordToPdf(file: File, onProgress: ProgressFn) {
+  try {
+    const { wordToPdfLayout } = await import('./wordToPdfLayout')
+    return await wordToPdfLayout(file, onProgress)
+  } catch (error) {
+    console.warn('Conversão com layout falhou; usando a conversão simples.', error)
+    onProgress(5, 'Usando a conversão simples para este documento…')
+    return wordToPdfSimple(file, onProgress)
+  }
+}
+
+async function wordToPdfSimple(file: File, onProgress: ProgressFn) {
   onProgress(5, 'Carregando conversor Word…')
   const [{ default: mammoth }, { default: html2canvas }, { jsPDF }] = await Promise.all([
     import('mammoth/mammoth.browser'),
