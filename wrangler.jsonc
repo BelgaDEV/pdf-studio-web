@@ -18,7 +18,13 @@
     "SUPABASE_URL": "https://hiefflqyowttbleoilzr.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_uJ-yXRJ6IXJ4xPdFdSKKwg_TOk6rIir"
   },
-  "previews": {},
+  // Versões de teste (preview) não herdam "vars": repetimos aqui.
+  "previews": {
+    "vars": {
+      "SUPABASE_URL": "https://hiefflqyowttbleoilzr.supabase.co",
+      "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_uJ-yXRJ6IXJ4xPdFdSKKwg_TOk6rIir"
+    }
+  },
   "env": {
     "staging": {
       "name": "pdf-studio-web-staging",
