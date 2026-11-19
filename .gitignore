@@ -11,3 +11,7 @@ coverage/
 quality-results/
 tests/fixtures/private/*
 !tests/fixtures/private/.gitkeep
+
+# Segredos locais do Wrangler
+.dev.vars
+.wrangler/
