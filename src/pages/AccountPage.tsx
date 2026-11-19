@@ -107,10 +107,10 @@ export default function AccountPage() {
 
       {access === 'premium' && status === 'cancelled' && <div className="account-upgrade">
         <h2><Crown size={17}/> Assinatura cancelada</h2>
-        <p>Não haverá novas cobranças. Seu Premium continua{until ? ` até ${until}` : ''}.</p>
+        <p>Não haverá novas cobranças. Seu Premium continua{until ? ` até ${until}` : ''}. Depois dessa data, você pode assinar de novo aqui mesmo.</p>
       </div>}
 
-      {(access !== 'premium' || status === 'cancelled') && <form className="account-upgrade" onSubmit={subscribe}>
+      {access !== 'premium' && <form className="account-upgrade" onSubmit={subscribe}>
         <h2><Crown size={17}/> Premium · R$ 19,90 por mês</h2>
         <p>Libera {premiumTools.map(tool => tool.title).join(', ')}, além de compressão máxima e sem limites para juntar arquivos e fazer OCR.</p>
         <label className="field-label" htmlFor="payer-email">E-mail da sua conta Mercado Pago</label>
