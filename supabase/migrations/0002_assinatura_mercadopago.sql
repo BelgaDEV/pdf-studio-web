@@ -21,3 +21,7 @@ create unique index if not exists profiles_mp_preapproval_id_key
 
 -- O site lê as novas colunas pelo mesmo GRANT de leitura do próprio perfil.
 grant select on public.profiles to authenticated;
+
+-- O projeto foi criado sem "Grant API access automatically": a chave secreta
+-- (service_role), usada só pelo Worker, precisa de permissão explícita.
+grant select, update on public.profiles to service_role;

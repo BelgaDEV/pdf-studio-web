@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { APP_CONTACT_EMAIL } from '../lib/appMeta'
 import { FREE_LIMITS } from '../lib/plans'
 
-const premiumMail = `mailto:${APP_CONTACT_EMAIL}?subject=${encodeURIComponent('Quero o Lauda Premium')}`
 const businessMail = `mailto:${APP_CONTACT_EMAIL}?subject=${encodeURIComponent('Lauda para empresas')}&body=${encodeURIComponent('Empresa:\nNúmero de usuários:\nO que vocês precisam:\n')}`
 
 /** Os três planos da Lauda: Básico, Premium e Empresas. */
@@ -38,7 +37,7 @@ export default function PlanCards() {
         <li><Check/> Compressão máxima e para X MB</li>
         <li><Check/> Juntar e OCR sem limite</li>
       </ul>
-      <a href={premiumMail}>Quero o Premium <ArrowRight size={15}/></a>
+      <Link to="/conta">Assinar o Premium <ArrowRight size={15}/></Link>
     </article>
     <article>
       <span className="plan-label"><Building2 size={11}/> SOB CONSULTA</span>

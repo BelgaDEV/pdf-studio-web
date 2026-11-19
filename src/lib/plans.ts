@@ -11,6 +11,8 @@ export type Profile = {
   email: string | null
   plan: 'free' | 'premium'
   premium_until: string | null
+  /** Status da assinatura no Mercado Pago (pending, authorized, paused, cancelled). */
+  mp_status?: string | null
 }
 
 /**

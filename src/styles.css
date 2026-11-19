@@ -364,3 +364,17 @@ radial-gradient(circle at 85% 10%,rgba(36,224,122,.12),transparent 26rem),linear
 .plan-price strong{font-size:24px;letter-spacing:-.02em;color:#eef6ff}
 .plan-price span{font-size:12px;color:#8298ad}
 .commercial-plan-grid article.highlight .plan-price strong{color:#8dffbf}
+.account-upgrade .text-field{width:100%;box-sizing:border-box;margin-bottom:6px}
+.account-upgrade .primary-btn{margin-top:12px}
+.account-upgrade .secondary-btn{margin-top:6px}
+.account-hint{display:block;font-size:12px;color:#8fa3b8;line-height:1.5;margin-top:6px}
+.account-hint a{color:#bff9d4;font-weight:700}
+.spin{animation:lauda-spin 1s linear infinite}
+@keyframes lauda-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.cancel-confirm{margin-top:10px;padding:12px;border:1px solid rgba(228,79,98,.35);background:rgba(228,79,98,.07);border-radius:10px}
+.cancel-confirm p{margin:0 0 10px;color:#f1c9cf;font-size:13.5px}
+.cancel-confirm-actions{display:flex;flex-wrap:wrap;gap:8px}
+.cancel-confirm-actions .secondary-btn{margin-top:0}
+.danger-btn{border-radius:12px;padding:11px 15px;font-weight:800;border:1px solid #e44f62;background:#e44f62;color:#fff;cursor:pointer}
+.danger-btn:disabled{opacity:.5;cursor:not-allowed}

@@ -18,7 +18,7 @@ const AuthContext = createContext<AuthState | null>(null)
 
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const supabase = await getSupabase()
-  const { data, error } = await supabase.from('profiles').select('id,email,plan,premium_until').eq('id', userId).maybeSingle()
+  const { data, error } = await supabase.from('profiles').select('id,email,plan,premium_until,mp_status').eq('id', userId).maybeSingle()
   if (error) {
     console.warn('Não foi possível carregar o perfil.', error)
     return null
