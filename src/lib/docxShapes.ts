@@ -11,11 +11,13 @@
  */
 
 const EMU_PER_PX = 9525
+const TWIPS_PER_PX = 15
+const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 const MARK_START = ''
 const MARK_END = ''
 
-type Run = { text: string; bold: boolean; italic: boolean; underline: boolean; sizePt: number | null; color: string | null; font: string | null; br?: boolean }
-type Para = { align: string; runs: Run[] }
+type Run = { text: string; bold: boolean; italic: boolean; underline: boolean; sizePt: number | null; color: string | null; font: string | null; letterSpacingPx?: number; br?: boolean }
+type Para = { align: string; runs: Run[]; lineHeightPx?: number }
 
 export type ShapeSpec = {
   id: number
@@ -39,6 +41,8 @@ export type ShapeSpec = {
   rotation: number
   /** Ordem de empilhamento do Word (maior = mais à frente). */
   z: number
+  /** Quadro de texto (w:framePr): sem quebra de linha quando cabe numa linha só. */
+  frame?: { noWrap: boolean }
 }
 
 function children(el: Element, local: string): Element[] {
@@ -118,7 +122,9 @@ function parseRun(r: Element): Run[] {
   const sz = attr(child(rPr, 'sz'), 'val')
   const color = attr(child(rPr, 'color'), 'val')
   const font = attr(child(rPr, 'rFonts'), 'ascii')
+  const spacing = parseInt(attr(child(rPr, 'spacing'), 'val') ?? '', 10)
   const base = {
+    letterSpacingPx: Number.isFinite(spacing) && spacing ? spacing / TWIPS_PER_PX : undefined,
     bold: on('b'), italic: on('i'),
     underline: !!child(rPr, 'u') && attr(child(rPr, 'u'), 'val') !== 'none',
     sizePt: sz ? parseInt(sz, 10) / 2 : null,
@@ -135,15 +141,22 @@ function parseRun(r: Element): Run[] {
 }
 
 function parseParagraphs(container: Element): Para[] {
-  return children(container, 'p').map(p => {
+  return children(container, 'p').map(parseParagraph)
+}
+
+function parseParagraph(p: Element): Para {
+  {
     const jc = attr(child(child(p, 'pPr'), 'jc'), 'val') ?? 'left'
     const runs: Run[] = []
     for (const c of Array.from(p.children)) {
       if (c.localName === 'r') runs.push(...parseRun(c))
       else if (c.localName === 'hyperlink') children(c, 'r').forEach(r => runs.push(...parseRun(r)))
     }
-    return { align: jc === 'both' ? 'justify' : jc === 'center' ? 'center' : jc === 'right' || jc === 'end' ? 'right' : 'left', runs }
-  })
+    const spacing = child(child(p, 'pPr'), 'spacing')
+    const line = parseInt(attr(spacing, 'line') ?? '', 10)
+    const lineHeightPx = attr(spacing, 'lineRule') === 'exact' && Number.isFinite(line) ? line / TWIPS_PER_PX : undefined
+    return { lineHeightPx, align: jc === 'both' ? 'justify' : jc === 'center' ? 'center' : jc === 'right' || jc === 'end' ? 'right' : 'left', runs }
+  }
 }
 
 function emuToPx(value: string | null): number | null {
@@ -161,7 +174,8 @@ export async function extractShapes(buffer: ArrayBuffer): Promise<{ buffer: Arra
   const fonts = parseThemeFonts(themeXml)
   if (!docFile) return { buffer, shapes: [], fonts }
   const xml = await docFile.async('string')
-  if (!/wps:wsp|<wps:/.test(xml)) return { buffer, shapes: [], fonts }
+  const multiSection = (xml.match(/<w:sectPr[\s>]/g)?.length ?? 0) > 1
+  if (!multiSection && !/wps:wsp|<wps:|framePr/.test(xml)) return { buffer, shapes: [], fonts }
 
   const theme = parseTheme(themeXml)
   const doc = new DOMParser().parseFromString(xml, 'application/xml')
@@ -219,16 +233,130 @@ export async function extractShapes(buffer: ArrayBuffer): Promise<{ buffer: Arra
       if (e.localName === 'AlternateContent') { target = e; break }
       if (e.localName === 'p') break
     }
-    const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
-    const t = doc.createElementNS(W, 'w:t')
+    const t = doc.createElementNS(W_NS, 'w:t')
     t.setAttribute('xml:space', 'preserve')
     t.textContent = `${MARK_START}${spec.id}${MARK_END}`
     target.parentNode?.replaceChild(t, target)
   }
 
-  if (!shapes.length) return { buffer, shapes, fonts }
+  extractFrames(doc, shapes)
+  const breaks = markSectionBreaks(doc)
+
+  if (!shapes.length && !breaks) return { buffer, shapes, fonts }
   zip.file('word/document.xml', new XMLSerializer().serializeToString(doc))
   return { buffer: await zip.generateAsync({ type: 'arraybuffer' }), shapes, fonts }
+}
+
+function twips(el: Element | null, name: string): number | null {
+  const n = parseInt(attr(el, name) ?? '', 10)
+  return Number.isFinite(n) ? n / TWIPS_PER_PX : null
+}
+
+/**
+ * Parágrafos em quadro (w:framePr) ficam numa posição fixa da página. O
+ * docx-preview ignora o quadro e empilha o texto no topo; então cada quadro
+ * vira uma "forma" sem fundo nem borda, desenhada na posição certa. É o
+ * formato que o PDF → Word da Lauda (e outros conversores) usa.
+ */
+function extractFrames(doc: Document, shapes: ShapeSpec[]) {
+  const frames = Array.from(doc.getElementsByTagNameNS('*', 'framePr'))
+    .filter(f => f.parentElement?.localName === 'pPr' && f.parentElement.parentElement?.localName === 'p')
+    // Capitulares (dropCap) acompanham o texto e ficam como estão.
+    .filter(f => !attr(f, 'dropCap') || attr(f, 'dropCap') === 'none')
+  for (const framePr of frames) {
+    const p = framePr.parentElement!.parentElement!
+    // Só parágrafos soltos no corpo (não dentro de tabela ou caixa de texto).
+    if (p.parentElement?.localName !== 'body') continue
+    const para = parseParagraph(p)
+    if (!para.runs.some(r => r.text.trim())) continue
+    const rel = (anchor: string | null, fallback: string) => anchor === 'page' ? 'page' : anchor === 'margin' ? 'margin' : fallback
+    const xAlign = attr(framePr, 'xAlign')
+    const yAlign = attr(framePr, 'yAlign')
+    const widthPx = twips(framePr, 'w') ?? 0
+    const heightPx = twips(framePr, 'h') ?? 0
+    const line = para.lineHeightPx
+    const spec: ShapeSpec = {
+      id: shapes.length,
+      widthPx,
+      heightPx,
+      hRelative: rel(attr(framePr, 'hAnchor'), 'column'),
+      hOffsetPx: xAlign ? null : twips(framePr, 'x') ?? 0,
+      hAlign: xAlign,
+      vRelative: rel(attr(framePr, 'vAnchor'), 'paragraph'),
+      vOffsetPx: yAlign ? null : twips(framePr, 'y') ?? 0,
+      vAlign: yAlign,
+      behind: false,
+      inline: false,
+      fill: null,
+      stroke: null,
+      strokePx: 0,
+      radiusPx: 0,
+      paragraphs: [para],
+      insets: [0, 0, 0, 0],
+      vAnchor: 'top',
+      rotation: 0,
+      z: Number.MAX_SAFE_INTEGER,
+      // Uma linha exata do tamanho do quadro: o texto foi feito para caber numa linha só.
+      frame: { noWrap: !widthPx || (!!line && heightPx > 0 && heightPx <= line * 1.5) },
+    }
+    shapes.push(spec)
+
+    // O parágrafo vira um marcador que não ocupa altura no fluxo da página.
+    const el = (name: string, attrs: Record<string, string> = {}) => {
+      const e = doc.createElementNS(W_NS, name)
+      for (const [k, v] of Object.entries(attrs)) e.setAttributeNS(W_NS, k, v)
+      return e
+    }
+    const marker = el('w:p')
+    const pPr = el('w:pPr')
+    pPr.appendChild(el('w:spacing', { 'w:before': '0', 'w:after': '0', 'w:line': '1', 'w:lineRule': 'exact' }))
+    // O último parágrafo de cada seção guarda a quebra de seção (página): mantém.
+    const sectPr = child(framePr.parentElement, 'sectPr')
+    if (sectPr) pPr.appendChild(sectPr)
+    const r = el('w:r')
+    const rPr = el('w:rPr')
+    rPr.appendChild(el('w:sz', { 'w:val': '2' }))
+    const t = el('w:t')
+    t.setAttribute('xml:space', 'preserve')
+    t.textContent = `${MARK_START}${spec.id}${MARK_END}`
+    r.append(rPr, t)
+    marker.append(pPr, r)
+    p.parentNode!.replaceChild(marker, p)
+  }
+}
+
+/**
+ * Seção nova começa em página nova (padrão do Word), mas o docx-preview só
+ * quebra a página quando o tamanho muda. Marca o primeiro parágrafo de cada
+ * seção "próxima página" com pageBreakBefore. Devolve quantas quebras marcou.
+ */
+function markSectionBreaks(doc: Document): number {
+  const body = desc(doc.documentElement, 'body')
+  if (!body) return 0
+  const blocks = Array.from(body.children)
+  // sectPr de cada bloco que fecha uma seção (a última seção usa o sectPr do corpo).
+  const ends = blocks
+    .map((el, index) => ({ index, sectPr: el.localName === 'p' ? child(child(el, 'pPr'), 'sectPr') : null }))
+    .filter(e => e.sectPr)
+  const finalSect = child(body, 'sectPr')
+  let count = 0
+  ends.forEach((end, i) => {
+    // O tipo da quebra fica no sectPr da seção que começa.
+    const nextSect = ends[i + 1]?.sectPr ?? finalSect
+    const type = attr(child(nextSect, 'type'), 'val') ?? 'nextPage'
+    if (type === 'continuous') return
+    const next = blocks.slice(end.index + 1).find(el => el.localName === 'p' || el.localName === 'tbl')
+    if (!next || next.localName !== 'p') return
+    let pPr = child(next, 'pPr')
+    if (!pPr) { pPr = doc.createElementNS(W_NS, 'w:pPr'); next.insertBefore(pPr, next.firstChild) }
+    if (child(pPr, 'pageBreakBefore')) return
+    // pageBreakBefore vem logo depois de pStyle/keepNext/keepLines na ordem do schema.
+    const pbb = doc.createElementNS(W_NS, 'w:pageBreakBefore')
+    const after = Array.from(pPr.children).filter(c => ['pStyle', 'keepNext', 'keepLines'].includes(c.localName)).pop()
+    pPr.insertBefore(pbb, after ? after.nextSibling : pPr.firstChild)
+    count++
+  })
+  return count
 }
 
 /** Família com reservas: Aptos e outras fontes novas do Office não existem no navegador. */
@@ -262,7 +390,8 @@ function renderShape(spec: ShapeSpec, fonts: ThemeFonts): HTMLElement {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: spec.vAnchor === 'middle' ? 'center' : spec.vAnchor === 'bottom' ? 'flex-end' : 'flex-start',
-    overflow: 'hidden',
+    overflow: spec.frame ? 'visible' : 'hidden',
+    whiteSpace: spec.frame?.noWrap ? 'pre' : 'pre-wrap',
     zIndex: spec.behind ? '-1' : '2',
     transform: spec.rotation ? `rotate(${spec.rotation}deg)` : '',
     fontFamily: fontStack(fonts.minor),
@@ -274,6 +403,7 @@ function renderShape(spec: ShapeSpec, fonts: ThemeFonts): HTMLElement {
     const p = document.createElement('div')
     p.style.textAlign = para.align
     p.style.minHeight = '1em'
+    if (para.lineHeightPx) { p.style.lineHeight = pxStyle(para.lineHeightPx); p.style.minHeight = pxStyle(para.lineHeightPx) }
     for (const run of para.runs) {
       if (run.br) { p.appendChild(document.createElement('br')); continue }
       const span = document.createElement('span')
@@ -283,6 +413,7 @@ function renderShape(spec: ShapeSpec, fonts: ThemeFonts): HTMLElement {
       if (run.underline) span.style.textDecoration = 'underline'
       if (run.sizePt) span.style.fontSize = `${run.sizePt}pt`
       if (run.color) span.style.color = run.color
+      if (run.letterSpacingPx) span.style.letterSpacing = pxStyle(run.letterSpacingPx)
       if (run.font) span.style.fontFamily = fontStack(resolveFont(run.font, fonts))
       p.appendChild(span)
     }
