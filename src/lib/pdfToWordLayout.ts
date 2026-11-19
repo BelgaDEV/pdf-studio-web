@@ -104,14 +104,66 @@ function sampleTextColor(data: Uint8ClampedArray, w: number, h: number, x0: numb
   return bestDist < 60 ? '000000' : toHex(...best)
 }
 
+/** Letra desenhada na página: posição em pixels do canvas e avanço da fonte. */
+type Glyph = { text: string; x: number; y: number; advance: number }
+
+/** Registra cada letra que o PDF.js desenha (posição real, já com espaçamento). */
+function recordGlyphs(ctx: CanvasRenderingContext2D, glyphs: Glyph[]) {
+  const original = ctx.fillText.bind(ctx)
+  const record = (text: string, x: number, y: number, maxWidth?: number) => {
+    try {
+      const m = ctx.getTransform()
+      if (text.trim()) {
+        glyphs.push({
+          text,
+          x: m.a * x + m.c * y + m.e,
+          y: m.b * x + m.d * y + m.f,
+          advance: ctx.measureText(text).width * Math.hypot(m.a, m.b),
+        })
+      }
+    } catch { /* só diagnóstico de posição; desenho segue normal */ }
+    return maxWidth === undefined ? original(text, x, y) : original(text, x, y, maxWidth)
+  }
+  Object.defineProperty(ctx, 'fillText', { value: record, configurable: true, writable: true })
+}
+
+/** "A p r e s e n t a d o p o r" / "E M": letras isoladas por espaços simples. */
+function isLetterSpaced(str: string): boolean {
+  return /^(\S ){2,}\S$/.test(str) || /^\p{Lu} \p{Lu}$/u.test(str)
+}
+
+/**
+ * Texto com letras espaçadas: o PDF.js põe um espaço entre todas as letras e
+ * o espaço entre palavras some. Pelas posições reais das letras, o espaço
+ * entre palavras é uma folga bem maior que a das letras. Sem posições,
+ * junta as letras (o espaçamento volta pelo ajuste de largura).
+ */
+function respace(item: RawItem, glyphs: Glyph[], scale: number): string {
+  const letters = item.str.replace(/ /g, '')
+  const left = item.x * scale - item.size * scale * 0.3
+  const right = (item.x + item.width) * scale + item.size * scale * 0.3
+  const baseline = item.baseline * scale
+  const found = glyphs
+    .filter(g => g.x >= left && g.x <= right && Math.abs(g.y - baseline) < item.size * scale * 0.35)
+    .sort((a, b) => a.x - b.x)
+  // O canvas recebe códigos internos da fonte (não o texto): casa pela quantidade e ordem.
+  const chars = Array.from(letters)
+  if (found.length !== chars.length || found.length < 2) return letters
+  const gaps = found.slice(1).map((g, i) => g.x - (found[i].x + found[i].advance))
+  const sorted = [...gaps].sort((a, b) => a - b)
+  const median = sorted[Math.floor(sorted.length / 2)]
+  const threshold = median + item.size * scale * 0.18
+  return chars.map((ch, i) => (i > 0 && gaps[i - 1] > threshold ? ' ' : '') + ch).join('')
+}
+
 /** Junta trechos vizinhos na mesma linha com a mesma fonte. */
-function mergeItems(items: RawItem[]): RawItem[] {
+function mergeItems(items: RawItem[], glyphs: Glyph[] = [], scale = 1): RawItem[] {
   const sorted = [...items].sort((a, b) => (Math.abs(a.baseline - b.baseline) < Math.max(a.size, b.size) * 0.35 ? a.x - b.x : a.baseline - b.baseline))
   const out: RawItem[] = []
   for (const original of sorted) {
-    // Texto com letras espaçadas ("E S C R I T Ó R I O"): o PDF.js insere espaços
-    // entre as letras; removemos, e o espaçamento volta pelo ajuste de largura.
-    const item = /^(\S ){2,}\S$/.test(original.str) ? { ...original, str: original.str.replace(/ /g, '') } : original
+    // Texto com letras espaçadas ("E S C R I T Ó R I O"): tira os espaços que o
+    // PDF.js inseriu entre as letras; o espaçamento volta pelo ajuste de largura.
+    const item = isLetterSpaced(original.str) ? { ...original, str: respace(original, glyphs, scale) } : original
     const last = out[out.length - 1]
     if (last
       && last.fontName === item.fontName
@@ -226,6 +278,8 @@ export async function pdfToWordLayout(file: File, onProgress: ProgressFn): Promi
       }
       // Página completa: usada para descobrir a cor de cada texto.
       const full = newCanvas()
+      const glyphs: Glyph[] = []
+      recordGlyphs(full.context, glyphs)
       await page.render({ canvasContext: full.context, viewport, canvas: full.c } as any).promise
       // Página sem texto: vira o fundo do Word (preserva sublinhados e linhas).
       const { c: canvas, context: ctx } = newCanvas()
@@ -249,7 +303,7 @@ export async function pdfToWordLayout(file: File, onProgress: ProgressFn): Promi
       full.c.width = 1
       full.c.height = 1
       const lines: TextLine[] = []
-      for (const item of mergeItems(raw)) {
+      for (const item of mergeItems(raw, glyphs, RENDER_SCALE)) {
         const s = RENDER_SCALE
         const x0 = Math.floor(item.x * s) - 1
         const y0 = Math.floor((item.baseline - item.size * 0.9) * s) - 1
