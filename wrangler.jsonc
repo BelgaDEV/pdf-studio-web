@@ -1,12 +1,22 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "pdf-studio-web",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-10-06",
   "workers_dev": true,
   "preview_urls": true,
+  // O site é servido direto dos assets; só /api/* passa pelo Worker (assinatura).
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  // Valores públicos. Os segredos (MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET,
+  // SUPABASE_SECRET_KEY) ficam só no painel da Cloudflare.
+  "vars": {
+    "SUPABASE_URL": "https://hiefflqyowttbleoilzr.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_uJ-yXRJ6IXJ4xPdFdSKKwg_TOk6rIir"
   },
   "previews": {},
   "env": {
@@ -16,7 +26,13 @@
       "preview_urls": true,
       "assets": {
         "directory": "./dist",
-        "not_found_handling": "single-page-application"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*"]
+      },
+      "vars": {
+        "SUPABASE_URL": "https://hiefflqyowttbleoilzr.supabase.co",
+        "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_uJ-yXRJ6IXJ4xPdFdSKKwg_TOk6rIir"
       }
     },
     "production": {
@@ -25,7 +41,13 @@
       "preview_urls": true,
       "assets": {
         "directory": "./dist",
-        "not_found_handling": "single-page-application"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*"]
+      },
+      "vars": {
+        "SUPABASE_URL": "https://hiefflqyowttbleoilzr.supabase.co",
+        "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_uJ-yXRJ6IXJ4xPdFdSKKwg_TOk6rIir"
       }
     }
   }
