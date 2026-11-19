@@ -28,9 +28,9 @@ export default function AccountPage() {
         <div><dt>Plano</dt><dd><span className={`plan-badge plan-${access}`}>{access === 'premium' && <Crown size={13}/>}{ACCESS_LABEL[access]}</span>{until && <small> até {until}</small>}</dd></div>
       </dl>
       {access !== 'premium' && <div className="account-upgrade">
-        <h2><Crown size={17}/> Premium</h2>
-        <p>Libera {premiumTools.map(tool => tool.title).join(', ')}.</p>
-        <p>A assinatura online está chegando. Para participar do lançamento, escreva para <a href={`mailto:${APP_CONTACT_EMAIL}?subject=Quero%20o%20Lauda%20Premium`}>{APP_CONTACT_EMAIL}</a>.</p>
+        <h2><Crown size={17}/> Premium · R$ 19,90 por mês</h2>
+        <p>Libera {premiumTools.map(tool => tool.title).join(', ')}, além de compressão máxima e sem limites para juntar arquivos e fazer OCR.</p>
+        <p>A assinatura online está chegando. Para assinar agora, escreva para <a href={`mailto:${APP_CONTACT_EMAIL}?subject=Quero%20o%20Lauda%20Premium`}>{APP_CONTACT_EMAIL}</a>. <Link to="/planos">Comparar planos</Link></p>
       </div>}
       <div className="auth-switch">
         <Link to="/">Ir para as ferramentas</Link>

@@ -64,6 +64,6 @@ export function canAccess(user: AccessLevel, required: AccessLevel): boolean {
 
 export const ACCESS_LABEL: Record<AccessLevel, string> = {
   visitor: 'Visitante',
-  account: 'Conta grátis',
+  account: 'Básico',
   premium: 'Premium',
 }
