@@ -14,6 +14,7 @@ export default function AccountPage() {
   const [busy, setBusy] = useState<'' | 'checkout' | 'cancel' | 'sync'>('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [confirmCancel, setConfirmCancel] = useState(false)
   const returnHandled = useRef(false)
 
   useEffect(() => { ensureLoaded() }, [ensureLoaded])
@@ -68,7 +69,7 @@ export default function AccountPage() {
   }
 
   async function cancel() {
-    if (!window.confirm(`Cancelar a renovação automática do Premium?${until ? ` Você continua com o Premium até ${until}.` : ''}`)) return
+    setConfirmCancel(false)
     setError(''); setNotice(''); setBusy('cancel')
     try {
       await cancelPremium()
@@ -93,7 +94,15 @@ export default function AccountPage() {
       {access === 'premium' && renewing && <div className="account-upgrade">
         <h2><Crown size={17}/> Assinatura ativa</h2>
         <p>R$ 19,90 por mês, renovada automaticamente pelo Mercado Pago. Você pode cancelar quando quiser; o Premium continua até o fim do período já pago.</p>
-        <button type="button" className="secondary-btn" onClick={cancel} disabled={!!busy}>{busy === 'cancel' ? 'Cancelando…' : 'Cancelar assinatura'}</button>
+        {!confirmCancel
+          ? <button type="button" className="secondary-btn" onClick={() => setConfirmCancel(true)} disabled={!!busy}>{busy === 'cancel' ? 'Cancelando…' : 'Cancelar assinatura'}</button>
+          : <div className="cancel-confirm" role="group" aria-label="Confirmar cancelamento">
+              <p>Cancelar a renovação automática?{until ? ` Você continua com o Premium até ${until}.` : ''}</p>
+              <div className="cancel-confirm-actions">
+                <button type="button" className="danger-btn" onClick={cancel} disabled={!!busy}>Sim, cancelar</button>
+                <button type="button" className="secondary-btn" onClick={() => setConfirmCancel(false)} disabled={!!busy}>Manter assinatura</button>
+              </div>
+            </div>}
       </div>}
 
       {access === 'premium' && status === 'cancelled' && <div className="account-upgrade">
