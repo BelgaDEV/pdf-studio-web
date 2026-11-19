@@ -34,6 +34,8 @@ export interface Env {
   SUPABASE_SECRET_KEY?: string
   MP_ACCESS_TOKEN?: string
   MP_WEBHOOK_SECRET?: string
+  /** Só nas versões de teste: o Pix de teste precisa de um comprador de teste do Mercado Pago. */
+  MP_TEST_PAYER_EMAIL?: string
 }
 
 const MP_API = 'https://api.mercadopago.com'
@@ -213,7 +215,7 @@ async function startPix(request: Request, env: Env): Promise<Response> {
   const payment = await mercadoPago<PixPayment>(mpToken, '/v1/payments', {
     method: 'POST',
     headers: { 'x-idempotency-key': crypto.randomUUID() },
-    body: JSON.stringify(buildPixPaymentBody({ userId: user.id, payerEmail: email, period })),
+    body: JSON.stringify(buildPixPaymentBody({ userId: user.id, payerEmail: env.MP_TEST_PAYER_EMAIL || email, period })),
   })
   const data = payment.point_of_interaction?.transaction_data
   if (!data?.qr_code) throw new HttpError(502, 'O Mercado Pago não devolveu o código do Pix.')

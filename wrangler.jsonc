@@ -22,7 +22,9 @@
   "previews": {
     "vars": {
       "SUPABASE_URL": "https://hiefflqyowttbleoilzr.supabase.co",
-      "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_uJ-yXRJ6IXJ4xPdFdSKKwg_TOk6rIir"
+      "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_uJ-yXRJ6IXJ4xPdFdSKKwg_TOk6rIir",
+      // Comprador de teste do Mercado Pago (só versões de teste).
+      "MP_TEST_PAYER_EMAIL": "test_user_6756952274669757140@testuser.com"
     }
   },
   "env": {
